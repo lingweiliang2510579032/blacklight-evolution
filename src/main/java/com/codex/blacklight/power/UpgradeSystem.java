@@ -1,0 +1,57 @@
+package com.codex.blacklight.power;
+
+import com.codex.blacklight.BlacklightNeoMod;
+import com.codex.blacklight.registry.ModAttachments;
+import com.codex.blacklight.state.BlacklightState;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+
+/** Server-authoritative upgrade purchases driven by the upgrade panel. */
+public final class UpgradeSystem {
+    private UpgradeSystem() {
+    }
+
+    public static void purchase(ServerPlayer player, String upgradeId) {
+        BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
+        ClawUpgrade claw = ClawUpgrade.byId(upgradeId);
+        if (claw != null) {
+            if (!state.buyClawUpgrade(claw)) {
+                deny(player, upgradeId, claw.epCost());
+                return;
+            }
+            confirm(player, state, upgradeId);
+            return;
+        }
+        MovementUpgrade movement = MovementUpgrade.byId(upgradeId);
+        if (movement == null) {
+            BlacklightNeoMod.LOGGER.warn("Unknown upgrade id {} from {}",
+                    upgradeId, player.getGameProfile().getName());
+            return;
+        }
+        if (!state.buyMovementUpgrade(movement)) {
+            deny(player, upgradeId, movement.epCost());
+            return;
+        }
+        confirm(player, state, upgradeId);
+    }
+
+    private static void confirm(ServerPlayer player, BlacklightState state, String upgradeId) {
+        player.setData(ModAttachments.PLAYER_STATE, state);
+        player.syncData(ModAttachments.PLAYER_STATE);
+        player.displayClientMessage(Component.translatable(
+                "message.blacklight.upgrade_purchased",
+                Component.translatable("upgrade.blacklight." + upgradeId)), true);
+        player.level().playSound(null, player.blockPosition(),
+                SoundEvents.SCULK_CATALYST_BLOOM, SoundSource.PLAYERS, 0.65F, 0.94F);
+        BlacklightNeoMod.LOGGER.debug("Upgrade {} purchased by {} (EP left {})",
+                upgradeId, player.getGameProfile().getName(), state.getEvolutionPoints());
+    }
+
+    private static void deny(ServerPlayer player, String upgradeId, int epCost) {
+        player.displayClientMessage(Component.translatable(
+                "message.blacklight.upgrade_denied",
+                Component.translatable("upgrade.blacklight." + upgradeId), epCost), true);
+    }
+}

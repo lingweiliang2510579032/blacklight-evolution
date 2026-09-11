@@ -1,0 +1,15 @@
+{
+  "targets": ["blacklight_swap"],
+  "passes": [
+    {
+      "name": "blacklight:prototype_speed",
+      "intarget": "minecraft:main",
+      "outtarget": "blacklight_swap"
+    },
+    {
+      "name": "blit",
+      "intarget": "blacklight_swap",
+      "outtarget": "minecraft:main"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+package com.codex.blacklight;
+
+import com.codex.blacklight.command.BlacklightCommands;
+import com.codex.blacklight.combat.ClawCombatSystem;
+import com.codex.blacklight.infection.BlacklightInfectionSystem;
+import com.codex.blacklight.network.ModNetwork;
+import com.codex.blacklight.movement.LandingDebrisSystem;
+import com.codex.blacklight.movement.PrototypeMovementSystem;
+import com.codex.blacklight.mode.PrototypeSurvivalLock;
+import com.codex.blacklight.mode.PrototypeModeSystem;
+import com.codex.blacklight.registry.ModAttachments;
+import com.codex.blacklight.registry.ModEntities;
+import com.codex.blacklight.registry.ModEffects;
+import com.codex.blacklight.registry.ModItems;
+import com.codex.blacklight.registry.ModParticles;
+import com.mojang.logging.LogUtils;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.common.NeoForge;
+import org.slf4j.Logger;
+
+@Mod(BlacklightNeoMod.MOD_ID)
+public final class BlacklightNeoMod {
+    public static final String MOD_ID = "blacklight";
+    public static final Logger LOGGER = LogUtils.getLogger();
+
+    public BlacklightNeoMod(IEventBus modBus, ModContainer container) {
+        ModAttachments.register(modBus);
+        ModEntities.register(modBus);
+        ModEffects.register(modBus);
+        ModItems.register(modBus);
+        ModParticles.register(modBus);
+        modBus.addListener(ModNetwork::register);
+        NeoForge.EVENT_BUS.register(BlacklightCommands.class);
+        NeoForge.EVENT_BUS.register(ClawCombatSystem.class);
+        NeoForge.EVENT_BUS.register(PrototypeMovementSystem.class);
+        NeoForge.EVENT_BUS.register(LandingDebrisSystem.class);
+        NeoForge.EVENT_BUS.register(PrototypeSurvivalLock.class);
+        NeoForge.EVENT_BUS.register(PrototypeModeSystem.class);
+        NeoForge.EVENT_BUS.register(BlacklightInfectionSystem.class);
+        NeoForge.EVENT_BUS.register(ModNetwork.class);
+        LOGGER.info("Blacklight Evolution initialized with Epic Fight player actions and GeckoLib morph overlays");
+    }
+}

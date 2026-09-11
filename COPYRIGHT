@@ -1,0 +1,12 @@
+Blacklight Evolution
+Copyright (C) 2026 mengyuyuan and contributors
+
+Unless a file or third-party notice states otherwise, the original code,
+documentation, models and authored animations in this repository are licensed
+under the GNU General Public License version 3 (GPL-3.0-only).
+See LICENSE for the full terms.
+
+Third-party components retain their respective licenses and attribution.
+See TEMPLATE_LICENSE.txt, THIRD_PARTY_NOTICES.md, THIRD_PARTY_ASSETS.md,
+and src/main/resources/META-INF/third-party/.
+Epic Fight reference assets are not bundled or relicensed by this project.

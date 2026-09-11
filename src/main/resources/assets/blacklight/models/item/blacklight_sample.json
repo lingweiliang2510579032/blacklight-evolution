@@ -1,0 +1,98 @@
+{
+  "credit": "Blacklight virus ampoule - Codex",
+  "ambientocclusion": false,
+  "gui_light": "front",
+  "textures": {
+    "glass": "minecraft:block/glass",
+    "virus": "blacklight:item/biomass",
+    "metal": "minecraft:block/polished_blackstone",
+    "particle": "blacklight:item/biomass"
+  },
+  "elements": [
+    {
+      "from": [5, 2, 5], "to": [11, 9, 11],
+      "faces": {
+        "north": {"uv": [2, 2, 8, 9], "texture": "#virus"},
+        "east": {"uv": [2, 2, 8, 9], "texture": "#virus"},
+        "south": {"uv": [2, 2, 8, 9], "texture": "#virus"},
+        "west": {"uv": [2, 2, 8, 9], "texture": "#virus"},
+        "up": {"uv": [2, 2, 8, 8], "texture": "#virus"},
+        "down": {"uv": [2, 2, 8, 8], "texture": "#virus"}
+      }
+    },
+    {
+      "from": [4.35, 1, 4.35], "to": [11.65, 2, 11.65],
+      "faces": {
+        "north": {"texture": "#glass"}, "east": {"texture": "#glass"},
+        "south": {"texture": "#glass"}, "west": {"texture": "#glass"},
+        "up": {"texture": "#glass"}, "down": {"texture": "#glass"}
+      }
+    },
+    {
+      "from": [4.35, 2, 4.35], "to": [5, 9.5, 5],
+      "faces": {"north":{"texture":"#glass"},"east":{"texture":"#glass"},"south":{"texture":"#glass"},"west":{"texture":"#glass"},"up":{"texture":"#glass"},"down":{"texture":"#glass"}}
+    },
+    {
+      "from": [11, 2, 4.35], "to": [11.65, 9.5, 5],
+      "faces": {"north":{"texture":"#glass"},"east":{"texture":"#glass"},"south":{"texture":"#glass"},"west":{"texture":"#glass"},"up":{"texture":"#glass"},"down":{"texture":"#glass"}}
+    },
+    {
+      "from": [4.35, 2, 11], "to": [5, 9.5, 11.65],
+      "faces": {"north":{"texture":"#glass"},"east":{"texture":"#glass"},"south":{"texture":"#glass"},"west":{"texture":"#glass"},"up":{"texture":"#glass"},"down":{"texture":"#glass"}}
+    },
+    {
+      "from": [11, 2, 11], "to": [11.65, 9.5, 11.65],
+      "faces": {"north":{"texture":"#glass"},"east":{"texture":"#glass"},"south":{"texture":"#glass"},"west":{"texture":"#glass"},"up":{"texture":"#glass"},"down":{"texture":"#glass"}}
+    },
+    {
+      "from": [4.35, 9, 4.35], "to": [11.65, 10, 11.65],
+      "faces": {
+        "north": {"texture": "#glass"}, "east": {"texture": "#glass"},
+        "south": {"texture": "#glass"}, "west": {"texture": "#glass"},
+        "up": {"texture": "#glass"}, "down": {"texture": "#glass"}
+      }
+    },
+    {
+      "from": [6.4, 9.5, 6.4], "to": [9.6, 13.25, 9.6],
+      "faces": {
+        "north": {"texture": "#glass"}, "east": {"texture": "#glass"},
+        "south": {"texture": "#glass"}, "west": {"texture": "#glass"},
+        "up": {"texture": "#glass"}, "down": {"texture": "#glass"}
+      }
+    },
+    {
+      "from": [5.65, 12.75, 5.65], "to": [10.35, 15, 10.35],
+      "faces": {
+        "north": {"texture": "#metal"}, "east": {"texture": "#metal"},
+        "south": {"texture": "#metal"}, "west": {"texture": "#metal"},
+        "up": {"texture": "#metal"}, "down": {"texture": "#metal"}
+      }
+    },
+    {
+      "from": [5.25, 9.25, 4.15], "to": [10.75, 10.25, 11.85],
+      "faces": {
+        "north": {"texture": "#virus"}, "east": {"texture": "#virus"},
+        "south": {"texture": "#virus"}, "west": {"texture": "#virus"},
+        "up": {"texture": "#virus"}, "down": {"texture": "#virus"}
+      }
+    },
+    {
+      "from": [7.45, 2.25, 4.6], "to": [8.55, 8.75, 11.4],
+      "rotation": {"origin": [8, 5.5, 8], "axis": "y", "angle": 45},
+      "faces": {
+        "north": {"texture": "#virus"}, "east": {"texture": "#virus"},
+        "south": {"texture": "#virus"}, "west": {"texture": "#virus"},
+        "up": {"texture": "#virus"}, "down": {"texture": "#virus"}
+      }
+    }
+  ],
+  "display": {
+    "thirdperson_righthand": {"rotation": [15, 0, 8], "translation": [0, 2.2, 0.5], "scale": [0.72, 0.72, 0.72]},
+    "thirdperson_lefthand": {"rotation": [15, 0, -8], "translation": [0, 2.2, 0.5], "scale": [0.72, 0.72, 0.72]},
+    "firstperson_righthand": {"rotation": [0, -18, 7], "translation": [1.2, 2.5, 0], "scale": [0.84, 0.84, 0.84]},
+    "firstperson_lefthand": {"rotation": [0, 18, -7], "translation": [1.2, 2.5, 0], "scale": [0.84, 0.84, 0.84]},
+    "gui": {"rotation": [25, 42, 0], "translation": [0, 0.5, 0], "scale": [0.9, 0.9, 0.9]},
+    "ground": {"translation": [0, 2.8, 0], "scale": [0.58, 0.58, 0.58]},
+    "fixed": {"rotation": [0, 180, 0], "scale": [0.85, 0.85, 0.85]}
+  }
+}
