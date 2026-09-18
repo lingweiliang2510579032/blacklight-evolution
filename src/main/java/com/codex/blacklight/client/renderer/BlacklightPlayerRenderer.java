@@ -25,6 +25,14 @@ public final class BlacklightPlayerRenderer extends PPlayerRenderer {
                                 AbstractClientPlayerPatch<AbstractClientPlayer> entityPatch,
                                 PlayerRenderer renderer) {
         super.prepareModel(mesh, player, entityPatch, renderer);
+        var state = player.getData(ModAttachments.PLAYER_STATE);
+        var form = state.getActivePower();
+        boolean weapon = state.isPrototypeMode() && (form == PowerForm.HAMMERFISTS || form == PowerForm.BLADE || form == PowerForm.WHIPFIST);
+        if (weapon) {
+            mesh.rightArm.setHidden(true); mesh.rightSleeve.setHidden(true);
+            if (form == PowerForm.HAMMERFISTS) { mesh.leftArm.setHidden(true); mesh.leftSleeve.setHidden(true); }
+            return;
+        }
         float morphProgress = ClawTransformSettings.preview()
                 ? 1.0F : ClawMorphTracker.progress(player, 0.0F);
         if (morphProgress < 0.72F) return;

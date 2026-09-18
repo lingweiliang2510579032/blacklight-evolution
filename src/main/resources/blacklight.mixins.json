@@ -5,7 +5,11 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "client.KeyboardInputMixin",
-    "client.LocalPlayerMixin"
+    "client.LocalPlayerMixin",
+    "client.AgeableModelAccessor",
+    "client.LivingConsumePoseMixin",
+    "client.EpicConsumePoseMixin",
+    "client.ConsumeLayerPoseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

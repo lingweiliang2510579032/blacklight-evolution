@@ -45,6 +45,9 @@ import yesman.epicfight.world.capabilities.EpicFightCapabilities;
 @EventBusSubscriber(modid = BlacklightNeoMod.MOD_ID, value = Dist.CLIENT)
 public final class ClientClawEvents {
     private static final String CATEGORY = "key.categories.blacklight";
+    private static final KeyMapping CYCLE_FORM = new KeyMapping("key.blacklight.cycle_form", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Z, CATEGORY);
+    private static final KeyMapping CONSUME = new KeyMapping(
+            "key.blacklight.consume", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, CATEGORY);
     private static final KeyMapping TOGGLE_CLAWS = new KeyMapping(
             "key.blacklight.toggle_claws", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, CATEGORY);
     private static final KeyMapping PROTOTYPE_MODE = new KeyMapping(
@@ -83,6 +86,8 @@ public final class ClientClawEvents {
 
     @SubscribeEvent
     public static void registerKeys(RegisterKeyMappingsEvent event) {
+        event.register(CONSUME);
+        event.register(CYCLE_FORM);
         event.register(TOGGLE_CLAWS);
         event.register(PROTOTYPE_MODE);
         event.register(CLAW_TUNER);
@@ -95,12 +100,21 @@ public final class ClientClawEvents {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(ModEntities.GROUND_SPIKE.get(), GroundSpikeRenderer::new);
+        event.registerEntityRenderer(ModEntities.BLACKLIGHT_HUNTER.get(), com.codex.blacklight.client.renderer.BlacklightHunterRenderer::new);
         event.registerEntityRenderer(ModEntities.BLACKLIGHT_VIRUS_VIAL.get(), ThrownItemRenderer::new);
     }
 
     @SubscribeEvent
     public static void registerLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
         event.registerLayerDefinition(ClawArmModel.LAYER, ClawArmModel::createLayer);
+    }
+
+    @SubscribeEvent
+    public static void lockConsumptionMovement(net.neoforged.neoforge.client.event.MovementInputUpdateEvent event) {
+        if (!event.getEntity().getData(ModAttachments.CONSUMING)) return;
+        var input = event.getInput();
+        input.forwardImpulse = 0; input.leftImpulse = 0; input.jumping = false;
+        input.up = false; input.down = false; input.left = false; input.right = false;
     }
 
     @SubscribeEvent
@@ -119,6 +133,13 @@ public final class ClientClawEvents {
             return;
         }
         if (!state.isPrototypeMode()) return;
+        if (minecraft.screen == null && CYCLE_FORM.matches(event.getKey(), event.getScanCode())) {
+            PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.CYCLE_FORM)); return;
+        }
+        if (minecraft.screen == null && CONSUME.matches(event.getKey(), event.getScanCode())) {
+            PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.CONSUME));
+            return;
+        }
 
         if (minecraft.screen == null && CLAW_TUNER.matches(event.getKey(), event.getScanCode())) {
             minecraft.setScreen(new ClawTunerScreen());
@@ -490,6 +511,8 @@ public final class ClientClawEvents {
         EpicFightClientEventHooks.Registry.ADD_PATCHED_ENTITY.registerEvent(event -> {
             event.addPatchedEntityRenderer(EntityType.PLAYER,
                     type -> new BlacklightPlayerRenderer(event.getContext(), type));
+            event.addPatchedEntityRenderer(EntityType.ZOMBIE,
+                    type -> new com.codex.blacklight.client.renderer.InfectedZombieRenderer(event.getContext(), type).initLayerLast(event.getContext(), type));
             BlacklightNeoMod.LOGGER.info("Replaced Epic Fight player renderer with biological limb renderer");
         });
     }

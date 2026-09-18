@@ -145,6 +145,10 @@ public final class ClientMovementEvents {
         }
         // Read the hardware state rather than KeyMapping.isDown(). Epic Fight's control
         // engine is allowed to consume/reset mappings before NeoForge's post tick.
+        if (minecraft.player.getData(ModAttachments.CONSUMING)) {
+            minecraft.player.setDeltaMovement(0, minecraft.player.getDeltaMovement().y, 0);
+            return;
+        }
         boolean prototype = isPrototype(minecraft);
         boolean jumpHeld = minecraft.screen == null && mappingDown(minecraft, minecraft.options.keyJump);
         int forwardInput=minecraft.screen==null ? (mappingDown(minecraft,minecraft.options.keyUp)?1:0)-(mappingDown(minecraft,minecraft.options.keyDown)?1:0) : 0;

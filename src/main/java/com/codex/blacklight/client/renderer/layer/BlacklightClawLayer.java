@@ -34,6 +34,7 @@ public final class BlacklightClawLayer extends UniqueLayer<
     // layer no longer depends on LayerDefinition registration order (Epic Fight's
     // patched-renderer hook can run before RegisterLayerDefinitions on some setups).
     private ClawArmModel model;
+    private final java.util.Map<com.codex.blacklight.power.PowerForm, ClawArmModel> forms = new java.util.EnumMap<>(com.codex.blacklight.power.PowerForm.class);
 
     @Override
     protected void renderLayer(AbstractClientPlayerPatch<AbstractClientPlayer> entityPatch,
@@ -46,12 +47,20 @@ public final class BlacklightClawLayer extends UniqueLayer<
                                float yRot,
                                float xRot,
                                float partialTicks) {
-        float morphProgress = ClawTransformSettings.preview()
-                ? 1.0F : ClawMorphTracker.progress(player, partialTicks);
+        var state = player.getData(com.codex.blacklight.registry.ModAttachments.PLAYER_STATE);
+        var form = state.getActivePower();
+        boolean weapon = state.isPrototypeMode() && (form == com.codex.blacklight.power.PowerForm.HAMMERFISTS
+                || form == com.codex.blacklight.power.PowerForm.BLADE || form == com.codex.blacklight.power.PowerForm.WHIPFIST);
+        // Keep the claw transition clock current even while another weapon is visible.
+        float clawProgress = ClawMorphTracker.progress(player, partialTicks);
+        float morphProgress = weapon ? 1 : ClawTransformSettings.preview() ? 1 : clawProgress;
         if (morphProgress <= 0.001F) return;
 
+        if (weapon) model = forms.computeIfAbsent(form, f -> new ClawArmModel("form_" + f.id()));
+        else model = forms.computeIfAbsent(com.codex.blacklight.power.PowerForm.CLAWS, f -> new ClawArmModel("claw_blender"));
         renderHand(entityPatch, InteractionHand.MAIN_HAND, poses, false,
                 poseStack, buffer, packedLight, morphProgress);
+        if (weapon && form != com.codex.blacklight.power.PowerForm.HAMMERFISTS) return;
         float delayedLeftProgress = ClawTransformSettings.preview() ? 1.0F
                 : Math.max(0.0F, Math.min(1.0F, (morphProgress - 0.065F) / 0.935F));
         renderHand(entityPatch, InteractionHand.OFF_HAND, poses, true,
@@ -75,7 +84,8 @@ public final class BlacklightClawLayer extends UniqueLayer<
         Joint handJoint = hand == InteractionHand.MAIN_HAND ? armature.handR : armature.handL;
         Joint armJoint = hand == InteractionHand.MAIN_HAND ? armature.armR : armature.armL;
         HandSide side = mirror ? HandSide.LEFT : HandSide.RIGHT;
-        float width = (float) ClawTransformSettings.limbWidth(side);
+        boolean claw = entityPatch.getOriginal().getData(com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower() == com.codex.blacklight.power.PowerForm.CLAWS;
+        float width = claw ? (float) ClawTransformSettings.limbWidth(side) : 1;
 
         // Arm_R/L is the shoulder pivot; Hand_R/L is the actual elbow pivot.
         // Pose matrices already contain the complete animated hierarchy. Applying an
@@ -85,6 +95,7 @@ public final class BlacklightClawLayer extends UniqueLayer<
         poseStack.pushPose();
         applyJoint(poseStack, poses[armJoint.getId()]);
         poseStack.scale(width, 1.0F, width);
+        BiomassTendrils.render(poseStack,consumer,packedLight,morphProgress,.34F,entityPatch.getOriginal().tickCount);
         model.renderJoint(mirror ? "Arm_L" : "Arm_R", poseStack, consumer, packedLight,
                 OverlayTexture.NO_OVERLAY, morphProgress, 1.0F);
         poseStack.popPose();
@@ -92,8 +103,11 @@ public final class BlacklightClawLayer extends UniqueLayer<
         poseStack.pushPose();
         applyJoint(poseStack, poses[handJoint.getId()]);
         poseStack.scale(width, 1.0F, width);
+        BiomassTendrils.render(poseStack,consumer,packedLight,morphProgress,.44F,entityPatch.getOriginal().tickCount);
         model.renderJoint(mirror ? "Hand_L" : "Hand_R", poseStack, consumer, packedLight,
-                OverlayTexture.NO_OVERLAY, morphProgress, (float) ClawTransformSettings.talonLength(side));
+                OverlayTexture.NO_OVERLAY, morphProgress, claw ? (float) ClawTransformSettings.talonLength(side) : 1);
+        if (!mirror && entityPatch.getOriginal().getData(com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower() == com.codex.blacklight.power.PowerForm.WHIPFIST)
+            com.codex.blacklight.client.renderer.WhipTetherRenderer.capture(entityPatch.getOriginal(), poseStack);
         poseStack.popPose();
     }
 

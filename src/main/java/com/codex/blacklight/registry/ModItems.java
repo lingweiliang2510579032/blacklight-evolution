@@ -21,11 +21,15 @@ public final class ModItems {
             "blacklight_sample", BlacklightSampleItem::new,
             new Item.Properties().stacksTo(4).rarity(Rarity.EPIC).fireResistant());
 
+    public static final DeferredItem<net.neoforged.neoforge.common.DeferredSpawnEggItem> HUNTER_SPAWN_EGG = ITEMS.registerItem(
+            "blacklight_hunter_spawn_egg", props -> new net.neoforged.neoforge.common.DeferredSpawnEggItem(
+                    ModEntities.BLACKLIGHT_HUNTER, 0x242626, 0x9d302b, props), new Item.Properties());
+
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = TABS.register(
             "blacklight", () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.blacklight"))
                     .icon(() -> BLACKLIGHT_SAMPLE.get().getDefaultInstance())
-                    .displayItems((parameters, output) -> output.accept(BLACKLIGHT_SAMPLE.get()))
+                    .displayItems((parameters, output) -> { output.accept(BLACKLIGHT_SAMPLE.get()); output.accept(HUNTER_SPAWN_EGG.get()); })
                     .build());
 
     private ModItems() {

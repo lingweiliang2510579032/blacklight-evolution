@@ -52,6 +52,9 @@ public final class ClawCombatSystem {
     }
 
     public static void handle(ServerPlayer player, ClawActionPayload.Action request) {
+        if (player.getData(ModAttachments.CONSUMING)) return;
+        if (request == ClawActionPayload.Action.CONSUME) { ConsumeSystem.request(player); return; }
+        if (request == ClawActionPayload.Action.CYCLE_FORM) { com.codex.blacklight.power.PowerFormSystem.cycle(player); return; }
         BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
         ClawCombatState combat = player.getData(ModAttachments.CLAW_COMBAT);
         BlacklightNeoMod.LOGGER.debug("Claw request {} from {} (power={}, action={})",
@@ -124,11 +127,11 @@ public final class ClawCombatSystem {
                 SoundSource.PLAYERS, 0.8F, activate ? 0.72F : 0.55F);
         ServerLevel level = player.serverLevel();
         level.sendParticles(new DustParticleOptions(new Vector3f(0.72F, 0.015F, 0.02F), 1.45F),
-                player.getX(), player.getY() + 1.0D, player.getZ(), activate ? 55 : 22,
-                0.72D, 0.9D, 0.72D, 0.025D);
+                player.getX(), player.getY() + 1.0D, player.getZ(), activate ? 14 : 8,
+                0.32D, 0.45D, 0.32D, 0.012D);
         level.sendParticles(ParticleTypes.LARGE_SMOKE,
-                player.getX(), player.getY() + 0.95D, player.getZ(), activate ? 18 : 10,
-                0.55D, 0.75D, 0.55D, 0.02D);
+                player.getX(), player.getY() + 0.95D, player.getZ(), activate ? 4 : 2,
+                0.28D, 0.4D, 0.28D, 0.01D);
     }
 
     private static void requestAttack(ServerPlayer player, ClawCombatState combat) {
@@ -197,6 +200,7 @@ public final class ClawCombatSystem {
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
 
+        if (player.getData(ModAttachments.CONSUMING)) return;
         BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
         ClawCombatState combat = player.getData(ModAttachments.CLAW_COMBAT);
         if (!canUseClaws(state)) {

@@ -32,8 +32,23 @@ public final class ModAttachments {
             "movement_state",
             () -> AttachmentType.builder(MovementState::new).build());
 
+    /** Server game time of infection onset; -1 denotes a pre-existing infection. */
+    public static final Supplier<AttachmentType<Long>> INFECTION_START = ATTACHMENTS.register(
+            "infection_start", () -> AttachmentType.builder(() -> -1L)
+                    .serialize(com.mojang.serialization.Codec.LONG)
+                    .sync(net.minecraft.network.codec.ByteBufCodecs.VAR_LONG).build());
+
+    /** Transient action lock; never carried through logout/death or persisted. */
+    public static final Supplier<AttachmentType<Boolean>> CONSUMING = ATTACHMENTS.register(
+            "consuming", () -> AttachmentType.builder(() -> false)
+                    .sync(net.minecraft.network.codec.ByteBufCodecs.BOOL).build());
+
     private ModAttachments() {
     }
+
+    public static final Supplier<AttachmentType<com.codex.blacklight.combat.ConsumeVisual>> CONSUME_VISUAL = ATTACHMENTS.register(
+            "consume_visual", () -> AttachmentType.builder(() -> com.codex.blacklight.combat.ConsumeVisual.EMPTY)
+                    .sync(com.codex.blacklight.combat.ConsumeVisual.CODEC).build());
 
     public static void register(IEventBus bus) {
         ATTACHMENTS.register(bus);

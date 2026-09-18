@@ -108,3 +108,18 @@ config="${mod_id}.mixins.json"
 # stop your mod loading on the server for example.
 #[features.${mod_id}]
 #openGLVersion="[3.2,)"
+
+# Integration targets the 3.4 action API; ParCool 4 requires a separate adapter.
+[[dependencies.${mod_id}]]
+    modId="parcool"
+    type="optional"
+    versionRange="[3.4.3.3,3.5)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="epicparcool"
+    type="optional"
+    versionRange="[21.0.0,21.1)"
+    ordering="AFTER"
+    side="BOTH"

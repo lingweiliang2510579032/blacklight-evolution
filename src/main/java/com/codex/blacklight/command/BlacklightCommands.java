@@ -30,6 +30,29 @@ public final class BlacklightCommands {
                     context.getSource().sendSuccess(() -> Component.translatable("command.blacklight.infected"), false);
                     return 1;
                 }))
+                .then(Commands.literal("infected_sample").requires(source -> source.hasPermission(2)).executes(context -> {
+                    ServerPlayer player = context.getSource().getPlayerOrException();
+                    var level=player.serverLevel();
+                    var zombie=com.codex.blacklight.registry.ModEntities.BLACKLIGHT_HUNTER.get().create(level);
+                    if(zombie==null)return 0;
+                    var direction=player.getLookAngle().multiply(1,0,1).normalize();
+                    var pos=player.position().add(direction.scale(3));
+                    zombie.moveTo(pos.x,pos.y,pos.z,player.getYRot()+180,0);
+                    zombie.setPersistenceRequired();
+                    zombie.setCustomName(Component.literal("黑光感染体 · 重爪"));
+                    level.addFreshEntity(zombie);
+
+                    return 1;
+                }))
+                .then(Commands.literal("form").then(Commands.argument("id", StringArgumentType.word())
+                        .suggests((context, builder) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
+                                new String[]{"none", "claws", "hammerfists", "blade", "whipfist"}, builder))
+                        .executes(context -> {
+                            String id = StringArgumentType.getString(context, "id");
+                            var form = com.codex.blacklight.power.PowerForm.byId(id);
+                            if (!form.id().equals(id)) return 0;
+                            return com.codex.blacklight.power.PowerFormSystem.select(context.getSource().getPlayerOrException(), form, true) ? 1 : 0;
+                        })))
                 .then(Commands.literal("status").executes(context -> {
                     ServerPlayer player = context.getSource().getPlayerOrException();
                     BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);

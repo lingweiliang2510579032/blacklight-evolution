@@ -24,8 +24,12 @@ public final class ClawArmModel extends Model {
     private final Map<String, Triangle[]> joints = new HashMap<>();
 
     public ClawArmModel(ModelPart unused) {
+        this("claw_blender");
+    }
+
+    public ClawArmModel(String asset) {
         super(RenderType::entityCutoutNoCull);
-        try (var stream = ClawArmModel.class.getResourceAsStream("/assets/blacklight/models/claw_blender.json")) {
+        try (var stream = ClawArmModel.class.getResourceAsStream("/assets/blacklight/models/" + asset + ".json")) {
             if (stream == null) throw new IllegalStateException("Missing authored claw mesh");
             var root = JsonParser.parseReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
             for (var entry : root.getAsJsonObject("joints").entrySet()) {
@@ -61,7 +65,9 @@ public final class ClawArmModel extends Model {
         Triangle[] faces = joints.get(joint);
         if (faces == null) return;
         float t=Math.clamp(progress,0,1), growth=t*t*(3-2*t);
-        float width=.82F+.18F*growth;
+        float sheath=com.codex.blacklight.infection.InfectionTimeline.stage(t,.05F,.70F);
+        float blade=com.codex.blacklight.infection.InfectionTimeline.stage(t,.48F,1);
+        float width=.08F+.92F*sheath;
         boolean forearm=joint.startsWith("Hand");
         PoseStack.Pose pose=stack.last();
         for (Triangle face : faces) {
@@ -69,7 +75,7 @@ public final class ClawArmModel extends Model {
             for (int v=0;v<4;v++) {
                 float[] p=face.points[Math.min(v,2)];
                 float y=p[1];
-                if (forearm && y>.42F) y=.42F+(y-.42F)*growth*talonLength;
+                if (forearm && y>.30F) y=.30F+(y-.30F)*blade*talonLength;
                 consumer.addVertex(pose,p[0]*width,y,p[2]*width).setColor(face.color)
                         .setUv(.5F,.5F).setOverlay(overlay).setLight(light)
                         .setNormal(pose,face.nx,face.ny,face.nz);

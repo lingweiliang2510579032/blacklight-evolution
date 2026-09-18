@@ -25,7 +25,7 @@ public final class BlacklightInfectionSystem {
     }
 
     public static boolean infect(LivingEntity target, Entity source) {
-        if (!target.isAlive()) return false;
+        if (target.level().isClientSide || !target.isAlive() || target instanceof com.codex.blacklight.entity.BlacklightHunter) return false;
 
         if (target instanceof Player player) {
             if (player.isCreative() || player.isSpectator() || !player.isAlive()) return false;
@@ -39,20 +39,25 @@ public final class BlacklightInfectionSystem {
         }
 
         if (target.hasEffect(ModEffects.BLACKLIGHT_INFECTION)) return false;
-        return target.addEffect(new MobEffectInstance(
+        boolean applied = target.addEffect(new MobEffectInstance(
                 ModEffects.BLACKLIGHT_INFECTION,
                 MobEffectInstance.INFINITE_DURATION,
                 0,
                 false,
-                true,
+                !(target instanceof net.minecraft.world.entity.monster.Zombie),
                 false), source);
+        if (applied) {
+            target.setData(ModAttachments.INFECTION_START, target.level().getGameTime());
+            target.syncData(ModAttachments.INFECTION_START);
+        }
+        return applied;
     }
 
     public static boolean isInfected(LivingEntity entity) {
         if (entity instanceof Player player) {
             return player.getData(ModAttachments.PLAYER_STATE).isInfected();
         }
-        return entity.hasEffect(ModEffects.BLACKLIGHT_INFECTION);
+        return entity instanceof com.codex.blacklight.entity.BlacklightHunter || entity.hasEffect(ModEffects.BLACKLIGHT_INFECTION);
     }
 
     public static void notifyBurstOwner(Entity owner, int exposedCount) {
@@ -76,8 +81,17 @@ public final class BlacklightInfectionSystem {
     public static void onInfectedMobTick(EntityTickEvent.Post event) {
         if (!(event.getEntity() instanceof Mob mob)
                 || !(mob.level() instanceof ServerLevel serverLevel)
-                || !isInfected(mob)
-                || mob.tickCount % 20 != 0) return;
+                || !mob.isAlive() || mob instanceof com.codex.blacklight.entity.BlacklightHunter || !isInfected(mob)) return;
+        long onset=mob.getData(ModAttachments.INFECTION_START);
+        if(onset>=0 && serverLevel.getGameTime()-onset<InfectionTimeline.DURATION) {
+            mob.getNavigation().stop();
+            return;
+        }
+        if (mob.getType() == net.minecraft.world.entity.EntityType.ZOMBIE) {
+            convertZombie(mob, serverLevel);
+            return;
+        }
+        if(mob.tickCount % 20 != 0)return;
 
         LivingEntity target = mob.getTarget();
         if (!isValidTarget(mob, target)) {
@@ -98,6 +112,26 @@ public final class BlacklightInfectionSystem {
             mob.swing(InteractionHand.MAIN_HAND);
             target.hurt(mob.damageSources().mobAttack(mob), 3.0F);
         }
+    }
+
+    private static void convertZombie(Mob source, ServerLevel level) {
+        var hunter = com.codex.blacklight.registry.ModEntities.BLACKLIGHT_HUNTER.get().create(level);
+        if (hunter == null) return;
+        hunter.copyPosition(source);
+        hunter.setHealth(Math.max(1, hunter.getMaxHealth() * source.getHealth() / source.getMaxHealth()));
+        hunter.setNoAi(source.isNoAi()); hunter.setInvulnerable(source.isInvulnerable());
+        hunter.setCustomName(source.getCustomName()); hunter.setCustomNameVisible(source.isCustomNameVisible());
+        if (source.isPersistenceRequired()) hunter.setPersistenceRequired();
+        source.getTags().forEach(hunter::addTag);
+        // Keep the original alive if a mod vetoes spawning the replacement.
+        if (!level.addFreshEntity(hunter)) return;
+        for (var slot : net.minecraft.world.entity.EquipmentSlot.values()) {
+            hunter.setItemSlot(slot, source.getItemBySlot(slot).copyAndClear());
+            hunter.setDropChance(slot, 1.0F);
+        }
+        if (source.getVehicle() != null) hunter.startRiding(source.getVehicle(), true);
+        for (var passenger : java.util.List.copyOf(source.getPassengers())) passenger.startRiding(hunter, true);
+        source.discard();
     }
 
     private static boolean isValidTarget(Mob attacker, LivingEntity candidate) {

@@ -72,6 +72,7 @@ public final class PrototypeMovementSystem {
                 || player.isSpectator() || player.isDeadOrDying()) {
             return;
         }
+        if (player.getData(ModAttachments.CONSUMING)) return;
         MovementState movement = player.getData(ModAttachments.MOVEMENT_STATE);
         boolean wasJumpHeld = movement.jumpHeld();
         movement.acceptInput(jumpHeld, dashPressed, forward, sideways, sprinting, detach);
@@ -95,6 +96,7 @@ public final class PrototypeMovementSystem {
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        if (player.getData(ModAttachments.CONSUMING)) return;
         MovementState movement = player.getData(ModAttachments.MOVEMENT_STATE);
         BlacklightState blacklight = player.getData(ModAttachments.PLAYER_STATE);
         if (!blacklight.isInfected() || !blacklight.isPrototypeMode()

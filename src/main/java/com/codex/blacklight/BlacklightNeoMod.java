@@ -39,7 +39,11 @@ public final class BlacklightNeoMod {
         NeoForge.EVENT_BUS.register(PrototypeSurvivalLock.class);
         NeoForge.EVENT_BUS.register(PrototypeModeSystem.class);
         NeoForge.EVENT_BUS.register(BlacklightInfectionSystem.class);
+        NeoForge.EVENT_BUS.register(com.codex.blacklight.combat.ConsumeSystem.class);
         NeoForge.EVENT_BUS.register(ModNetwork.class);
+        if (net.neoforged.fml.ModList.get().isLoaded("parcool")) {
+            NeoForge.EVENT_BUS.register(com.codex.blacklight.integration.parcool.ParCoolCompatibility.class);
+        }
         LOGGER.info("Blacklight Evolution initialized with Epic Fight player actions and GeckoLib morph overlays");
     }
 }

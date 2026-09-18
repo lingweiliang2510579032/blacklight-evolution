@@ -32,7 +32,8 @@ public final class UpgradeScreen extends Screen {
 
     private enum Category {
         MOVEMENT("screen.blacklight.section.movement"),
-        CLAW("screen.blacklight.section.claw");
+        CLAW("screen.blacklight.section.claw"),
+        FORMS("screen.blacklight.section.forms");
 
         private final String langKey;
         Category(String langKey) { this.langKey = langKey; }
@@ -64,6 +65,10 @@ public final class UpgradeScreen extends Screen {
             for (MovementUpgrade upgrade : MovementUpgrade.values()) {
                 y = addRow(y, upgrade.id(), upgrade.epCost(),
                         upgrade.requires() == null ? null : upgrade.requires().id());
+            }
+        } else if (category == Category.FORMS) {
+            for (var form : new com.codex.blacklight.power.PowerForm[]{com.codex.blacklight.power.PowerForm.HAMMERFISTS, com.codex.blacklight.power.PowerForm.BLADE, com.codex.blacklight.power.PowerForm.WHIPFIST}) {
+                y = addRow(y, form.id(), form.epCost(), null);
             }
         } else {
             for (ClawUpgrade upgrade : ClawUpgrade.values()) {
@@ -162,6 +167,8 @@ public final class UpgradeScreen extends Screen {
     }
 
     private static boolean owned(BlacklightState state, String id) {
+        var form = com.codex.blacklight.power.PowerForm.byId(id);
+        if (form != com.codex.blacklight.power.PowerForm.NONE) return state.hasUnlocked(form);
         ClawUpgrade claw = ClawUpgrade.byId(id);
         if (claw != null) return state.hasClawUpgrade(claw);
         MovementUpgrade movement = MovementUpgrade.byId(id);

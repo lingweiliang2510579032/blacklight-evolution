@@ -25,6 +25,8 @@ class MvpResourceTest {
         Map<String, Double> clips = Map.ofEntries(
                 Map.entry("action/air_dash", 0.6),
                 Map.entry("action/consume", 2.3),
+                Map.entry("action/consume_normal", 2.3), Map.entry("action/consume_hammer", 2.8),
+                Map.entry("action/consume_blade", 2.4), Map.entry("action/consume_whip", 3.0),
                 Map.entry("action/transform_claws", 1.2),
                 Map.entry("combat/claw_auto1", 0.7),
                 Map.entry("combat/claw_auto2", 0.8),
@@ -334,10 +336,10 @@ class MvpResourceTest {
     }
 
     @Test
-    void wallActionsKeepTheActualClawMeshClearOfTheHeadThroughoutEachClip() throws IOException {
+    void wallAndMorphActionsKeepTheActualClawMeshClearOfTheHeadThroughoutEachClip() throws IOException {
         var mesh=readJson("/assets/blacklight/models/claw_blender.json").getAsJsonObject("joints");
-        for(String name:new String[]{"wall_run","wall_climb","wall_cling","wall_leap"}) {
-            var clip=readAnimation("biped/living/"+name+".json");
+        for(String name:new String[]{"living/wall_run","living/wall_climb","living/wall_cling","living/wall_leap","action/transform_claws","action/consume"}) {
+            var clip=readAnimation("biped/"+name+".json");
             for(var time:tracks(clip).get("Head").getAsJsonArray("time")) {
                 var pose=worldPose(clip,time.getAsDouble());var head=pose.get("Head");
                 for(String side:new String[]{"R","L"}) {
@@ -353,6 +355,35 @@ class MvpResourceTest {
                 }
             }
         }
+    }
+
+    @Test
+    void newConsumeFormsKeepTheirOwnMeshesClearOfTheHead() throws IOException {
+        var failures = new java.util.ArrayList<String>();
+        for (var form : Map.of("hammerfists", "hammer", "blade", "blade", "whipfist", "whip").entrySet()) {
+            String name = "action/consume_" + form.getValue();
+            var mesh = readJson("/assets/blacklight/models/form_"+form.getKey()+".json").getAsJsonObject("joints");
+            double min = 100; String closest = "";
+            var clip=readAnimation("biped/"+name+".json");
+            for(var time:tracks(clip).get("Head").getAsJsonArray("time")) {
+                var pose=worldPose(clip,time.getAsDouble());var head=pose.get("Head");
+                for(String side:new String[]{"R","L"}) {
+                    if (!mesh.has("Hand_"+side)) continue;
+                    var hand=pose.get("Hand_"+side);
+                    for(var face:mesh.getAsJsonArray("Hand_"+side)) for(var vertex:face.getAsJsonObject().getAsJsonArray("p")) {
+                        var v=vertex.getAsJsonArray();var world=point(hand,v.get(0).getAsDouble(),v.get(1).getAsDouble(),v.get(2).getAsDouble());
+                        double[] local=new double[3];
+                        for(int axis=0;axis<3;axis++)for(int k=0;k<3;k++)local[axis]+=head[k][axis]*(world[k]-head[k][3]);
+                        // Minecraft's 8-pixel head occupies +/- .25 around local Y=.25.
+                        double dx=Math.max(0,Math.abs(local[0])-.25),dy=Math.max(0,Math.abs(local[1]-.25)-.25),dz=Math.max(0,Math.abs(local[2])-.25);
+                        double d = Math.sqrt(dx*dx+dy*dy+dz*dz);
+                        if (d < min) { min=d; closest=name+" "+side+" at "+time; }
+                    }
+                }
+            }
+            if (min < .06) failures.add(closest+" clearance="+min);
+        }
+        assertTrue(failures.isEmpty(), String.join("; ", failures));
     }
 
     private static double[] clawPartCenter(JsonObject mesh, String name) {

@@ -19,7 +19,7 @@ public final class ModNetwork {
     }
 
     public static void register(RegisterPayloadHandlersEvent event) {
-        event.registrar("7")
+        event.registrar("9")
                 .playToServer(ClawActionPayload.TYPE, ClawActionPayload.STREAM_CODEC, (payload, context) -> {
                     if (context.player() instanceof ServerPlayer player && canAct(player)) {
                         context.enqueueWork(() -> ClawCombatSystem.handle(player, payload.action()));

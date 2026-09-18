@@ -41,6 +41,13 @@ public final class BlacklightEpicFightAnimations {
     public static AnimationAccessor<ActionAnimation> CLAW_SPRINT_ATTACK;
     public static AnimationAccessor<ActionAnimation> CLAW_DASHING_SLICE;
     public static AnimationAccessor<ActionAnimation> CONSUME;
+    public static AnimationAccessor<ActionAnimation> CONSUME_NORMAL, CONSUME_HAMMER, CONSUME_BLADE, CONSUME_WHIP;
+    public static AnimationAccessor<ActionAnimation> consume(com.codex.blacklight.power.PowerForm form) {
+        return switch (form) {
+            case CLAWS -> CONSUME; case HAMMERFISTS -> CONSUME_HAMMER;
+            case BLADE -> CONSUME_BLADE; case WHIPFIST -> CONSUME_WHIP; default -> CONSUME_NORMAL;
+        };
+    }
     public static AnimationAccessor<ActionAnimation> AIR_DASH;
     public static AnimationAccessor<ActionAnimation> LAND_LIGHT;
     public static AnimationAccessor<ActionAnimation> LAND_HEAVY;
@@ -84,7 +91,7 @@ public final class BlacklightEpicFightAnimations {
         GLIDE = builder.nextAccessor("biped/living/prototype_glide",
                 accessor -> new MovementAnimation(0.14F, true, accessor, Armatures.BIPED));
         TRANSFORM_CLAWS = builder.nextAccessor("biped/action/transform_claws",
-                accessor -> new ActionAnimation(0.20F, accessor, Armatures.BIPED));
+                accessor -> new MorphActionAnimation(accessor));
 
         // Damage is resolved exactly once by ClawCombatSystem from the tick timing
         // contract. These are visual actions, preventing Epic Fight from applying a
@@ -109,6 +116,10 @@ public final class BlacklightEpicFightAnimations {
 
         CONSUME = builder.nextAccessor("biped/action/consume",
                 accessor -> new ActionAnimation(0.16F, accessor, Armatures.BIPED));
+        CONSUME_NORMAL = builder.nextAccessor("biped/action/consume_normal", accessor -> new ActionAnimation(.12F, accessor, Armatures.BIPED));
+        CONSUME_HAMMER = builder.nextAccessor("biped/action/consume_hammer", accessor -> new ActionAnimation(.12F, accessor, Armatures.BIPED));
+        CONSUME_BLADE = builder.nextAccessor("biped/action/consume_blade", accessor -> new ActionAnimation(.10F, accessor, Armatures.BIPED));
+        CONSUME_WHIP = builder.nextAccessor("biped/action/consume_whip", accessor -> new ActionAnimation(.10F, accessor, Armatures.BIPED));
         AIR_DASH = builder.nextAccessor("biped/action/air_dash",
                 accessor -> new PrototypeFreeActionAnimation(0.06F, accessor, Armatures.BIPED));
         LAND_LIGHT = builder.nextAccessor("biped/living/landing_light",
