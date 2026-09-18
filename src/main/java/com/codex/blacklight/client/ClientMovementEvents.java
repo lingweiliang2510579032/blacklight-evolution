@@ -146,7 +146,11 @@ public final class ClientMovementEvents {
         // Read the hardware state rather than KeyMapping.isDown(). Epic Fight's control
         // engine is allowed to consume/reset mappings before NeoForge's post tick.
         if (minecraft.player.getData(ModAttachments.CONSUMING)) {
-            minecraft.player.setDeltaMovement(0, minecraft.player.getDeltaMovement().y, 0);
+            lastJumpHeld=false;lastForwardHeld=false;lastMovingHeld=false;lastSprinting=false;
+            lastChargingAnimation=false;clientChargeTicks=0;
+            resetClientWallRun();
+            if(minecraft.player.getData(ModAttachments.GRAB_STAGE)!=com.codex.blacklight.combat.ConsumeVisual.HOLD)
+                minecraft.player.setDeltaMovement(0, minecraft.player.getDeltaMovement().y, 0);
             return;
         }
         boolean prototype = isPrototype(minecraft);

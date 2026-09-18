@@ -52,8 +52,10 @@ public final class ClawCombatSystem {
     }
 
     public static void handle(ServerPlayer player, ClawActionPayload.Action request) {
+        if (request == ClawActionPayload.Action.GRAB) { ConsumeSystem.request(player); return; }
+        if (request == ClawActionPayload.Action.CONSUME) { ConsumeSystem.consume(player); return; }
+        if (request == ClawActionPayload.Action.THROW) { ConsumeSystem.throwTarget(player); return; }
         if (player.getData(ModAttachments.CONSUMING)) return;
-        if (request == ClawActionPayload.Action.CONSUME) { ConsumeSystem.request(player); return; }
         if (request == ClawActionPayload.Action.CYCLE_FORM) { com.codex.blacklight.power.PowerFormSystem.cycle(player); return; }
         BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
         ClawCombatState combat = player.getData(ModAttachments.CLAW_COMBAT);

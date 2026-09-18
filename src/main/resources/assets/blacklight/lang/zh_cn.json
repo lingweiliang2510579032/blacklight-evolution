@@ -73,8 +73,7 @@
   "upgrade.blacklight.pounce.desc": "冲刺斩距离 6 → 7.5 格",
   "entity.blacklight.blacklight_hunter": "黑光猎杀者 · 重爪",
   "item.blacklight.blacklight_hunter_spawn_egg": "黑光猎杀者刷怪蛋",
-  "key.blacklight.consume": "抓取并吸收感染体",
-  "message.blacklight.consume_no_target": "靠近并瞄准可吸收的生物后按 G；鞭拳可达 6 格",
+  "message.blacklight.consume_no_target": "靠近并瞄准可抓取的生物，按抓取键（默认 E）；鞭拳可达 6 格",
   "message.blacklight.consume_weaken": "目标仍在反抗：将生命打到 30% 以下再吸收",
   "message.blacklight.consume_complete": "吸收完成：回复 %s 颗心 · 生物质 +%s · 进化点 +%s",
   "message.blacklight.consume_cancelled": "吸收中断",
@@ -92,5 +91,7 @@
   "upgrade.blacklight.blade": "刀刃",
   "upgrade.blacklight.blade.desc": "生物刀臂 · 侧身贯刺吸收 · Z 切换",
   "upgrade.blacklight.whipfist": "鞭拳",
-  "upgrade.blacklight.whipfist.desc": "缠绕拉近吸收 · 最远 6 格 · Z 切换"
+  "upgrade.blacklight.whipfist.desc": "缠绕拉近吸收 · 最远 6 格 · Z 切换",
+  "key.blacklight.grab": "抓取 / 投掷（原型模式）",
+  "message.blacklight.grab_held": "已抓住：右键吸收 · 左键或再次按抓取键投掷"
 }

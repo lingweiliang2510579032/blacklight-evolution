@@ -18,12 +18,27 @@ public final class ConsumeVictimPose {
     private ConsumeVictimPose() {}
     public static ConsumeReaction.Pose reaction(LivingEntity entity,float partial) {
         var data=entity.getData(ModAttachments.CONSUME_VISUAL);
+        if(!data.consuming()) {
+            float time=entity.level().getGameTime()+partial;
+            float strength=data.stage()==com.codex.blacklight.combat.ConsumeVisual.CAPTURE
+                    ? Math.clamp((data.phaseProgress(entity.level().getGameTime(),partial)-.35F)*2,0,1):1;
+            return new ConsumeReaction.Pose(.12F*strength,(float)Math.sin(time*.17F)*.13F*strength,0,
+                    .8F*strength,(.5F+(float)Math.sin(time*.32F)*.18F)*strength,-.2F*strength,0);
+        }
         var forms=PowerForm.values();
         return ConsumeReaction.sample(forms[Math.clamp(data.form(),0,forms.length-1)],data.progress(entity.level().getGameTime(),partial));
     }
     public static org.joml.Matrix4f bodyTransform(LivingEntity entity,float partial) {
         var p=reaction(entity,partial);float h=entity.getBbHeight(),g=p.grounded();
         var matrix=new org.joml.Matrix4f();
+        var visual=entity.getData(ModAttachments.CONSUME_VISUAL);
+        if(visual.stage()==com.codex.blacklight.combat.ConsumeVisual.FLIGHT) {
+            float t=visual.phaseProgress(entity.level().getGameTime(),partial);
+            float pitch=Math.min(1,t*8)*1.25F;
+            return matrix.rotateY((float)Math.toRadians(-entity.yBodyRot)).translate(0,h*.5F,0)
+                    .rotateX(pitch).rotateZ((float)Math.sin(t*12)*.18F).translate(0,-h*.5F,0)
+                    .rotateY((float)Math.toRadians(entity.yBodyRot));
+        }
         float half=h*.5F,groundHeight=Math.clamp(entity.getBbWidth()*.35F,.18F,.36F);
         matrix.translate(0,-p.slump()*h*.24F,0).rotateY((float)Math.toRadians(-entity.yBodyRot));
         // Center the entire victim on the ground as it rotates, instead of tipping a standing model around its feet.

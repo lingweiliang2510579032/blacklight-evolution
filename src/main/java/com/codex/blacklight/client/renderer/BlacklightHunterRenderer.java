@@ -25,13 +25,14 @@ public final class BlacklightHunterRenderer extends GeoEntityRenderer<Blacklight
         stack.translate(delta.x * pull, .2 * pull, delta.z * pull);
         super.render(entity, yaw, partial, stack, buffer, light);
         stack.popPose();
+        if(owner!=null && visual.active())ConsumedMobVisuals.whip(entity,stack,buffer.getBuffer(RenderType.entityCutoutNoCull(WHITE)),light,delta,ConsumedMobVisuals.tetherProgress(entity,partial));
         if (owner != null && t > 0) {
             Vec3 from = com.codex.blacklight.client.animation.ConsumeVictimPose.point(entity,new Vec3(delta.x * pull, 1.25 - .25 * pull, delta.z * pull),partial);
             Vec3 to = delta.add(delta.multiply(-1,0,-1).normalize().scale(.27)).add(0, 1.15, 0);
             float start=visual.form()==com.codex.blacklight.power.PowerForm.WHIPFIST.ordinal() ? .47F : visual.form()==com.codex.blacklight.power.PowerForm.HAMMERFISTS.ordinal() ? .38F : 0;
             if(t>start)strands(stack, buffer.getBuffer(RenderType.entityCutoutNoCull(WHITE)), light, from, to, (t-start)/(1-start), entity.level().getGameTime() + partial,
                     entity.getBbHeight(),entity.getBbWidth(),com.codex.blacklight.client.animation.ConsumeVictimPose.bodyTransform(entity,partial));
-            ConsumedMobVisuals.whip(entity, stack, buffer.getBuffer(RenderType.entityCutoutNoCull(WHITE)), light, delta, t);
+
         }
     }
     public static void strands(PoseStack stack, VertexConsumer out, int light, Vec3 from, Vec3 to, float progress, float time) {

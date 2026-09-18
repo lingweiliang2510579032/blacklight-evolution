@@ -46,8 +46,8 @@ import yesman.epicfight.world.capabilities.EpicFightCapabilities;
 public final class ClientClawEvents {
     private static final String CATEGORY = "key.categories.blacklight";
     private static final KeyMapping CYCLE_FORM = new KeyMapping("key.blacklight.cycle_form", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Z, CATEGORY);
-    private static final KeyMapping CONSUME = new KeyMapping(
-            "key.blacklight.consume", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, CATEGORY);
+    private static final KeyMapping GRAB = new KeyMapping(
+            "key.blacklight.grab", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_E, CATEGORY);
     private static final KeyMapping TOGGLE_CLAWS = new KeyMapping(
             "key.blacklight.toggle_claws", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, CATEGORY);
     private static final KeyMapping PROTOTYPE_MODE = new KeyMapping(
@@ -64,6 +64,7 @@ public final class ClientClawEvents {
     private static final int DASHING_SLICE_HOLD_TICKS = 4;
     private static boolean layerHookRegistered;
     private static boolean automaticTunerOpened;
+    private static boolean lastGrabLeft,lastGrabRight;
     private static boolean leftAttackHeld;
     private static boolean leftAttackConsumed;
     private static boolean leftAttackTapSent;
@@ -86,7 +87,7 @@ public final class ClientClawEvents {
 
     @SubscribeEvent
     public static void registerKeys(RegisterKeyMappingsEvent event) {
-        event.register(CONSUME);
+        event.register(GRAB);
         event.register(CYCLE_FORM);
         event.register(TOGGLE_CLAWS);
         event.register(PROTOTYPE_MODE);
@@ -111,7 +112,8 @@ public final class ClientClawEvents {
 
     @SubscribeEvent
     public static void lockConsumptionMovement(net.neoforged.neoforge.client.event.MovementInputUpdateEvent event) {
-        if (!event.getEntity().getData(ModAttachments.CONSUMING)) return;
+        if (!event.getEntity().getData(ModAttachments.CONSUMING)
+                || event.getEntity().getData(ModAttachments.GRAB_STAGE)==com.codex.blacklight.combat.ConsumeVisual.HOLD) return;
         var input = event.getInput();
         input.forwardImpulse = 0; input.leftImpulse = 0; input.jumping = false;
         input.up = false; input.down = false; input.left = false; input.right = false;
@@ -136,8 +138,10 @@ public final class ClientClawEvents {
         if (minecraft.screen == null && CYCLE_FORM.matches(event.getKey(), event.getScanCode())) {
             PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.CYCLE_FORM)); return;
         }
-        if (minecraft.screen == null && CONSUME.matches(event.getKey(), event.getScanCode())) {
-            PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.CONSUME));
+        if (minecraft.screen == null && GRAB.matches(event.getKey(), event.getScanCode())) {
+            PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.GRAB));
+            minecraft.options.keyInventory.setDown(false);
+            while(minecraft.options.keyInventory.consumeClick()) {}
             return;
         }
 
@@ -165,6 +169,7 @@ public final class ClientClawEvents {
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         suppressPrototypePlayerList();
+        tickGrabButtons();
         tickPhysicalLeftAttack();
         holdGroundSpikePlantPose();
         if (automaticTunerOpened || !Boolean.getBoolean("blacklight.test.openAnimationTuner")) return;
@@ -186,6 +191,10 @@ public final class ClientClawEvents {
                     "Observed physical left press infected={} prototype={} power={} ground={}",
                     state.isInfected(), state.isPrototypeMode(), state.getActivePower().id(),
                     minecraft.player.onGround());
+        }
+        if(state.isPrototypeMode() && minecraft.player.getData(ModAttachments.CONSUMING)
+                && (event.getButton()==GLFW.GLFW_MOUSE_BUTTON_LEFT||event.getButton()==GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
+            event.setCanceled(true);tickGrabButtons();return;
         }
         if (!state.isInfected() || !state.isPrototypeMode()
                 || state.getActivePower() != PowerForm.CLAWS) return;
@@ -225,6 +234,23 @@ public final class ClientClawEvents {
         }
     }
 
+    /** Raw callbacks and polling share the same edge latch: one click sends one intent. */
+    private static void tickGrabButtons() {
+        var mc=Minecraft.getInstance();if(mc.getWindow()==null)return;
+        long window=mc.getWindow().getWindow();
+        boolean left=GLFW.glfwGetMouseButton(window,GLFW.GLFW_MOUSE_BUTTON_LEFT)==GLFW.GLFW_PRESS;
+        boolean right=GLFW.glfwGetMouseButton(window,GLFW.GLFW_MOUSE_BUTTON_RIGHT)==GLFW.GLFW_PRESS;
+        if(mc.player!=null&&mc.screen==null&&mc.player.getData(ModAttachments.CONSUMING)) {
+            clearLeftAttackHold();
+            mc.options.keyAttack.setDown(false);mc.options.keyUse.setDown(false);
+            if(mc.player.getData(ModAttachments.GRAB_STAGE)==com.codex.blacklight.combat.ConsumeVisual.HOLD) {
+                if(right&&!lastGrabRight)PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.CONSUME));
+                else if(left&&!lastGrabLeft)PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.THROW));
+            }
+        }
+        lastGrabLeft=left;lastGrabRight=right;
+    }
+
     private static void toggleTargetLock(Minecraft minecraft) {
         EpicFightCameraAPI.getInstance().toggleLockOn();
     }
@@ -259,7 +285,7 @@ public final class ClientClawEvents {
             return;
         }
         var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
-        if (!state.isInfected() || !state.isPrototypeMode()
+        if (minecraft.player.getData(ModAttachments.CONSUMING) || !state.isInfected() || !state.isPrototypeMode()
                 || state.getActivePower() != PowerForm.CLAWS) {
             clearLeftAttackHold();
             lastPhysicalLeftDown = physicallyDown;
@@ -477,6 +503,9 @@ public final class ClientClawEvents {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.screen != null) return;
         var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
+        if(state.isPrototypeMode()&&minecraft.player.getData(ModAttachments.CONSUMING)) {
+            event.setSwingHand(false);event.setCanceled(true);tickGrabButtons();return;
+        }
         if (!state.isInfected() || !state.isPrototypeMode()
                 || state.getActivePower() != PowerForm.CLAWS) return;
 
@@ -501,7 +530,7 @@ public final class ClientClawEvents {
                 || !(event.getNewScreen() instanceof AbstractContainerScreen<?>)
                 && !(event.getNewScreen() instanceof InventoryScreen)) return;
         event.setCanceled(true);
-        PrototypeSurvivalLock.notifyClient(minecraft.player);
+        if (!GRAB.isDown()) PrototypeSurvivalLock.notifyClient(minecraft.player);
     }
 
     private static void registerEpicFightLayerHook() {

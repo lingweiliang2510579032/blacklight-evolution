@@ -54,6 +54,7 @@ public final class HunterPreviewCapture {
         if(scene>=25&&scene<=100)pending=String.format("infection_%03d.png",scene-25);
         if(scene==110)server.execute(()->{for(var e:server.overworld().getEntitiesOfClass(BlacklightHunter.class,new net.minecraft.world.phys.AABB(17,218,17,24,224,24)))if(e.getTags().contains("hunter_r9_qa")){hunterId=e.getId();e.setInvulnerable(false);e.setHealth(12);}});
         if(scene==130)pending="hunter.png";
+        if(scene==163)server.execute(()->ConsumeSystem.consume(server.getPlayerList().getPlayer(mc.player.getUUID())));
         if(scene==150)server.execute(()->{var p=server.getPlayerList().getPlayer(mc.player.getUUID());p.teleportTo(20,220,22);p.setYRot(180);p.setXRot(0);p.setOnGround(true);p.getData(ModAttachments.CLAW_COMBAT).reset();p.getData(ModAttachments.MOVEMENT_STATE).reset();ConsumeSystem.request(p);
             BlacklightNeoMod.LOGGER.info("R9 consume requested lock={} hunter={} pos={} yaw={} health={}",p.getData(ModAttachments.CONSUMING),hunterId,p.position(),p.getYRot(),p.getHealth());});
         if(scene>=145&&scene<=205)pending=String.format("consume_%03d.png",scene-145);

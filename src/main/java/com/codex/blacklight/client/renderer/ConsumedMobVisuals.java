@@ -40,7 +40,7 @@ public final class ConsumedMobVisuals {
         if (t > start) BlacklightHunterRenderer.strands(stack, out, event.getPackedLight(), from, to,
                 Math.clamp((t - start) / (1-start), 0, 1), mob.level().getGameTime() + partial, mob.getBbHeight(), mob.getBbWidth(),
                 com.codex.blacklight.client.animation.ConsumeVictimPose.bodyTransform(mob,partial));
-        whip(mob, stack, out, event.getPackedLight(), delta, t);
+        whip(mob, stack, out, event.getPackedLight(), delta, tetherProgress(mob,partial));
         if (t >= .73F) { event.setCanceled(true); return; }
         stack.pushPose();
         com.codex.blacklight.client.animation.ConsumeVictimPose.body(mob, stack, partial);
@@ -66,6 +66,14 @@ public final class ConsumedMobVisuals {
         if (SCALED.remove(event.getEntity())) event.getPoseStack().popPose();
     }
 
+    public static float tetherProgress(LivingEntity mob,float partial) {
+        var data=mob.getData(ModAttachments.CONSUME_VISUAL);
+        if(data.stage()==com.codex.blacklight.combat.ConsumeVisual.CAPTURE)
+            return (mob.level().getGameTime()-data.started()+partial)/60F;
+        if(data.stage()==com.codex.blacklight.combat.ConsumeVisual.HOLD)return .44F;
+        if(data.consuming())return .44F+data.progress(mob.level().getGameTime(),partial)*.5F;
+        return 1;
+    }
     /** A thick, continuous cable and tightening coil distinguish whip capture from generic tendrils. */
     public static void whip(LivingEntity mob, PoseStack stack, VertexConsumer out, int light, Vec3 delta, float t) {
         if (mob.getData(ModAttachments.CONSUME_VISUAL).form() != PowerForm.WHIPFIST.ordinal() || t > .8F) return;

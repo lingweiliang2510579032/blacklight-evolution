@@ -53,7 +53,7 @@ base {
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 // Opt-in screenshot harness is excluded from normal builds and distributable JARs.
-if (project.hasProperty('captureMotionPreview') || project.hasProperty('captureInfectedPreview') || project.hasProperty('captureHunterPreview') || project.hasProperty('captureConsumeForms')) {
+if (project.hasProperty('captureMotionPreview') || project.hasProperty('captureInfectedPreview') || project.hasProperty('captureHunterPreview') || project.hasProperty('captureConsumeForms') || project.hasProperty('captureGrabPreview')) {
     sourceSets.main.java.srcDir('src/visualTest/java')
 }
 if (project.hasProperty('wallTraversalTest')) {
@@ -65,6 +65,7 @@ tasks.named('jar', Jar).configure {
     exclude 'com/codex/blacklight/client/InfectedPreviewCapture*.class'
     exclude 'com/codex/blacklight/client/HunterPreviewCapture*.class'
     exclude 'com/codex/blacklight/client/ConsumeFormsPreview*.class'
+    exclude 'com/codex/blacklight/client/GrabInteractionPreview*.class'
     exclude 'com/codex/blacklight/gametest/**'
     exclude 'data/blacklight/structure/wall_test.nbt'
 }
@@ -106,6 +107,10 @@ neoForge {
             if (project.hasProperty('captureInfectedPreview')) {
                 systemProperty 'blacklight.test.infectedCapture', project.property('captureInfectedPreview').toString()
                 programArguments.addAll '--width', '960', '--height', '960'
+            }
+            if (project.hasProperty('captureGrabPreview')) {
+                systemProperty 'blacklight.test.grabPreview', project.property('captureGrabPreview').toString()
+                programArguments.addAll '--width', '1100', '--height', '850'
             }
             if (project.hasProperty('captureConsumeForms')) {
                 systemProperty 'blacklight.test.consumeForms', project.property('captureConsumeForms').toString()

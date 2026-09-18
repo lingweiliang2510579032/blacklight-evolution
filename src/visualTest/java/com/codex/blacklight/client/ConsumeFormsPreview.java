@@ -73,8 +73,9 @@ public final class ConsumeFormsPreview {
         });
         if(phase==30)server.execute(()->{var p=server.getPlayerList().getPlayer(uuid);p.setYRot(180);p.setXRot(0);p.setOnGround(true);p.getData(ModAttachments.CLAW_COMBAT).reset();ConsumeSystem.request(p);
             BlacklightNeoMod.LOGGER.info("R10 {} capture started={}",NAMES[index],p.getData(ModAttachments.CONSUMING));});
-        if(phase>=20&&phase<=101)pending=String.format("%s_%03d.png",NAMES[index],phase-20);
-        if(phase==108)server.execute(()->{
+        if(phase==68)server.execute(()->ConsumeSystem.consume(server.getPlayerList().getPlayer(uuid)));
+        if(phase>=20&&phase<=125)pending=String.format("%s_%03d.png",NAMES[index],phase-20);
+        if(phase==128)server.execute(()->{
             var p=server.getPlayerList().getPlayer(uuid);var data=new com.google.gson.JsonObject();data.addProperty("case",NAMES[index]);
             data.addProperty("consumed",server.overworld().getEntity(victimId)==null);data.addProperty("health",p.getHealth());data.addProperty("biomass",p.getData(ModAttachments.PLAYER_STATE).getBiomass());data.addProperty("ep",p.getData(ModAttachments.PLAYER_STATE).getEvolutionPoints());
             data.addProperty("unlocked",!p.getData(ModAttachments.CONSUMING));results.add(data);

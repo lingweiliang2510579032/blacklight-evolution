@@ -58,7 +58,8 @@ public final class HunterGameTest {
         ConsumeSystem.request(p);h.assertTrue(target.isBeingConsumed(),"weakened nearby target must be grabbed");
         var other=player(h);ConsumeSystem.request(other);
         h.assertTrue(!other.getData(ModAttachments.CONSUMING),"second player cannot steal claim");
-        ConsumeSystem.request(p);
+        for(int i=0;i<com.codex.blacklight.combat.ConsumeVisual.captureDuration(p.getData(ModAttachments.PLAYER_STATE).getActivePower());i++){p.tickCount++;ConsumeSystem.tick(new PlayerTickEvent.Post(p));}
+        ConsumeSystem.consume(p);ConsumeSystem.consume(p);
         for(int i=0;i<ConsumeSystem.DURATION-1;i++){p.tickCount++;ConsumeSystem.tick(new PlayerTickEvent.Post(p));}
         h.assertTrue(!target.isRemoved()&&p.getHealth()==10,"no early removal or reward");
         p.tickCount++;ConsumeSystem.tick(new PlayerTickEvent.Post(p));ConsumeSystem.tick(new PlayerTickEvent.Post(p));

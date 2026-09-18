@@ -43,6 +43,10 @@ public final class ModAttachments {
             "consuming", () -> AttachmentType.builder(() -> false)
                     .sync(net.minecraft.network.codec.ByteBufCodecs.BOOL).build());
 
+    public static final Supplier<AttachmentType<Integer>> GRAB_STAGE = ATTACHMENTS.register(
+            "grab_stage", () -> AttachmentType.builder(() -> 0)
+                    .sync(net.minecraft.network.codec.ByteBufCodecs.VAR_INT).build());
+
     private ModAttachments() {
     }
 

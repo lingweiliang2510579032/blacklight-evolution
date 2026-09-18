@@ -16,6 +16,12 @@ public abstract class EpicConsumePoseMixin {
     private void blacklight$victim(Armature armature,Pose pose,Operation<Void> original,
             @Local(argsOnly=true) LivingEntityPatch<?> patch,@Local(argsOnly=true) float partial) {
         ConsumeVictimPose.epic(patch.getOriginal(),pose,partial);
+        if(patch.getOriginal().getData(com.codex.blacklight.registry.ModAttachments.GRAB_STAGE)==com.codex.blacklight.combat.ConsumeVisual.HOLD) {
+            var held=com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations.GRAB_HOLD.get()
+                    .getPoseByTime(patch,(patch.getOriginal().tickCount+partial)%40/20F,partial);
+            for(String joint:new String[]{"Torso","Chest","Head","Shoulder_R","Arm_R","Elbow_R","Hand_R","Tool_R","Shoulder_L","Arm_L","Elbow_L","Hand_L","Tool_L"})
+                pose.getJointTransformData().put(joint,held.orElseEmpty(joint));
+        }
         original.call(armature,pose);
     }
 }

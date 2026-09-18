@@ -29,6 +29,9 @@ public final class OrdinaryConsumeGameTest {
             var p=player(h,form);var cow=h.spawn(EntityType.COW,3,2,5);cow.setNoAi(true);
             ConsumeSystem.request(p);var visual=cow.getData(ModAttachments.CONSUME_VISUAL);
             h.assertTrue(visual.active() && visual.form()==form.ordinal(),"full-health cow accepted with form "+form);
+            for(int i=0;i<ConsumeVisual.captureDuration(form)+80;i++)tick(p);
+            h.assertTrue(ConsumeSystem.holding(p)&&cow.isAlive()&&p.getHealth()==10,"E must hold indefinitely without reward "+form);
+            ConsumeSystem.consume(p);ConsumeSystem.consume(p);
             for(int i=0;i<ConsumeVisual.duration(form)-1;i++)tick(p);
             h.assertTrue(!cow.isRemoved()&&p.getHealth()==10,"no early award in "+form);
             tick(p);tick(p);

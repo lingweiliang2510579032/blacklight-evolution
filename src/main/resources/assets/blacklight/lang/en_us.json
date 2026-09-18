@@ -73,8 +73,7 @@
   "upgrade.blacklight.pounce.desc": "Dashing slice range 6 → 7.5 blocks",
   "entity.blacklight.blacklight_hunter": "Blacklight Heavyclaw Hunter",
   "item.blacklight.blacklight_hunter_spawn_egg": "Blacklight Hunter Spawn Egg",
-  "key.blacklight.consume": "Grab and consume infected",
-  "message.blacklight.consume_no_target": "Face a consumable mob and press G; whipfist reaches 6 blocks",
+  "message.blacklight.consume_no_target": "Face a grabbable mob and press Grab (default E); whipfist reaches 6 blocks",
   "message.blacklight.consume_weaken": "Weaken the target to 30% health before consuming",
   "message.blacklight.consume_complete": "Consumed: +%s hearts · +%s biomass · +%s EP",
   "message.blacklight.consume_cancelled": "Consumption interrupted",
@@ -92,5 +91,7 @@
   "upgrade.blacklight.blade": "Blade",
   "upgrade.blacklight.blade.desc": "Blade arm · impaling consume · Z to cycle",
   "upgrade.blacklight.whipfist": "Whipfist",
-  "upgrade.blacklight.whipfist.desc": "Snare and reel in · up to 6 blocks · Z to cycle"
+  "upgrade.blacklight.whipfist.desc": "Snare and reel in · up to 6 blocks · Z to cycle",
+  "key.blacklight.grab": "Grab / Throw (Prototype mode)",
+  "message.blacklight.grab_held": "Holding: secondary attack to consume; primary attack or Grab again to throw"
 }

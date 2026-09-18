@@ -44,7 +44,7 @@ public final class WhipTetherRenderer {
             var data=mob.getData(ModAttachments.CONSUME_VISUAL);
             if(!data.active()||data.form()!=PowerForm.WHIPFIST.ordinal())continue;
             var owner=mc.level.getEntity(data.consumerId());if(owner==null)continue;
-            float t=data.progress(mc.level.getGameTime(),partial);if(t<.075F||t>.8F)continue;
+            float t=ConsumedMobVisuals.tetherProgress(mob,partial);if(t<.075F||t>.8F)continue;
             Vec3 delta=mob.getPosition(partial).subtract(owner.getPosition(partial));
             // First person / culled owner has no rendered body joint. Keep a local wrist fallback in that case.
             Vec3 right=new Vec3(-delta.z,0,delta.x).normalize().scale(.38);

@@ -26,7 +26,9 @@ class MvpResourceTest {
                 Map.entry("action/air_dash", 0.6),
                 Map.entry("action/consume", 2.3),
                 Map.entry("action/consume_normal", 2.3), Map.entry("action/consume_hammer", 2.8),
-                Map.entry("action/consume_blade", 2.4), Map.entry("action/consume_whip", 3.0),
+                Map.entry("action/consume_blade", 2.4), Map.entry("action/consume_whip", 1.9),
+                Map.entry("action/grab_reach", .6), Map.entry("action/grab_hold", 2.0),
+                Map.entry("action/grab_throw", .7), Map.entry("action/grab_whip", 1.8),
                 Map.entry("action/transform_claws", 1.2),
                 Map.entry("combat/claw_auto1", 0.7),
                 Map.entry("combat/claw_auto2", 0.8),
@@ -338,7 +340,7 @@ class MvpResourceTest {
     @Test
     void wallAndMorphActionsKeepTheActualClawMeshClearOfTheHeadThroughoutEachClip() throws IOException {
         var mesh=readJson("/assets/blacklight/models/claw_blender.json").getAsJsonObject("joints");
-        for(String name:new String[]{"living/wall_run","living/wall_climb","living/wall_cling","living/wall_leap","action/transform_claws","action/consume"}) {
+        for(String name:new String[]{"living/wall_run","living/wall_climb","living/wall_cling","living/wall_leap","action/transform_claws","action/consume","action/grab_reach","action/grab_hold","action/grab_throw"}) {
             var clip=readAnimation("biped/"+name+".json");
             for(var time:tracks(clip).get("Head").getAsJsonArray("time")) {
                 var pose=worldPose(clip,time.getAsDouble());var head=pose.get("Head");
@@ -361,7 +363,7 @@ class MvpResourceTest {
     void newConsumeFormsKeepTheirOwnMeshesClearOfTheHead() throws IOException {
         var failures = new java.util.ArrayList<String>();
         for (var form : Map.of("hammerfists", "hammer", "blade", "blade", "whipfist", "whip").entrySet()) {
-            String name = "action/consume_" + form.getValue();
+            for(String name:new String[]{"action/consume_"+form.getValue(),"action/grab_reach","action/grab_hold","action/grab_throw",form.getKey().equals("whipfist")?"action/grab_whip":"action/grab_hold"}) {
             var mesh = readJson("/assets/blacklight/models/form_"+form.getKey()+".json").getAsJsonObject("joints");
             double min = 100; String closest = "";
             var clip=readAnimation("biped/"+name+".json");
@@ -382,6 +384,7 @@ class MvpResourceTest {
                 }
             }
             if (min < .06) failures.add(closest+" clearance="+min);
+            }
         }
         assertTrue(failures.isEmpty(), String.join("; ", failures));
     }

@@ -40,6 +40,8 @@ public final class BlacklightEpicFightAnimations {
     public static AnimationAccessor<ActionAnimation> CLAW_GROUNDSPIKE;
     public static AnimationAccessor<ActionAnimation> CLAW_SPRINT_ATTACK;
     public static AnimationAccessor<ActionAnimation> CLAW_DASHING_SLICE;
+    public static AnimationAccessor<ActionAnimation> GRAB_REACH, GRAB_WHIP, GRAB_THROW;
+    public static AnimationAccessor<MovementAnimation> GRAB_HOLD;
     public static AnimationAccessor<ActionAnimation> CONSUME;
     public static AnimationAccessor<ActionAnimation> CONSUME_NORMAL, CONSUME_HAMMER, CONSUME_BLADE, CONSUME_WHIP;
     public static AnimationAccessor<ActionAnimation> consume(com.codex.blacklight.power.PowerForm form) {
@@ -114,6 +116,10 @@ public final class BlacklightEpicFightAnimations {
         CLAW_DASHING_SLICE = builder.nextAccessor("biped/combat/claw_dashing_slice",
                 accessor -> new PrototypeFreeActionAnimation(0.06F, accessor, Armatures.BIPED));
 
+        GRAB_REACH = builder.nextAccessor("biped/action/grab_reach", accessor -> new ActionAnimation(.08F,accessor,Armatures.BIPED));
+        GRAB_WHIP = builder.nextAccessor("biped/action/grab_whip", accessor -> new ActionAnimation(.08F,accessor,Armatures.BIPED));
+        GRAB_THROW = builder.nextAccessor("biped/action/grab_throw", accessor -> new ActionAnimation(.06F,accessor,Armatures.BIPED));
+        GRAB_HOLD = builder.nextAccessor("biped/action/grab_hold", accessor -> new MovementAnimation(.12F,true,accessor,Armatures.BIPED));
         CONSUME = builder.nextAccessor("biped/action/consume",
                 accessor -> new ActionAnimation(0.16F, accessor, Armatures.BIPED));
         CONSUME_NORMAL = builder.nextAccessor("biped/action/consume_normal", accessor -> new ActionAnimation(.12F, accessor, Armatures.BIPED));
