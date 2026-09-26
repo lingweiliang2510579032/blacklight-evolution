@@ -44,6 +44,7 @@ public final class ClientWeaponCombat {
             if(l!=left||r!=right||a!=action||j!=jump||mc.player.tickCount-sentAt>=10){
                 if(l&&!left&&!requireLeftRelease||r&&!right&&!requireRightRelease)
                     ClientMovementEvents.sendAttackDirection(mc);
+                ClientTargetLock.sync();
                 PacketDistributor.sendToServer(new WeaponInputPayload(l&&!requireLeftRelease,r&&!requireRightRelease,a,j,false));sentAt=mc.player.tickCount;
             }
             controlling=true;

@@ -140,6 +140,7 @@ public final class ClientClawEvents {
             return;
         }
         if (!state.isPrototypeMode()) return;
+        ClientTargetLock.sync();
         if (minecraft.screen == null && CYCLE_FORM.matches(event.getKey(), event.getScanCode())) {
             if(!minecraft.player.getData(ModAttachments.CONSUMING))minecraft.setScreen(new com.codex.blacklight.client.screen.PowerWheelScreen(CYCLE_FORM)); return;
         }
@@ -278,6 +279,7 @@ public final class ClientClawEvents {
         if(GLFW.glfwGetMouseButton(window,0)==GLFW.GLFW_PRESS||GLFW.glfwGetMouseButton(window,1)==GLFW.GLFW_PRESS){deferredGrabTick=-1;return;}
         if(mc.player.tickCount>=deferredGrabTick){
             deferredGrabTick=-1;
+            ClientTargetLock.sync();
             PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.GRAB));
         }
     }

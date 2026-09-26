@@ -53,6 +53,14 @@ public final class BlacklightPlayerRenderer extends PPlayerRenderer {
                                 AbstractClientPlayerPatch<AbstractClientPlayer> entityPatch,
                                 PlayerRenderer renderer) {
         super.prepareModel(mesh, player, entityPatch, renderer);
+        var armor = com.codex.blacklight.client.model.BlockArmorModel.get();
+        float partial = net.minecraft.client.Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false);
+        if (armor.covers(player, "head", partial)) { mesh.head.setHidden(true); mesh.hat.setHidden(true); }
+        if (armor.covers(player, "torso", partial)) { mesh.torso.setHidden(true); mesh.jacket.setHidden(true); }
+        if (armor.covers(player, "left_arm", partial)) { mesh.leftArm.setHidden(true); mesh.leftSleeve.setHidden(true); }
+        if (armor.covers(player, "right_arm", partial)) { mesh.rightArm.setHidden(true); mesh.rightSleeve.setHidden(true); }
+        if (armor.covers(player, "left_leg", partial)) { mesh.leftLeg.setHidden(true); mesh.leftPants.setHidden(true); }
+        if (armor.covers(player, "right_leg", partial)) { mesh.rightLeg.setHidden(true); mesh.rightPants.setHidden(true); }
         var state = player.getData(ModAttachments.PLAYER_STATE);
         var form = state.getActivePower();
         boolean weapon = state.isPrototypeMode() && ((form == PowerForm.HAMMERFISTS || form == PowerForm.MUSCLE_MASS) || form == PowerForm.BLADE || form == PowerForm.WHIPFIST);

@@ -77,7 +77,7 @@ public final class MovementTuningSettings {
         try {
             Files.createDirectories(path().getParent());
             try (Writer writer = Files.newBufferedWriter(path())) {
-                values.store(writer, "Blacklight Evolution movement engine tuner");
+                values.store(writer, "Blacklight: Ascension movement engine tuner");
             }
         } catch (IOException exception) {
             BlacklightNeoMod.LOGGER.error("Unable to save movement engine tuning", exception);

@@ -14,6 +14,20 @@ public final class TraversalMotionSelector {
         if(!sprint)return speed>.22?"basic_run":"basic_walk";
         return speed>1.1?"basic_sprint_fastest":speed>.8?"basic_sprint_fast":"basic_sprint";
     }
+    /** Keep small speed changes near a boundary from rebuilding the source blend. */
+    public static String stableGround(LocomotionPhase phase, boolean sprint, double speed, String previous) {
+        if (phase == LocomotionPhase.BRAKE || phase == LocomotionPhase.TURN || previous == null)
+            return ground(phase, sprint, speed);
+        if (sprint) {
+            if (previous.equals("basic_sprint_fastest") && speed > 1.02) return previous;
+            if (previous.equals("basic_sprint_fast") && speed > .72 && speed < 1.18) return previous;
+            if (previous.equals("basic_sprint") && speed < .88) return previous;
+        } else {
+            if (previous.equals("basic_run") && speed > .19) return previous;
+            if (previous.equals("basic_walk") && speed < .25) return previous;
+        }
+        return ground(phase, sprint, speed);
+    }
     public static String wall(boolean running,double up,double right){
         if(!running){
             if(Math.abs(right)>Math.abs(up)*1.25)return right>0?"basic_wall_climb_right":"basic_wall_climb_left";

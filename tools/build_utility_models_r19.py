@@ -22,5 +22,5 @@ helmet=tube([(-.015,.255,.255,0,0),(.16,.275,.265,0,0),(.38,.265,.26,0,0),(.51,.
 helmet+=tube([(.24,.19,.01,0,-.272),(.27,.20,.012,0,-.272)],8,TENDON)
 upper=tube([(-.025,.15,.15,0,0),(.12,.17,.16,0,0),(.32,.155,.15,0,0),(.40,.14,.14,0,0)],12,CORE,True)
 lower=tube([(-.03,.14,.14,0,0),(.16,.165,.16,0,0),(.34,.15,.15,0,0),(.44,.14,.145,0,-.03)],12,ARMOR,True)
-save('utility_armor',{'Torso':torso,'Chest':chest,'Head':helmet,'Thigh_R':upper,'Thigh_L':mirror(upper),'Leg_R':lower,'Leg_L':mirror(lower)})
+save('utility_armor',{'Torso':torso,'Chest':chest,'Head':helmet,'Thigh_R':upper,'Thigh_L':mirror(upper),'Leg_R':lower,'Leg_L':mirror(lower),'Arm_R':upper,'Arm_L':mirror(upper),'Hand_R':hand,'Hand_L':mirror(hand)})
 print('Muscle mass, shield and armour models exported')

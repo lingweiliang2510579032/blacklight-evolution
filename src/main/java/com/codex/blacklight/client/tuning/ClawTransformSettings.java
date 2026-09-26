@@ -64,7 +64,7 @@ public final class ClawTransformSettings {
         try {
             Files.createDirectories(path.getParent());
             try (Writer writer = Files.newBufferedWriter(path)) {
-                properties.store(writer, "Blacklight Evolution independent claw transform tuner");
+                properties.store(writer, "Blacklight: Ascension independent claw transform tuner");
             }
             BlacklightNeoMod.LOGGER.info("Saved independent claw transforms to {}", path);
         } catch (IOException exception) {

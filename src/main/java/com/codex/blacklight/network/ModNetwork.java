@@ -19,7 +19,12 @@ public final class ModNetwork {
     }
 
     public static void register(RegisterPayloadHandlersEvent event) {
-        event.registrar("24")
+        event.registrar("30")
+                .playToServer(TargetLockPayload.TYPE,TargetLockPayload.STREAM_CODEC,(payload,context)->
+                    context.enqueueWork(()->{
+                        if(context.player() instanceof ServerPlayer player)
+                            com.codex.blacklight.combat.CombatTargeting.requestLock(player,payload.entityId());
+                    }))
                 .playToServer(WeaponInputPayload.TYPE,WeaponInputPayload.STREAM_CODEC,(payload,context)->
                     context.enqueueWork(()->{
                         if(context.player() instanceof ServerPlayer player){
@@ -83,6 +88,12 @@ public final class ModNetwork {
 
     private static boolean canAct(ServerPlayer player) {
         return player != null && player.isAlive() && !player.isSpectator() && !player.isDeadOrDying();
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+        if(event.getEntity() instanceof ServerPlayer player)
+            com.codex.blacklight.combat.CombatTargeting.requestLock(player,-1);
     }
 
     @SubscribeEvent

@@ -37,7 +37,9 @@ public final class PowerFormSystem {
         else if (!state.activate(form)) return false;
         combat.markTransformToggled(player.tickCount);
         player.setData(ModAttachments.PLAYER_STATE, state); player.syncData(ModAttachments.PLAYER_STATE);
-        player.displayClientMessage(Component.translatable("message.blacklight.form_selected", Component.translatable("power.blacklight." + form.id())), true);
+        String message = UtilityPowerSystem.supported(form) && !UtilityPowerSystem.active(player, form)
+                ? "message.blacklight.form_disabled" : "message.blacklight.form_selected";
+        player.displayClientMessage(Component.translatable(message, Component.translatable("power.blacklight." + form.id())), true);
         return true;
     }
     public static void cycle(ServerPlayer player) {

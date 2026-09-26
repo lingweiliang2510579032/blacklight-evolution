@@ -196,6 +196,14 @@ public final class PrototypeMovementEffects {
         double side = ((player.tickCount / interval) & 1) == 0 ? -0.18D : 0.18D;
         Vec3 foot = player.position().subtract(forward.scale(0.22D)).add(right.scale(side));
         ServerLevel level = player.serverLevel();
+        if (WaterRunning.onSurface(player)) {
+            level.sendParticles(ParticleTypes.SPLASH, foot.x, player.getY() + .025, foot.z,
+                    5 + Math.round(intensity * 7), .22, .035, .22, .06);
+            if (player.tickCount % (interval * 2) == 0)
+                level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_SPLASH,
+                        SoundSource.PLAYERS, .25F, 1.3F);
+            return;
+        }
         int footDebris = 4 + Math.round(intensity * 7.0F);
         level.sendParticles(terrainParticle(player), foot.x, player.getY() + 0.07D, foot.z,
                 footDebris, 0.18D + intensity * 0.16D,

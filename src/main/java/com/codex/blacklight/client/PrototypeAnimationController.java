@@ -7,6 +7,8 @@ import com.codex.blacklight.movement.LocomotionDirection;
 import com.codex.blacklight.movement.LocomotionPhase;
 import com.codex.blacklight.movement.LocomotionVisualState;
 import com.codex.blacklight.movement.PrototypeLocomotion;
+import com.codex.blacklight.movement.TerrainTraversal;
+import com.codex.blacklight.movement.WaterRunning;
 import com.codex.blacklight.registry.ModAttachments;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -46,7 +48,7 @@ public final class PrototypeAnimationController {
         for (AbstractClientPlayer player : minecraft.level.players()) {
             var blacklight = player.getData(ModAttachments.PLAYER_STATE);
             if (!blacklight.isInfected() || !blacklight.isPrototypeMode()
-                    || player.isInWater() || player.isInLava()) {
+                    || player.isInWater() && !WaterRunning.onSurface(player) || player.isInLava()) {
                 STATES.remove(player);
                 LocomotionVisualState.remove(player.getId());
                 continue;
@@ -160,6 +162,26 @@ public final class PrototypeAnimationController {
         private boolean motionRefreshPending;
         private boolean freeFacing, facingInitialized;
         private float facing, previousFacing;
+        private int terrainAirTicks;
+        private boolean hadGroundSupport;
+        private WallTraversal.Mode previousWallMode = WallTraversal.Mode.NONE;
+
+        private boolean visualGrounded(AbstractClientPlayer player, Vec3 velocity, boolean moving) {
+            if (player.onGround()) {
+                terrainAirTicks = 0;
+                hadGroundSupport = true;
+                return true;
+            }
+            terrainAirTicks++;
+            // Preserve the stride over a brief downward step, not a jump or a cliff.
+            // This is visual only: never forge onGround, teleport or suppress gravity.
+            boolean followsTerrain = hadGroundSupport && moving && terrainAirTicks <= 6
+                    && velocity.y <= .035 && velocity.y >= -.5
+                    && !player.isFallFlying() && !player.getAbilities().flying
+                    && TerrainTraversal.supportBelow(player, 1.05);
+            if (!followsTerrain) hadGroundSupport = false;
+            return followsTerrain;
+        }
 
         private boolean update(AbstractClientPlayer player, boolean charging,
                                boolean movingIntent, boolean sprintIntent,
@@ -168,6 +190,10 @@ public final class PrototypeAnimationController {
             Vec3 velocity = player.getDeltaMovement();
             double horizontalSqr = velocity.x * velocity.x + velocity.z * velocity.z;
             boolean nowMoving = movingIntent || horizontalSqr >= MOVING_SPEED_SQR;
+            boolean grounded = visualGrounded(player, velocity, nowMoving);
+            boolean ontoPlatform = previousWallMode != WallTraversal.Mode.NONE
+                    && wallMode == WallTraversal.Mode.NONE && grounded;
+            previousWallMode = wallMode;
             var patch=EpicFightCapabilities.getEntityPatch(player,AbstractClientPlayerPatch.class);
             var weapon=player.getData(ModAttachments.WEAPON_VISUAL);
             var minecraft=Minecraft.getInstance();
@@ -176,7 +202,7 @@ public final class PrototypeAnimationController {
             // getTarget() on LocalPlayerPatch is camera focus, also populated without lock-on.
             boolean locked=target!=null&&target.isAlive()&&!target.isRemoved()
                     &&(!local||yesman.epicfight.api.client.camera.EpicFightCameraAPI.getInstance().isLockingOnTarget());
-            freeFacing=player.onGround()&&!charging&&wallMode==WallTraversal.Mode.NONE
+            freeFacing=grounded&&!charging&&wallMode==WallTraversal.Mode.NONE
                     &&!player.isPassenger()&&!player.isSleeping()&&!player.isFallFlying()&&!player.getAbilities().flying
                     &&weapon.spec()==null&&!player.getData(ModAttachments.CONSUMING)
                     &&!locked;
@@ -225,12 +251,12 @@ public final class PrototypeAnimationController {
             } else {
                 boolean running = nowMoving && (sprintIntent || player.isSprinting()
                         || Math.sqrt(horizontalSqr) >= RUN_SPEED);
-                LocomotionPhase resolved = LocomotionPhase.resolve(charging, player.onGround(),
+                LocomotionPhase resolved = LocomotionPhase.resolve(charging, grounded,
                         velocity.y, nowMoving, running, moving, hardTurn,
                         LandingImpact.Strength.NONE);
                 // A fresh direction must leave braking immediately, including while
                 // residual velocity still makes nowMoving true. Do not latch airborne phases.
-                if(charging||!player.onGround()||transitionPhase==LocomotionPhase.BRAKE&&nowMoving)
+                if(charging||!grounded||transitionPhase==LocomotionPhase.BRAKE&&nowMoving)
                     transitionTicks=0;
                 if (resolved == LocomotionPhase.START) {
                     transitionTicks = START_TICKS;
@@ -243,7 +269,7 @@ public final class PrototypeAnimationController {
                     transitionPhase = LocomotionPhase.TURN;
                 }
 
-                if (transitionTicks > 0 && !charging && player.onGround()) {
+                if (transitionTicks > 0 && !charging && grounded) {
                     transitionTicks--;
                     phase = transitionPhase;
                 } else {
@@ -259,6 +285,9 @@ public final class PrototypeAnimationController {
                 default -> PrototypeLocomotion.Gait.IDLE;
             };
             PrototypeLocomotion.Gait previousGait = gait;
+            // A confirmed wall-to-ground handoff already supplied the transition.
+            // Do not insert the gait filter's old airborne IDLE for another 3 ticks.
+            if (ontoPlatform) gaitStabilizer.reset();
             gait = gaitStabilizer.update(desiredGait);
             if (phase == LocomotionPhase.WALK || phase == LocomotionPhase.RUN) {
                 phase = switch (gait) {

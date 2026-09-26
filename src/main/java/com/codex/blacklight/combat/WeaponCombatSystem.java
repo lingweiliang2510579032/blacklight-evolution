@@ -91,9 +91,10 @@ public final class WeaponCombatSystem {
         var state=p.getData(ModAttachments.PLAYER_STATE);
         var active=ACTIVE.get(p);
         if(active!=null){
-            if((!active.charging||active.released)&&active.move.followUp(input,state.getActivePower(),!p.onGround(),p.isSprinting())!=null&&p.tickCount-active.started>=active.move.comboBufferTick()){
+            var followUp=active.move.followUp(input,state.getActivePower(),!p.onGround(),p.isSprinting());
+            if((!active.charging||active.released)&&followUp!=null&&p.tickCount-active.started>=active.move.comboBufferTick()){
                 active.queued=input;active.queuedHeld=held;
-                active.queuedTarget=null;active.queuedTarget=acquireTarget(p,active.move);
+                active.queuedTarget=null;active.queuedTarget=acquireTarget(p,followUp);
             }
             return;
         }
@@ -157,11 +158,10 @@ public final class WeaponCombatSystem {
         // Ground swings only assist within their contact reach plus the bounded
         // local step. Locking a distant actor must not turn a punch into autorun.
         double range=CombatMotion.canApproach(move)?CombatTargeting.viewRange(p):AttackReach.reach(p,move)+1.65;
-        java.util.function.Predicate<LivingEntity> eligible=v->v!=p&&v.isAlive()&&!v.isSpectator()&&!p.isAlliedTo(v)
-                &&(!(v instanceof Player other)||p.canHarmPlayer(other))&&!v.getData(ModAttachments.CONSUME_VISUAL).active()
+        java.util.function.Predicate<LivingEntity> eligible=v->CombatTargeting.selectable(p,v)
                 &&CombatTargeting.inReach(p,v,range)&&CombatTargeting.visible(p,v);
         var locked=CombatTargeting.locked(p);
-        if(locked!=null&&eligible.test(locked))return locked;
+        if(locked!=null)return eligible.test(locked)?locked:null;
         var active=ACTIVE.get(p);
         // Releasing a held press retains its victim. New presses / combo steps
         // use the user's nearest-in-front policy, not an invented native score.
@@ -377,6 +377,7 @@ public final class WeaponCombatSystem {
                 s.target=target;s.lastTargetPosition=target==null?null:target.position();
                 syncHeading(p,s,s.yaw);
             }
+            s.locked=target!=null&&CombatTargeting.locked(p)==target;
         }
         if(s.target==null){
             float next=CombatPursuit.turnToward(s.yaw,requestedYaw(p,s.move),(float)CombatMotion.turn(s.move,true));
@@ -384,8 +385,7 @@ public final class WeaponCombatSystem {
         }
     }
     private static void pursue(ServerPlayer p,Session s,int tick){
-        if(s.target==null||!s.target.isAlive()||s.target.level()!=p.level()||s.target.isSpectator()||p.isAlliedTo(s.target)
-                ||s.target.getData(ModAttachments.CONSUME_VISUAL).active()
+        if(!CombatTargeting.selectable(p,s.target)
                 ||!CombatTargeting.inReach(p,s.target,CombatTargeting.viewRange(p))||!CombatTargeting.visible(p,s.target)
                 ||tick>=s.move.end&&!s.move.landingAttack())return;
         boolean windup=preparing(s,tick);
@@ -422,9 +422,11 @@ public final class WeaponCombatSystem {
         };
     }
     private static boolean hasLaunchTarget(ServerPlayer p){
+        var locked=CombatTargeting.locked(p);
+        if(locked!=null)return CombatTargeting.inReach(p,locked,3)&&CombatTargeting.visible(p,locked);
         var direction=Vec3.directionFromRotation(0,p.getYRot());
-        return p.serverLevel().getEntitiesOfClass(LivingEntity.class,p.getBoundingBox().inflate(3),v->v!=p&&v.isAlive()&&!v.isSpectator()&&!p.isAlliedTo(v)&&(!(v instanceof Player other)||p.canHarmPlayer(other))).stream()
-                .anyMatch(v->direction.dot(v.position().subtract(p.position()).normalize())>.5&&p.hasLineOfSight(v));
+        return p.serverLevel().getEntitiesOfClass(LivingEntity.class,p.getBoundingBox().inflate(3),v->CombatTargeting.selectable(p,v)).stream()
+                .anyMatch(v->CombatTargeting.inReach(p,v,3)&&direction.dot(v.position().subtract(p.position()).normalize())>.5&&CombatTargeting.visible(p,v));
     }
     public static Vec3 strikeDirection(WeaponMove move,float yaw,double tick){
         double progress=move.contactProgress(tick);
@@ -450,7 +452,7 @@ public final class WeaponCombatSystem {
         var search=whip==null?p.getBoundingBox().minmax(p.getBoundingBox().move(s.previousFeet.subtract(p.position()))).inflate(reach+1.5,3,reach+1.5)
                 :WhipCurveContact.sweptBounds(whip,fromTime,toTime,s.previousFeet,p.position(),s.yaw,p)
                         .minmax(WhipCurveContact.sweptBounds(whip,fromTime,toTime,s.previousFeet,p.position(),s.previousYaw,p)).inflate(1.5);
-        var candidates=p.serverLevel().getEntitiesOfClass(LivingEntity.class,search,v->v!=p&&v.isAlive()&&!v.isSpectator()&&!p.isAlliedTo(v)&&(!(v instanceof Player other)||p.canHarmPlayer(other))&&!v.getData(ModAttachments.CONSUME_VISUAL).active());
+        var candidates=p.serverLevel().getEntitiesOfClass(LivingEntity.class,search,v->CombatTargeting.damageable(p,v));
         candidates.sort(Comparator.comparingInt((LivingEntity v)->v==s.target?0:1).thenComparingDouble(p::distanceToSqr));
         for(var v:candidates){
             if(s.hit.size()>=(s.move.quake()?48:8))break;if(s.hit.contains(v.getUUID()))continue;
@@ -491,8 +493,7 @@ public final class WeaponCombatSystem {
         }
     }
     private static boolean airTargetAvailable(ServerPlayer p,Session s){
-        return s.target!=null&&s.target.isAlive()&&!s.target.isSpectator()&&!p.isAlliedTo(s.target)
-                &&s.target.level()==p.level()&&!s.target.getData(ModAttachments.CONSUME_VISUAL).active()
+        return CombatTargeting.selectable(p,s.target)
                 &&CombatTargeting.inReach(p,s.target,CombatTargeting.viewRange(p))&&CombatTargeting.visible(p,s.target);
     }
     /** A missed attack still travels. Its finite propulsion clock is independent
@@ -590,8 +591,7 @@ public final class WeaponCombatSystem {
     private static void hammerSplash(ServerPlayer p,Session s,LivingEntity primary){
         var center=primary.position();double radius=(s.move==s.move.uncharged()?1.65:2.2)*AttackReach.scale(p);
         for(var v:p.serverLevel().getEntitiesOfClass(LivingEntity.class,primary.getBoundingBox().inflate(radius,1,radius))){
-            if(v==p||v==primary||!v.isAlive()||v.isSpectator()||p.isAlliedTo(v)||s.hit.contains(v.getUUID())
-                    ||v instanceof Player other&&!p.canHarmPlayer(other)||v.getData(ModAttachments.CONSUME_VISUAL).active())continue;
+            if(v==primary||!CombatTargeting.damageable(p,v)||s.hit.contains(v.getUUID()))continue;
             var delta=v.position().subtract(center);
             if(delta.horizontalDistance()>radius+v.getBbWidth()*.5||Math.abs(delta.y)>1.5)continue;
             if(p.level().clip(new net.minecraft.world.level.ClipContext(primary.getBoundingBox().getCenter(),v.getBoundingBox().getCenter(),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,p)).getType()!=HitResult.Type.MISS)continue;

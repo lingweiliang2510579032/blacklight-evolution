@@ -38,6 +38,7 @@ public final class BlacklightEpicFightAnimations {
     public static AnimationAccessor<MovementAnimation> WALL_CLING;
     public static AnimationAccessor<MovementAnimation> WALL_LEAP;
     public static AnimationAccessor<MovementAnimation> WALL_MANTLE,WALL_VAULT;
+    public static AnimationAccessor<MovementAnimation> WALL_TOP,PARKOUR_SMALL;
     public static AnimationAccessor<MovementAnimation> GLIDE;
     public static AnimationAccessor<ActionAnimation> TRANSFORM_CLAWS;
     public static AnimationAccessor<ActionAnimation> CLAW_AUTO_1;
@@ -81,8 +82,14 @@ public final class BlacklightEpicFightAnimations {
         event.newBuilder(BlacklightNeoMod.MOD_ID, BlacklightEpicFightAnimations::build);
     }
 
+    private static final java.util.Map<String, AnimationAccessor<StaticAnimation>> UTILITY_POSES = new java.util.HashMap<>();
+    public static AnimationAccessor<StaticAnimation> utilityPose(String key) { return UTILITY_POSES.get(key); }
     private static void build(AnimationManager.AnimationBuilder builder) {
         NativeTraversalLibrary.requireInstalled();
+        UTILITY_POSES.clear();
+        for (String key : new String[]{"shield_deploy", "shield_hit", "shield_run", "shield_sprint", "armor_transform", "armor_idle"}) {
+            UTILITY_POSES.put(key, builder.nextAccessor("biped/utility/" + key, a -> new NativeHitAnimation(a, "utility_" + key)));
+        }
         CONSUME_POSES.clear();
         for(String form:new String[]{"normal","claws","hammer","blade","whip","muscle","large","large_hammer","large_muscle","large_whip","capture","hold","carry_walk","carry_run"})
             for(String role:new String[]{"actor","victim"}) {
@@ -137,6 +144,8 @@ public final class BlacklightEpicFightAnimations {
                 accessor -> new NativeTraversalMovement(accessor,NativeTraversalMovement.Family.WALL_LEAP));
         WALL_MANTLE=builder.nextAccessor("biped/living/wall_mantle",accessor -> new NativeTraversalMovement(accessor,NativeTraversalMovement.Family.WALL_MANTLE));
         WALL_VAULT=builder.nextAccessor("biped/living/wall_vault",accessor -> new NativeTraversalMovement(accessor,NativeTraversalMovement.Family.WALL_VAULT));
+        WALL_TOP=builder.nextAccessor("biped/living/wall_top",accessor -> new NativeTraversalMovement(accessor,NativeTraversalMovement.Family.WALL_TOP));
+        PARKOUR_SMALL=builder.nextAccessor("biped/living/parkour_small",accessor -> new NativeTraversalMovement(accessor,NativeTraversalMovement.Family.PARKOUR_SMALL));
         // The glide is a sustained state, so it lives on the living-motion system as
         // a looping clip (FLY is unreachable in Prototype mode: elytra use is locked).
         GLIDE = builder.nextAccessor("biped/living/prototype_glide",

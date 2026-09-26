@@ -15,6 +15,7 @@ public abstract class EpicConsumePoseMixin {
     @WrapOperation(method="setArmaturePose",at=@At(value="INVOKE",target="Lyesman/epicfight/api/model/Armature;setPose(Lyesman/epicfight/api/animation/Pose;)V"))
     private void blacklight$victim(Armature armature,Pose pose,Operation<Void> original,
             @Local(argsOnly=true) LivingEntityPatch<?> patch,@Local(argsOnly=true) float partial) {
+        com.codex.blacklight.client.animation.NativeUtilityPose.apply(patch,pose,partial);
         if(!com.codex.blacklight.client.animation.NativeHitPose.apply(patch,armature,pose,partial))
             ConsumeVictimPose.epic(patch.getOriginal(),pose,partial);
         if(patch.getOriginal().getData(com.codex.blacklight.registry.ModAttachments.GRAB_STAGE)==com.codex.blacklight.combat.ConsumeVisual.HOLD) {

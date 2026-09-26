@@ -71,7 +71,7 @@ public final class PrototypeMovementSystem {
                                    int forward, int sideways, boolean sprinting, boolean detach) {
         if (!PrototypeModeSystem.isActive(player) || !player.isAlive()
                 || player.isSpectator() || player.isDeadOrDying()
-                || player.isInWater() || player.isInLava()) {
+                || player.isInWater() && !WaterRunning.onSurface(player) || player.isInLava()) {
             // A jump-key packet arriving on the riverbed must not start/release a
             // land charge before onPlayerTick clears traversal for swimming.
             return;
@@ -81,30 +81,37 @@ public final class PrototypeMovementSystem {
         MovementState movement = player.getData(ModAttachments.MOVEMENT_STATE);
         boolean wasJumpHeld = movement.jumpHeld();
         movement.acceptInput(jumpHeld, dashPressed, forward, sideways, sprinting, detach);
+        movement.jumpInput().acceptInput(jumpHeld, player, movement.wallTraversal().attached());
         if (WeaponCombatSystem.busy(player)) {
+            movement.jumpInput().cancelPendingCharge();
             WeaponCombatSystem.movementInput(player, jumpHeld && !wasJumpHeld);
             // Keep current movement intent for after the action, but do not queue
             // traversal edges that would replace its animation or movement track.
             movement.consumeDashRequest();
             return;
         }
-        if (!wasJumpHeld && jumpHeld && player.onGround() && !movement.wallTraversal().attached() && movement.chargeTicks() == 0) {
-            if(sprinting&&forward>0)movement.beginRunningCharge();else movement.beginCharge();
-            // The crouch is an ActionAnimation played from the server: every client
-            // sees it and Epic Fight's own tick never replaces an action with IDLE.
-            // The explicit self payload is the same acknowledgement the groundspike
-            // relies on — the controlling client's living-motion hooks otherwise race
-            // the ordinary animator sync packet and the action never sticks locally.
-            if(!movement.runningCharge()) {
-                play(player, BlacklightEpicFightAnimations.CHARGED_JUMP);
-                PacketDistributor.sendToPlayer(player, new ClawAnimationPayload(ClawAnimationPayload.Animation.CHARGED_JUMP));
-            }
-            syncCharge(player,movement.chargeTicks());
-            BlacklightNeoMod.LOGGER.debug("Started charged jump for {}",
-                    player.getGameProfile().getName());
+        if (!movement.wallTraversal().attached() && movement.chargeTicks() == 0
+                && movement.jumpInput().consumeChargeRequest(player)) {
+            beginChargedJump(player, movement);
         } else if (wasJumpHeld && !jumpHeld && movement.chargeTicks() > 0) {
             releaseChargedJump(player, movement);
         }
+    }
+
+    private static void beginChargedJump(ServerPlayer player, MovementState movement) {
+        if(movement.sprinting()&&movement.forwardHeld())movement.beginRunningCharge();else movement.beginCharge();
+        // The crouch is an ActionAnimation played from the server: every client
+        // sees it and Epic Fight's own tick never replaces an action with IDLE.
+        // The explicit self payload is the same acknowledgement the groundspike
+        // relies on — the controlling client's living-motion hooks otherwise race
+        // the ordinary animator sync packet and the action never sticks locally.
+        if(!movement.runningCharge()) {
+            play(player, BlacklightEpicFightAnimations.CHARGED_JUMP);
+            PacketDistributor.sendToPlayer(player, new ClawAnimationPayload(ClawAnimationPayload.Animation.CHARGED_JUMP));
+        }
+        syncCharge(player,movement.chargeTicks());
+        BlacklightNeoMod.LOGGER.debug("Started charged jump for {}",
+                player.getGameProfile().getName());
     }
 
     @SubscribeEvent
@@ -117,7 +124,7 @@ public final class PrototypeMovementSystem {
                 || player.isPassenger() || player.isFallFlying()
                 || player.getAbilities().flying || player.isSpectator()
                 || !player.isAlive() || player.isDeadOrDying()
-                || player.isInWater() || player.isInLava()) {
+                || player.isInWater() && !WaterRunning.onSurface(player) || player.isInLava()) {
             if (movement.chargeTicks() > 0) {
                 // An interrupted charge must drop the action pose immediately instead
                 // of letting the crouch clip play out to its 2.05 s end.
@@ -132,6 +139,7 @@ public final class PrototypeMovementSystem {
                 }
             }
             movement.reset();
+            clearGlideTrail(player);
             syncCharge(player,0);
             syncWallMotion(player, movement.wallTraversal());
             return;
@@ -139,16 +147,23 @@ public final class PrototypeMovementSystem {
 
         // Prototype physiology steps straight over curbs, cars and one-block ledges.
         var stepHeight = player.getAttribute(Attributes.STEP_HEIGHT);
-        if (stepHeight != null && stepHeight.getBaseValue() != 1.0D) {
-            stepHeight.setBaseValue(1.0D);
+        double terrainStepHeight = com.codex.blacklight.power.UtilityPowerSystem.parkourAllowed(player) ? 1.0D : .6D;
+        if (stepHeight != null && stepHeight.getBaseValue() != terrainStepHeight) {
+            stepHeight.setBaseValue(terrainStepHeight);
         }
         int upgradeMask = blacklight.getMovementUpgradeMask();
         movement.setMaxAirDashes(MovementUpgrade.airDashCharges(upgradeMask));
         movement.tickWallJumpCooldown();
         MovementTuningSettings.load();
+        movement.jumpInput().observeGround(player.onGround());
+        if (!movement.jumpInput().canGlide(player) || WeaponCombatSystem.busy(player)
+                || movement.wallTraversal().attached() || movement.dashTicks() > 0) {
+            clearGlideTrail(player);
+        }
         LandingImpact.Observation landing = movement.observeLanding(
                 player.onGround(), player.getDeltaMovement().y, player.getY());
         if (WeaponCombatSystem.busy(player)) {
+            movement.jumpInput().cancelPendingCharge();
             // Weapon actions own their Coord (or their explicit airborne velocity).
             // Consume landing/input edges without a delayed jump, air dash, landing
             // animation, sprint impulse or wall attachment stealing that ownership.
@@ -171,7 +186,8 @@ public final class PrototypeMovementSystem {
         }
         if (player.onGround()) {
             movement.land();
-            LandingImpact.Profile impact = PrototypeMovementEffects.onLanding(player, landing);
+            LandingImpact.Profile impact = WaterRunning.onSurface(player) ? LandingImpact.Profile.NONE
+                    : PrototypeMovementEffects.onLanding(player, landing);
             LandingImpact.Strength strength = impact.strength();
             if (strength != LandingImpact.Strength.NONE) {
                 movement.beginLandingRecovery(strength);
@@ -289,6 +305,9 @@ public final class PrototypeMovementSystem {
     }
 
     private static void tickChargedJump(ServerPlayer player, MovementState movement) {
+        if (movement.chargeTicks() <= 0 && movement.jumpInput().consumeChargeRequest(player)) {
+            beginChargedJump(player, movement);
+        }
         if (movement.chargeTicks() <= 0) return;
 
         // Never manufacture a grounded state. If the player walks or is pushed off an
@@ -370,31 +389,43 @@ public final class PrototypeMovementSystem {
                 player.getY(), player.getDeltaMovement().horizontalDistance(),
                 MovementTuningSettings.wallClimbVelocity(), MovementUpgrade.wallMultiplier(upgradeMask));
         if (frame.handled()) {
+            if (movement.jumpHeld()) movement.jumpInput().claimCharge();
             if (movement.chargeTicks() > 0) {
                 movement.cancelCharge(); unpauseServerAnimator(player);
             }
             movement.cancelLandingRecovery();
             player.setDeltaMovement(frame.x(), frame.y(), frame.z());
             player.setOnGround(false); player.resetFallDistance(); player.hurtMarked = true;
-            player.setSprinting(frame.mode() == WallTraversal.Mode.RUN || frame.mode() == WallTraversal.Mode.LEAP);
+            player.setSprinting(movement.sprinting() && (frame.mode() == WallTraversal.Mode.RUN
+                    || frame.mode() == WallTraversal.Mode.LEAP || WallTraversal.crossingTop(frame.mode())));
             movement.setMode(switch (frame.mode()) {
                 case RUN -> MovementState.Mode.WALL_RUN;
-                case LEAP, MANTLE, VAULT -> MovementState.Mode.WALL_LEAP;
+                case LEAP, MANTLE, VAULT, TOP, PARKOUR -> MovementState.Mode.WALL_LEAP;
                 case CLING, CLIMB -> MovementState.Mode.WALL_CLIMB;
                 default -> MovementState.Mode.NORMAL;
             });
             if (frame.mode()!=previous) {
                 play(player, wallAnimation(frame.mode()));
                 Vec3 into=new Vec3(-wall.normalX(),0,-wall.normalZ());
-                if (frame.mode()==WallTraversal.Mode.LEAP || frame.mode()==WallTraversal.Mode.MANTLE || frame.mode()==WallTraversal.Mode.VAULT)
+                if (frame.mode()==WallTraversal.Mode.LEAP || frame.mode()==WallTraversal.Mode.VAULT)
                     PrototypeMovementEffects.onWallMantle(player,into);
-                else if (previous==WallTraversal.Mode.NONE) PrototypeMovementEffects.onWallRunStarted(player,into);
+                else if (previous==WallTraversal.Mode.NONE && frame.mode()!=WallTraversal.Mode.PARKOUR)
+                    PrototypeMovementEffects.onWallRunStarted(player,into);
             }
             if (frame.mode()==WallTraversal.Mode.RUN)
                 PrototypeMovementEffects.tickWallRun(player,new Vec3(-wall.normalX(),0,-wall.normalZ()));
         } else if (previous!=WallTraversal.Mode.NONE) {
             movement.setMode(MovementState.Mode.NORMAL);
-            play(player,BlacklightEpicFightAnimations.JUMP_FALL);
+            if (wall.finishedOnTop() || player.onGround()) {
+                boolean running = movement.sprinting() && movement.forwardHeld();
+                player.setSprinting(running);
+                movement.setRunningAnimation(running);
+                play(player, running ? BlacklightEpicFightAnimations.CLAW_SPRINT
+                        : movement.wallInput().moving() ? BlacklightEpicFightAnimations.CLAW_WALK
+                        : BlacklightEpicFightAnimations.CLAW_IDLE);
+            } else {
+                play(player,BlacklightEpicFightAnimations.JUMP_FALL);
+            }
         }
         syncWallMotion(player,wall);
         return frame.handled();
@@ -408,6 +439,8 @@ public final class PrototypeMovementSystem {
             case LEAP -> BlacklightEpicFightAnimations.WALL_LEAP;
             case MANTLE -> BlacklightEpicFightAnimations.WALL_MANTLE;
             case VAULT -> BlacklightEpicFightAnimations.WALL_VAULT;
+            case TOP -> BlacklightEpicFightAnimations.WALL_TOP;
+            case PARKOUR -> BlacklightEpicFightAnimations.PARKOUR_SMALL;
             default -> BlacklightEpicFightAnimations.JUMP_RISE;
         };
     }
@@ -420,14 +453,21 @@ public final class PrototypeMovementSystem {
                     new com.codex.blacklight.network.WallMotionPayload(player.getId(),wall.mode().ordinal(),(float)wall.normalX(),(float)wall.normalZ()));
     }
 
+    private static void clearGlideTrail(ServerPlayer player) {
+        if (player.getData(ModAttachments.GLIDE_UNTIL) != 0L) {
+            player.setData(ModAttachments.GLIDE_UNTIL, 0L);
+            player.syncData(ModAttachments.GLIDE_UNTIL);
+        }
+    }
+
     private static void tickGlide(ServerPlayer player, MovementState movement,
                                   Vec3 forward, int upgradeMask) {
         Vec3 velocity = player.getDeltaMovement();
         if (com.codex.blacklight.power.UtilityPowerSystem.active(player,com.codex.blacklight.power.PowerForm.ARMOR)
-                || player.onGround() || !movement.jumpHeld() || velocity.y >= -0.02D
-                || player.horizontalCollision) {
+                || movement.chargeTicks() > 0 || !movement.jumpInput().canGlide(player)) {
             movement.setMode(MovementState.Mode.NORMAL);
             movement.setGlideSpeed(0);
+            clearGlideTrail(player);
             return;
         }
         double cruise = MovementTuningSettings.glideMaxSpeed()
@@ -467,10 +507,14 @@ public final class PrototypeMovementSystem {
 
     private static void tickSprint(ServerPlayer player, MovementState movement,
                                    Vec3 forward, int upgradeMask) {
-        boolean shouldSprint = player.onGround() && movement.sprinting() && movement.forwardHeld();
+        boolean shouldSprint = (player.onGround() || WaterRunning.onSurface(player))
+                && movement.sprinting() && movement.forwardHeld();
         if (!shouldSprint) {
             movement.updateSprintCollision(false);
-            if (movement.runningAnimation()) {
+            boolean shortStep = movement.sprinting() && movement.forwardHeld()
+                    && player.getDeltaMovement().y <= .035 && player.getDeltaMovement().y >= -.5
+                    && TerrainTraversal.supportBelow(player, 1.05);
+            if (movement.runningAnimation() && !shortStep) {
                 movement.setRunningAnimation(false);
             }
             player.setSprinting(movement.sprinting() && player.onGround());
@@ -496,8 +540,10 @@ public final class PrototypeMovementSystem {
                 collisionStart, collisionStart.add(forward.scale(0.72D)),
                 ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player)).getType()
                 != HitResult.Type.MISS;
+        colliding = colliding && !TerrainTraversal.canStepPast(player, forward, .72);
         if (colliding) {
-            horizontal = horizontal.scale(0.28D);
+            // Collision resolution already stops movement. A server-only 72% brake
+            // fought local prediction and also treated one-block steps as impacts.
             if (movement.updateSprintCollision(true)
                     && impactSpeed >= PrototypeLocomotion.RUN_ANIMATION_SPEED) {
                 PrototypeMovementEffects.onSprintCollision(player, forward, impactSpeed);
@@ -546,12 +592,9 @@ public final class PrototypeMovementSystem {
 
     /** The living target the player currently locks on, or null when none is valid. */
     private static LivingEntity getLockedTarget(ServerPlayer player) {
-        ServerPlayerPatch patch = EpicFightCapabilities.getServerPlayerPatch(player);
-        LivingEntity target = patch == null ? null : patch.getTarget();
-        if (target == null || !target.isAlive() || target.level() != player.level()
-                || player.isAlliedTo(target) || player.distanceToSqr(target) > 64.0D * 64.0D) {
-            return null;
-        }
+        LivingEntity target = com.codex.blacklight.combat.CombatTargeting.locked(player);
+        if (target == null || !com.codex.blacklight.combat.CombatTargeting.inReach(player,target,64)
+                || !com.codex.blacklight.combat.CombatTargeting.visible(player,target)) return null;
         return target;
     }
 
@@ -578,9 +621,9 @@ public final class PrototypeMovementSystem {
         int hits = 0;
         for (LivingEntity target : player.serverLevel().getEntitiesOfClass(
                 LivingEntity.class, sweep,
-                target -> target != player && target.isAlive()
-                        && !player.isAlliedTo(target)
-                        && !target.getData(ModAttachments.CONSUME_VISUAL).active())) {
+                target -> com.codex.blacklight.combat.CombatTargeting.damageable(player,target)
+                        && com.codex.blacklight.combat.CombatTargeting.visible(player,target)).stream()
+                        .sorted(com.codex.blacklight.combat.CombatTargeting.contactPriority(player)).toList()) {
             Integer last = cooldowns.get(target.getUUID());
             if (last != null && player.tickCount - last < BODY_CHECK_COOLDOWN_TICKS) continue;
             float damage = 5.0F + 9.0F * intensity;
@@ -606,9 +649,8 @@ public final class PrototypeMovementSystem {
         AABB sweep = player.getBoundingBox().inflate(0.95D, 0.55D, 0.95D);
         for (LivingEntity target : player.serverLevel().getEntitiesOfClass(
                 LivingEntity.class, sweep,
-                target -> target != player && target.isAlive()
-                        && !player.isAlliedTo(target) && !hit.contains(target)
-                        && !target.getData(ModAttachments.CONSUME_VISUAL).active())) {
+                target -> com.codex.blacklight.combat.CombatTargeting.damageable(player,target)
+                        && com.codex.blacklight.combat.CombatTargeting.visible(player,target) && !hit.contains(target))) {
             hit.add(target);
             float damage = ClawDamageRules.applyDamageUpgrade(12.0F,
                     state.hasClawUpgrade(ClawUpgrade.DAMAGE));

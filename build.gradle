@@ -35,11 +35,11 @@ def stageBundledMotions = tasks.register('stageBundledMotions', Sync) {
     if (bundledMotionDirectory.isPresent()) {
         from(bundledMotionDirectory.get()) {
             into 'blacklight/bundled_motions'
-            include '*.json', 'combat-motion-tuning.data', 'consume-placement.data', 'receiver-poses.data', 'hunter-consume.data', 'hammer-scales.data'
+            include '*.json', 'combat-motion-tuning.data', 'consume-placement.data', 'receiver-poses.data', 'hunter-consume.data', 'hammer-scales.data', 'armor-growth.data'
         }
         doFirst {
             def profile = file(bundledMotionDirectory.get())
-            ['basic_idle.json', 'combat-motion-tuning.data', 'consume-placement.data', 'receiver-poses.data', 'hunter-consume.data', 'hammer-scales.data'].each {
+            ['utility_shield_deploy.json', 'utility_shield_hit.json', 'utility_shield_run.json', 'utility_shield_sprint.json', 'utility_armor_transform.json', 'utility_armor_idle.json', 'basic_idle.json', 'basic_wall_top.json', 'basic_parkour_small.json', 'combat-motion-tuning.data', 'consume-placement.data', 'receiver-poses.data', 'hunter-consume.data', 'hammer-scales.data', 'armor-growth.data'].each {
                 if (!new File(profile, it).isFile()) throw new GradleException("Incomplete bundled motion profile: ${it}")
             }
         }
@@ -66,8 +66,23 @@ repositories {
 }
 
 base {
-    archivesName = mod_id
+    archivesName = "${mod_archive_name}-MC${minecraft_version}-NeoForge"
 }
+
+// Keep both version numbers in every release; never hand-name the install ZIP.
+def distributionZip = tasks.register('distributionZip', Zip) {
+    group = 'distribution'
+    description = 'Packages the current mod JAR and instructions with Minecraft and mod versions.'
+    archiveBaseName = base.archivesName
+    archiveVersion = project.version.toString()
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    from(tasks.named('jar')) { into 'mods' }
+    from('README.md')
+    from('docs') { into 'docs' }
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+tasks.named('assemble') { dependsOn(distributionZip) }
 
 // Mojang ships Java 21 to end users in 1.21.1, so mods should target Java 21.
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)

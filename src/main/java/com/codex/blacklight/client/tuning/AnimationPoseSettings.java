@@ -221,7 +221,7 @@ public final class AnimationPoseSettings {
         try {
             Files.createDirectories(path().getParent());
             try (Writer writer = Files.newBufferedWriter(path())) {
-                properties.store(writer, "Blacklight Evolution full animation transform timelines");
+                properties.store(writer, "Blacklight: Ascension full animation transform timelines");
             }
             BlacklightNeoMod.LOGGER.info("Saved full animation transform timelines to {}", path());
         } catch (IOException exception) {

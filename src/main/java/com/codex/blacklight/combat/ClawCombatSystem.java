@@ -287,8 +287,7 @@ public final class ClawCombatSystem {
             AABB sweep = player.getBoundingBox().inflate(1.25D, 0.6D, 1.25D);
             for (LivingEntity target : player.serverLevel().getEntitiesOfClass(
                      LivingEntity.class, sweep,
-                     target -> target != player && target.isAlive()
-                             && !player.isAlliedTo(target)
+                     target -> CombatTargeting.damageable(player,target) && CombatTargeting.visible(player,target)
                              && !alreadyHit.contains(target))) {
                 alreadyHit.add(target);
                 if (target.hurt(player.damageSources().playerAttack(player),
@@ -325,9 +324,8 @@ public final class ClawCombatSystem {
                 int hitCount = 0;
                 for (LivingEntity target : player.serverLevel().getEntitiesOfClass(
                         LivingEntity.class, sweep,
-                        target -> target != player && target.isAlive()
-                                && !player.isAlliedTo(target)).stream()
-                        .sorted(Comparator.comparingDouble(player::distanceToSqr))
+                        target -> CombatTargeting.damageable(player,target) && CombatTargeting.visible(player,target)).stream()
+                        .sorted(CombatTargeting.contactPriority(player))
                         .limit(3).toList()) {
                     if (target.hurt(player.damageSources().playerAttack(player),
                             clawDamage(state, 9.0F))) {
@@ -380,8 +378,7 @@ public final class ClawCombatSystem {
         int maxTargets = ClawDamageRules.comboMaxTargets(action);
 
         var targets = player.serverLevel().getEntitiesOfClass(LivingEntity.class, sweep,
-                        target -> target != player && target.isAlive() && !player.isAlliedTo(target)
-                                && player.hasLineOfSight(target))
+                        target -> CombatTargeting.damageable(player,target) && CombatTargeting.visible(player,target))
                 .stream()
                 .filter(target -> {
                     Vec3 direction = target.getBoundingBox().getCenter().subtract(attackOrigin)
@@ -389,7 +386,7 @@ public final class ClawCombatSystem {
                     return direction.lengthSqr() < 1.0E-5D
                             || attackForward.dot(direction.normalize()) >= 0.15D;
                 })
-                .sorted(Comparator.comparingDouble(player::distanceToSqr))
+                .sorted(CombatTargeting.contactPriority(player))
                 .limit(maxTargets)
                 .toList();
 
@@ -419,6 +416,7 @@ public final class ClawCombatSystem {
         if (forward.lengthSqr() < 0.001D) forward = new Vec3(0.0D, 0.0D, 1.0D);
         forward = forward.normalize();
         LivingEntity lockedTarget = lockedGroundSpikeTarget(player);
+        if (CombatTargeting.locked(player)!=null && lockedTarget==null) return;
         Vec3 requested = lockedTarget == null
                 ? player.position().add(forward.scale(
                 GroundSpikeRules.BASE_CAST_DISTANCE * rangeMultiplier))
@@ -436,7 +434,7 @@ public final class ClawCombatSystem {
         AABB hitBox = new AABB(x - radius, y - 0.5D, z - radius,
                 x + radius, y + 6.5D, z + radius);
         for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, hitBox,
-                target -> target != player && target.isAlive() && !player.isAlliedTo(target))) {
+                target -> CombatTargeting.damageable(player,target))) {
             if (target.hurt(player.damageSources().playerAttack(player),
                     clawDamage(state, 14.0F))) {
                 Vec3 away = target.position().subtract(x, y, z);
@@ -506,15 +504,10 @@ public final class ClawCombatSystem {
 
     /** Epic Fight already synchronizes its lock-on target to the server player patch. */
     private static LivingEntity lockedGroundSpikeTarget(ServerPlayer player) {
-        ServerPlayerPatch patch = EpicFightCapabilities.getServerPlayerPatch(player);
-        LivingEntity target = patch == null ? null : patch.getTarget();
+        LivingEntity target = CombatTargeting.locked(player);
         double maxDistance = GroundSpikeRules.MAX_LOCKED_TARGET_DISTANCE*AttackReach.scale(player);
-        if (target == null || !target.isAlive() || target.level() != player.level()
-                || player.isAlliedTo(target)
-                || player.distanceToSqr(target) > maxDistance * maxDistance
-                || !player.hasLineOfSight(target)) {
-            return null;
-        }
+        if (target == null || !CombatTargeting.inReach(player,target,maxDistance)
+                || !CombatTargeting.visible(player,target)) return null;
         return target;
     }
 

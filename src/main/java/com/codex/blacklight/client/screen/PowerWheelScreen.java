@@ -18,6 +18,14 @@ public final class PowerWheelScreen extends Screen {
     private int selected=-1;
     private boolean submitted,utility;
     public PowerWheelScreen(KeyMapping binding){super(Component.translatable("screen.blacklight.wheel"));this.binding=binding;}
+    @Override protected void init() {
+        int buttonWidth=Math.min(140,(width-28)/2);
+        addRenderableWidget(net.minecraft.client.gui.components.Button.builder(Component.translatable("screen.blacklight.wheel.weapons"), b->{utility=false;selected=-1;})
+                .bounds(width/2-buttonWidth-4,8,buttonWidth,20).build());
+        addRenderableWidget(net.minecraft.client.gui.components.Button.builder(Component.translatable("screen.blacklight.wheel.utilities"), b->{utility=true;selected=-1;})
+                .bounds(width/2+4,8,buttonWidth,20).build());
+    }
+    @Override public void renderBackground(GuiGraphics g,int x,int y,float partial) { }
     @Override public boolean isPauseScreen(){return false;}
     @Override public void tick(){
         if(minecraft.player==null||!minecraft.player.isAlive()||!minecraft.player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()||minecraft.player.getData(ModAttachments.CONSUMING))onClose();
@@ -53,11 +61,12 @@ public final class PowerWheelScreen extends Screen {
             else if(form==state.getActivePower()||UtilityPowerSystem.active(minecraft.player,form))g.drawCenteredString(font,Component.translatable("screen.blacklight.wheel.active"),x,y+4,0xFFFF9F83);
         }
         g.drawCenteredString(font,selected<0?Component.translatable("screen.blacklight.wheel.cancel"):Component.translatable("power.blacklight."+PowerWheel.form(utility,selected).id()),cx,cy-4,0xFFFFFFFF);
-        g.drawCenteredString(font,title,cx,Math.max(8,cy-(int)outer-28),0xFFFF8790);
-        g.drawCenteredString(font,Component.translatable(utility?"screen.blacklight.wheel.utility_page":"screen.blacklight.wheel.weapon_page"),cx,Math.max(20,cy-(int)outer-14),0xFFCCD1D8);
+        g.drawCenteredString(font,title,cx,Math.max(32,cy-(int)outer-28),0xFFFF8790);
+        g.drawCenteredString(font,Component.translatable(utility?"screen.blacklight.wheel.utility_page":"screen.blacklight.wheel.weapon_page"),cx,Math.max(44,cy-(int)outer-14),0xFFCCD1D8);
         Component hint=selected<0?Component.translatable("screen.blacklight.wheel.hint",binding.getTranslatedKeyMessage()):Component.translatable("screen.blacklight.wheel."+PowerWheel.form(utility,selected).id());
         int lineY=cy+(int)outer+12;
         for(var line:font.split(hint,width-24)){g.drawCenteredString(font,line,cx,lineY,0xFFCCD1D8);lineY+=11;}
+        super.render(g,mouseX,mouseY,partial);
     }
     private static void vertex(BufferBuilder b,org.joml.Matrix4f m,float x,float y,int color){b.addVertex(m,x,y,0).setColor(color);}
     private void confirm(){
@@ -69,5 +78,5 @@ public final class PowerWheelScreen extends Screen {
     }
     @Override public boolean keyPressed(int key,int scan,int mods){if(key==org.lwjgl.glfw.GLFW.GLFW_KEY_TAB){utility=!utility;selected=-1;return true;}return super.keyPressed(key,scan,mods);}
     @Override public boolean keyReleased(int key,int scan,int mods){if(binding.matches(key,scan)){confirm();return true;}return super.keyReleased(key,scan,mods);}
-    @Override public boolean mouseClicked(double x,double y,int button){if(button==0){confirm();return true;}if(button==1){onClose();return true;}return super.mouseClicked(x,y,button);}
+    @Override public boolean mouseClicked(double x,double y,int button){if(button==0){if(y>=8&&y<28)return super.mouseClicked(x,y,button);confirm();return true;}if(button==1){onClose();return true;}return super.mouseClicked(x,y,button);}
 }

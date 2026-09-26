@@ -158,14 +158,18 @@ public final class ConsumeSystem {
                 || player.getData(ModAttachments.MOVEMENT_STATE).wallTraversal().attached()) return;
         var form = state.getActivePower();
         double range = form == PowerForm.WHIPFIST ? WHIP_GRAB_RANGE : 3;
-        Mob target = player.serverLevel().getEntitiesOfClass(Mob.class,
-                 player.getBoundingBox().inflate(range), h -> eligible(h)
-                        && grabInReach(player,h,range) && hasGrabSight(player,h)
-                        && grabAim(player,h) > .65)
-                .stream().min(Comparator.<Mob>comparingDouble(player::distanceToSqr)
-                        .thenComparingDouble(h -> -grabAim(player,h))).orElse(null);
         var locked=CombatTargeting.locked(player);
-        if(locked instanceof Mob mob && eligible(mob) && grabInReach(player,mob,range) && hasGrabSight(player,mob)) target=mob;
+        Mob target;
+        if(locked!=null) {
+            target=locked instanceof Mob mob && eligible(mob) && grabInReach(player,mob,range)
+                    && hasGrabSight(player,mob)?mob:null;
+        } else {
+            target=player.serverLevel().getEntitiesOfClass(Mob.class,player.getBoundingBox().inflate(range),
+                    h->eligible(h)&&CombatTargeting.selectable(player,h)&&grabInReach(player,h,range)
+                            &&hasGrabSight(player,h)&&grabAim(player,h)>.65).stream()
+                    .min(Comparator.<Mob>comparingDouble(player::distanceToSqr)
+                            .thenComparingDouble(h->-grabAim(player,h)).thenComparingInt(Mob::getId)).orElse(null);
+        }
         if (target == null) { message(player, "consume_no_target"); return; }
         if (!healthReady(target)) { message(player, "consume_weaken"); return; }
         if(!player.onGround()&&!ConsumeSequence.large(target))return;

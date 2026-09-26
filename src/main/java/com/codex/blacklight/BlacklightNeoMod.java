@@ -51,6 +51,6 @@ public final class BlacklightNeoMod {
         if (net.neoforged.fml.ModList.get().isLoaded("parcool")) {
             NeoForge.EVENT_BUS.register(com.codex.blacklight.integration.parcool.ParCoolCompatibility.class);
         }
-        LOGGER.info("Blacklight Evolution initialized with Epic Fight player actions and GeckoLib morph overlays");
+        LOGGER.info("Blacklight: Ascension initialized with Epic Fight player actions and GeckoLib morph overlays");
     }
 }

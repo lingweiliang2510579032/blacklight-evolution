@@ -20,7 +20,8 @@ public abstract class KeyboardInputMixin extends Input {
         if (minecraft.player == null || minecraft.screen != null
                 || minecraft.player.getAbilities().flying
                 || minecraft.player.isPassenger()
-                || minecraft.player.isInWater() || minecraft.player.isInLava()) return;
+                || minecraft.player.isInWater() && !com.codex.blacklight.movement.WaterRunning.onSurface(minecraft.player)
+                || minecraft.player.isInLava()) return;
         if (minecraft.player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()) {
             // ClientMovementEvents reads the physical key directly.  Clearing only the
             // vanilla Input flag prevents the immediate 0.42 jump and its server packet.

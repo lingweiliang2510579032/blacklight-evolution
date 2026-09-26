@@ -86,6 +86,8 @@ public final class ClientClawMotionEvents {
                 switch(ClientWallMotion.modeFor(player)){
                     case MANTLE -> BlacklightEpicFightAnimations.WALL_MANTLE;
                     case VAULT -> BlacklightEpicFightAnimations.WALL_VAULT;
+                    case TOP -> BlacklightEpicFightAnimations.WALL_TOP;
+                    case PARKOUR -> BlacklightEpicFightAnimations.PARKOUR_SMALL;
                     default -> BlacklightEpicFightAnimations.JUMP_RISE;
                 });
         installIfChanged(animator, motions, LivingMotions.FALL,
@@ -97,6 +99,8 @@ public final class ClientClawMotionEvents {
                     case LEAP -> BlacklightEpicFightAnimations.WALL_LEAP;
                     case MANTLE -> BlacklightEpicFightAnimations.WALL_MANTLE;
                     case VAULT -> BlacklightEpicFightAnimations.WALL_VAULT;
+                    case TOP -> BlacklightEpicFightAnimations.WALL_TOP;
+                    case PARKOUR -> BlacklightEpicFightAnimations.PARKOUR_SMALL;
                     default -> BlacklightEpicFightAnimations.WALL_CLIMB;
                 });
         installIfChanged(animator, motions, LivingMotions.FLY,

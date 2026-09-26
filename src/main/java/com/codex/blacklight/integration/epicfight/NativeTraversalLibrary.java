@@ -10,12 +10,13 @@ public final class NativeTraversalLibrary {
             "idle idle_claw idle_blade idle_hammer idle_whip walk run sprint sprint_fast sprint_fastest "
             +"wall_run_up wall_run_left wall_run_right wall_run_diag_left wall_run_diag_right "
             +"wall_climb_up wall_climb_down wall_climb_left wall_climb_right wall_cling brake sprint_brake turn "
-            +"jump_charge jump_rise jump_tactical jump_running fall wall_leap wall_mantle wall_vault "
+            +"jump_charge jump_rise jump_tactical jump_running fall wall_leap wall_mantle wall_vault wall_top parkour_small "
             +"air_dash air_dash_brake glide_forward glide_backward glide_left glide_right "
             +"land_light land_moving land_heavy land_devastating").split(" ")).map(id->"basic_"+id).toList();
     private NativeTraversalLibrary(){}
     public static void requireInstalled(){
-        var missing=IDS.stream().filter(id->!MotionResources.contains(id+".json")).toList();
+        if (!MotionResources.contains("armor-growth.data")) throw new IllegalStateException("Incomplete motion profile: armor-growth.data");
+        var missing=java.util.stream.Stream.concat(IDS.stream(), java.util.stream.Stream.of("utility_shield_deploy", "utility_shield_hit", "utility_shield_run", "utility_shield_sprint", "utility_armor_transform", "utility_armor_idle")).filter(id->!MotionResources.contains(id+".json")).toList();
         if(!missing.isEmpty())throw new IllegalStateException("Incomplete motion profile: "+missing
                 +". Install the bundled-motion build or set blacklight.localWeaponMotions to a complete profile.");
     }

@@ -20,6 +20,7 @@ public final class NativeTraversalMovement extends MovementAnimation {
         WALL_RUN("basic_wall_run_up",true),WALL_CLIMB("basic_wall_climb_up",true),
         WALL_CLING("basic_wall_cling",true),WALL_LEAP("basic_wall_leap",false),
         WALL_MANTLE("basic_wall_mantle",false),WALL_VAULT("basic_wall_vault",false),
+        WALL_TOP("basic_wall_top",false),PARKOUR_SMALL("basic_parkour_small",false),
         GLIDE("basic_glide_forward",true);
         final String id;final boolean loop;
         Family(String id,boolean loop){this.id=id;this.loop=loop;}
@@ -32,7 +33,7 @@ public final class NativeTraversalMovement extends MovementAnimation {
     // but must never share a clock. Guava weak keys use object identity.
     private final java.util.concurrent.ConcurrentMap<LivingEntity,Clock> clocks=
             new com.google.common.collect.MapMaker().weakKeys().makeMap();
-    private static final class Clock {String key;double clock,time,changed;Pose last,from;}
+    private static final class Clock {String key;double clock,time,changed,speed;Pose last,from;}
     public NativeTraversalMovement(AnimationAccessor<? extends MovementAnimation> accessor,Family family){
         super(.12F,family.loop,accessor,Armatures.BIPED);this.family=family;
     }
@@ -55,18 +56,26 @@ public final class NativeTraversalMovement extends MovementAnimation {
         var snapshot=LocomotionVisualState.get(entity.getId());var phase=snapshot.phase();
         Clock state=clocks.computeIfAbsent(entity,k->new Clock());
         double now=(entity.level().getGameTime()+partial)/20.0;
+        boolean fresh=state.key==null||now-state.clock>.2||now<state.clock-.25;
+        // Epic Fight may request tick and render samples out of order. An earlier
+        // partial tick must not reset the stride clock or restart its blend.
+        if(!fresh)now=Math.max(now,state.clock);
+        double elapsed=fresh?0:Math.clamp(now-state.clock,0,.1);
+        if(fresh)state.speed=speed;
+        else state.speed+=(speed-state.speed)*(1-Math.exp(-elapsed/.10));
+        if(family==Family.WALK||family==Family.RUN)speed=state.speed;
         String key=switch(family){
             case IDLE -> switch(entity.getData(ModAttachments.PLAYER_STATE).getActivePower()){
                 case CLAWS -> "basic_idle_claw";case BLADE -> "basic_idle_blade";
                 case HAMMERFISTS -> "basic_idle_hammer";case WHIPFIST -> "basic_idle_whip";default -> family.id;
             };
-            case WALK,RUN -> TraversalMotionSelector.ground(phase,family==Family.RUN||snapshot.sprint(),speed);
+            case WALK,RUN -> TraversalMotionSelector.stableGround(phase,family==Family.RUN||snapshot.sprint(),speed,fresh?null:state.key);
             case WALL_RUN,WALL_CLIMB -> TraversalMotionSelector.wall(family==Family.WALL_RUN,velocity.y,right);
             case RISE -> state.key!=null&&now-state.clock<.2?state.key:speed>.3?"basic_jump_running":velocity.y<.8?"basic_jump_tactical":family.id;
             case GLIDE -> TraversalMotionSelector.glide(forward,right);
             default -> family.id;
         };
-        AnimationClip selected=clip(key);boolean fresh=state.key==null||now-state.clock>.2||now<state.clock;
+        AnimationClip selected=clip(key);
         if(fresh||!key.equals(state.key)){
             boolean preserve=!fresh&&loop(state.key)&&loop(key)&&(family==Family.WALK||family==Family.RUN);
             double phaseTime=preserve?state.time/Math.max(.001,clip(state.key).getClipTime()):0;
@@ -75,7 +84,7 @@ public final class NativeTraversalMovement extends MovementAnimation {
         double nominal=family==Family.WALL_RUN?.55:family==Family.WALL_CLIMB?.14:
                 family==Family.RUN?.7:family==Family.WALK?(key.equals("basic_run")?.28:.12):0;
         float cadence=loop(key)?TraversalMotionSelector.cadence(family==Family.WALL_RUN||family==Family.WALL_CLIMB?velocity.length():speed,nominal):1;
-        if(!fresh)state.time+=Math.clamp(now-state.clock,0,.1)*cadence;
+        if(!fresh)state.time+=elapsed*cadence;
         state.clock=now;
         float duration=Math.max(.001f,selected.getClipTime());
         float sample=loop(key)?(float)(state.time%duration):(float)Math.min(state.time,duration-.0001);
@@ -85,12 +94,13 @@ public final class NativeTraversalMovement extends MovementAnimation {
         if(family==Family.WALL_RUN)NativeWallPose.orientRun(pose,Armatures.BIPED.get(),right,velocity.y,entity.getBbWidth()*.5F);
         if(state.from!=null&&now-state.changed<.12)pose=Pose.interpolatePose(state.from,pose,(float)Math.clamp((now-state.changed)/.12,0,1));
         // Keep the blend in wall-local space; camera yaw must not change the wall pose.
-        if(wallFamily())NativeWallPose.clearHead(pose,Armatures.BIPED.get(),entity.getBbWidth()*.5F);
+        if(wallFamily()&&family!=Family.WALL_TOP&&family!=Family.PARKOUR_SMALL)
+            NativeWallPose.clearHead(pose,Armatures.BIPED.get(),entity.getBbWidth()*.5F);
         state.last=Pose.interpolatePose(pose,pose,0);
         if(wall!=null&&wallFamily())NativeWallPose.faceWall(pose,Armatures.BIPED.get(),patch.getModelMatrix(partial),wall.normalX(),wall.normalZ());
         return pose;
     }
-    private boolean wallFamily(){return switch(family){case WALL_RUN,WALL_CLIMB,WALL_CLING,WALL_LEAP,WALL_MANTLE,WALL_VAULT->true;default->false;};}
+    private boolean wallFamily(){return switch(family){case WALL_RUN,WALL_CLIMB,WALL_CLING,WALL_LEAP,WALL_MANTLE,WALL_VAULT,WALL_TOP,PARKOUR_SMALL->true;default->false;};}
     private boolean loop(String key){
         return family.loop&&!key.endsWith("brake")&&!key.equals("basic_turn");
     }

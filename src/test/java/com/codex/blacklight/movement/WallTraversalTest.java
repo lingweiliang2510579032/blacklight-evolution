@@ -48,9 +48,12 @@ class WallTraversalTest {
     }
     @Test void losingTheWallDropsButClearingItsTopCarriesThePlayerOntoTheRoof() {
         var wall=new WallTraversal();step(wall,input(1,0,true,false));
-        var top=wall.tick(input(1,0,true,false),new WallTraversal.Surface(false,true,false,0,-1,-1),50,0,.36,1);
-        assertEquals(WallTraversal.Mode.MANTLE,top.mode());assertTrue(top.z()>0 && top.y()>0);
+        var top=wall.tick(input(1,0,true,false),new WallTraversal.Surface(false,true,false,0,-1,-1,false,false,50.5),50,0,.36,1);
+        assertEquals(WallTraversal.Mode.TOP,top.mode());assertTrue(top.z()>0 && top.y()>0);
         for(int t=0;t<7;t++)assertTrue(wall.tick(input(1,0,true,false),GAP,51,0,.36,1).handled());
+        assertEquals(WallTraversal.Mode.TOP,wall.mode());
+        var landed=wall.tick(input(1,0,true,false),new WallTraversal.Surface(false,false,false,0,-1,-1,true,true,50.5),50.5,0,.36,1);
+        assertFalse(landed.handled());assertTrue(wall.finishedOnTop());
         assertEquals(WallTraversal.Mode.NONE,wall.mode());
         step(wall,input(1,0,true,false));assertFalse(wall.tick(input(0,0,false,false),GAP,51,0,.36,1).handled());
     }

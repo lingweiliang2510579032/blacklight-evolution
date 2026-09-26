@@ -4,10 +4,12 @@ import com.codex.blacklight.BlacklightNeoMod;
 import com.codex.blacklight.client.screen.MovementTunerScreen;
 import com.codex.blacklight.client.tuning.AnimationPoseSettings;
 import com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations;
+import com.codex.blacklight.movement.JumpInputState;
 import com.codex.blacklight.movement.MovementTuningSettings;
 import com.codex.blacklight.movement.PrototypeLocomotion;
 import com.codex.blacklight.movement.WallTraversal;
 import com.codex.blacklight.movement.WallContacts;
+import com.codex.blacklight.movement.WaterRunning;
 import com.codex.blacklight.network.MovementInputPayload;
 import com.codex.blacklight.power.MovementUpgrade;
 import com.codex.blacklight.registry.ModAttachments;
@@ -51,6 +53,7 @@ public final class ClientMovementEvents {
     private static int clientChargeTicks;
     private static boolean runningCharge;
     private static int clientOffGroundTicks;
+    private static final JumpInputState JUMP_INPUT = new JumpInputState();
     private static LivingMotion lastForcedMotion;
     private static boolean wasPrototype;
     private static boolean wasHoldingFinalChargePose;
@@ -193,8 +196,10 @@ public final class ClientMovementEvents {
                         player.getData(ModAttachments.PLAYER_STATE).getMovementUpgradeMask()));
         com.codex.blacklight.movement.WallPoseState.set(player,CLIENT_WALL.mode(),CLIENT_WALL.normalX(),CLIENT_WALL.normalZ());
         if (!frame.handled()) return false;
+        if (jump) JUMP_INPUT.claimCharge();
         player.setDeltaMovement(frame.x(),frame.y(),frame.z());player.setOnGround(false);player.resetFallDistance();
-        player.setSprinting(frame.mode()==WallTraversal.Mode.RUN || frame.mode()==WallTraversal.Mode.LEAP);
+        player.setSprinting(sprinting && (frame.mode()==WallTraversal.Mode.RUN
+                || frame.mode()==WallTraversal.Mode.LEAP || WallTraversal.crossingTop(frame.mode())));
         if (lastChargingAnimation) {
             lastChargingAnimation=false;clientChargeTicks=0;releaseFinalChargedJumpPose(minecraft);
         }
@@ -231,6 +236,7 @@ public final class ClientMovementEvents {
             lastChargingAnimation = false;
             clientChargeTicks = 0;
             clientOffGroundTicks = 0;
+            JUMP_INPUT.reset();
             PrototypeAnimationController.tickLevel(minecraft, false, false, false);
             lastForcedMotion = null;
             wasPrototype = false;
@@ -243,6 +249,7 @@ public final class ClientMovementEvents {
         if (minecraft.player.getData(ModAttachments.CONSUMING)&&com.codex.blacklight.combat.ConsumeVisual.blocksInput(minecraft.player.getData(ModAttachments.GRAB_STAGE))) {
             lastJumpHeld=false;lastForwardHeld=false;lastMovingHeld=false;lastSprinting=false;
             lastChargingAnimation=false;clientChargeTicks=0;
+            clientOffGroundTicks=0;JUMP_INPUT.reset();
             resetClientWallRun();
             if(com.codex.blacklight.combat.ConsumeVisual.blocksTravel(minecraft.player.getData(ModAttachments.GRAB_STAGE)))
                 minecraft.player.setDeltaMovement(0, minecraft.player.getDeltaMovement().y, 0);
@@ -258,12 +265,12 @@ public final class ClientMovementEvents {
         boolean detach=minecraft.screen==null && mappingDown(minecraft,minecraft.options.keyShift);
         // Double-tap momentum can enter the wall. Releasing W stops it; releasing
         // an explicitly held sprint key also returns to the slower climbing mode.
-        boolean sprinting=minecraft.screen==null && (CLIENT_WALL.attached()
+        boolean sprinting=minecraft.screen==null && !detach && (CLIENT_WALL.attached()
                 ? movingHeld && !detach && (sprintKey || (lastSprinting && !lastSprintKey))
                 : physicalSprint(minecraft) || (forwardHeld && lastSprinting));
         // The server also suspends traversal in fluids. Cancel the local charge,
         // including its frozen pose, and resend held inputs when leaving the water.
-        if (!prototype || minecraft.player.isInWater() || minecraft.player.isInLava()) {
+        if (!prototype || minecraft.player.isInWater() && !WaterRunning.onSurface(minecraft.player) || minecraft.player.isInLava()) {
             releaseFinalChargedJumpPose(minecraft);
             lastJumpHeld = false;
             lastForwardHeld = false;
@@ -274,6 +281,7 @@ public final class ClientMovementEvents {
             chargeDriverEngaged = false;
             runningCharge = false;
             clientOffGroundTicks = 0;
+            JUMP_INPUT.reset();
             PrototypeAnimationController.tickLevel(minecraft, false, false, false);
             lastForcedMotion = null;
             wasPrototype = false;
@@ -282,8 +290,11 @@ public final class ClientMovementEvents {
         }
         if (minecraft.player.onGround()) clientOffGroundTicks = 0;
         else clientOffGroundTicks++;
+        JUMP_INPUT.acceptInput(jumpHeld, minecraft.player, CLIENT_WALL.attached());
+        JUMP_INPUT.observeGround(minecraft.player.onGround());
         boolean weaponAction = weaponOwnsMovement(minecraft);
         if (weaponAction) {
+            JUMP_INPUT.cancelPendingCharge();
             beginWeaponMovementOwnership(minecraft.player);
             lastChargingAnimation = false;
             clientChargeTicks = 0;
@@ -295,22 +306,28 @@ public final class ClientMovementEvents {
         // held charge must remain visually stable until release/full charge. The
         // crouch action itself is started by the server (playAnimationSynchronized)
         // and arrives via Epic Fight's normal animation sync.
-        if (!weaponAction && jumpHeld && !lastJumpHeld && !CLIENT_WALL.attached() && minecraft.player.onGround()
-                && !minecraft.player.getAbilities().flying) {
+        if (!weaponAction && !lastChargingAnimation && !CLIENT_WALL.attached()
+                && !minecraft.player.getAbilities().flying
+                && JUMP_INPUT.consumeChargeRequest(minecraft.player)) {
             lastChargingAnimation = true;
             runningCharge=sprinting&&forwardHeld;
             clientChargeTicks = 0;
             chargeDriverEngaged = false;
         }
         if (lastChargingAnimation) {
-            clientChargeTicks = Math.min(MovementTuningSettings.jumpChargeTicks(),
-                    clientChargeTicks + 1);
-            if (!jumpHeld) {
+            if (clientOffGroundTicks > PrototypeLocomotion.CHARGE_GROUND_GRACE_TICKS) {
+                lastChargingAnimation = false;
+                clientChargeTicks = 0;
+                releaseFinalChargedJumpPose(minecraft);
+            } else if (!jumpHeld) {
                 lastChargingAnimation = false;
                 clientChargeTicks = 0;
                 // Instant local launch feedback; the server-synchronized BIPED_JUMP
                 // (same borrowed clip) replaces it without a visible snap.
                 playLocalLaunchAnimation(minecraft);
+            } else if (minecraft.player.onGround()) {
+                clientChargeTicks = Math.min(MovementTuningSettings.jumpChargeTicks(),
+                        clientChargeTicks + 1);
             }
         }
         boolean inputChanged = jumpHeld != lastJumpHeld || forwardInput != lastForwardInput
@@ -358,7 +375,7 @@ public final class ClientMovementEvents {
         // Match the server acceleration locally.  Without this prediction the integrated
         // server repeatedly corrects the vanilla-speed client, which looks like a ghost
         // copy or stuttering trail behind the player.
-        if (!wallHandled && minecraft.player.onGround() && forwardHeld && sprinting
+        if (!wallHandled && (minecraft.player.onGround() || WaterRunning.onSurface(minecraft.player)) && forwardHeld && sprinting
                 && !ClientClawEvents.isGroundSpikeActionActive()) {
             minecraft.player.setSprinting(true);
             var forward = minecraft.player.getLookAngle().multiply(1.0D, 0.0D, 1.0D);
@@ -370,6 +387,8 @@ public final class ClientMovementEvents {
                 double max = MovementTuningSettings.sprintMaxSpeed()
                         * MovementUpgrade.sprintMultiplier(minecraft.player
                         .getData(ModAttachments.PLAYER_STATE).getMovementUpgradeMask());
+                if (com.codex.blacklight.power.UtilityPowerSystem.active(minecraft.player,
+                        com.codex.blacklight.power.PowerForm.ARMOR)) max *= .75;
                 if (horizontal.length() > max) horizontal = horizontal.normalize().scale(max);
                 minecraft.player.setDeltaMovement(horizontal.x, velocity.y, horizontal.z);
             }
@@ -479,7 +498,7 @@ public final class ClientMovementEvents {
         if (ClientClawEvents.isGroundSpikeActionActive()) return;
         var original = event.getPlayerPatch().getOriginal();
         // Do not replace Epic Fight's swimming motion with stale land/wall/glide poses.
-        if (original.isInWater() || original.isInLava()) return;
+        if (original.isInWater() && !WaterRunning.onSurface(original) || original.isInLava()) return;
         if (original.getData(ModAttachments.WEAPON_VISUAL).spec() != null) return;
         // A fully charged jump is frozen on its final crouch frame by
         // updateFinalChargedJumpPose. Re-asserting KNEEL here every tick would make
@@ -494,7 +513,7 @@ public final class ClientMovementEvents {
         if (original==minecraft.player && lastChargingAnimation&&!runningCharge) return;
         var wallMode=ClientWallMotion.modeFor(original);
         if (wallMode!=WallTraversal.Mode.NONE) {
-            event.setMotion(wallMode==WallTraversal.Mode.MANTLE || wallMode==WallTraversal.Mode.VAULT
+            event.setMotion(WallTraversal.crossingTop(wallMode)
                     ? LivingMotions.JUMP : LivingMotions.CLIMB);
             return;
         }
@@ -542,15 +561,14 @@ public final class ClientMovementEvents {
                 * (1.0D + MovementTuningSettings.fovBoost() * ratio)));
     }
 
-    /** Mirrors the server glide window: airborne, jump held, falling slowly. */
+    /** Uses the same input ownership and terrain clearance as the server. */
     private static boolean isGliding(Minecraft minecraft) {
         if (minecraft.player == null || minecraft.player.onGround()
                 || weaponOwnsMovement(minecraft)
                 || com.codex.blacklight.power.UtilityPowerSystem.active(minecraft.player,com.codex.blacklight.power.PowerForm.ARMOR)
-                || !lastJumpHeld || clientOffGroundTicks <= 2
+                || lastChargingAnimation || CLIENT_WALL.attached()
                 || ClientClawEvents.isGroundSpikeActionActive()) return false;
-        double verticalVelocity = minecraft.player.getDeltaMovement().y;
-        return verticalVelocity < 0.03D && verticalVelocity > -0.60D;
+        return JUMP_INPUT.canGlide(minecraft.player);
     }
 
     private static boolean isPrototype(Minecraft minecraft) {
