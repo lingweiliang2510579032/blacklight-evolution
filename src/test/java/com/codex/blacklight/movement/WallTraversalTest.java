@@ -27,12 +27,14 @@ class WallTraversalTest {
     }
     @Test void wallJumpGoesUpwardAndReturnsToRunningWithoutKickingAway() {
         var wall=new WallTraversal();var run=step(wall,input(1,0,true,false));
-        var jump=step(wall,input(1,0,true,true));
+        for(int t=0;t<20;t++)assertEquals(WallTraversal.Mode.RUN,step(wall,input(1,0,true,true)).mode());
+        assertEquals(20,wall.chargeTicks());
+        var jump=step(wall,input(1,0,true,false));
         assertEquals(WallTraversal.Mode.LEAP,jump.mode());assertTrue(jump.y()>run.y());assertTrue(jump.z()>0);
-        for(int t=0;t<7;t++)assertEquals(WallTraversal.Mode.LEAP,step(wall,input(1,0,true,true)).mode());
-        assertEquals(WallTraversal.Mode.RUN,step(wall,input(1,0,true,true)).mode());
-        step(wall,input(1,0,true,false));
-        assertEquals(WallTraversal.Mode.LEAP,step(wall,input(1,0,true,true)).mode());
+        for(int t=0;t<7;t++)assertEquals(WallTraversal.Mode.LEAP,step(wall,input(1,0,true,false)).mode());
+        assertEquals(WallTraversal.Mode.RUN,step(wall,input(1,0,true,false)).mode());
+        step(wall,input(1,0,true,true));
+        assertEquals(WallTraversal.Mode.LEAP,step(wall,input(1,0,true,false)).mode());
     }
     @Test void climbCanMoveDownAndAcrossTheWallWithoutDiagonalSpeedBoost() {
         var wall=new WallTraversal();step(wall,input(1,0,false,false));

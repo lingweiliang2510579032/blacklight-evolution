@@ -49,6 +49,7 @@ public final class ClientMovementEvents {
     private static boolean lastSprinting;
     private static boolean lastChargingAnimation;
     private static int clientChargeTicks;
+    private static boolean runningCharge;
     private static int clientOffGroundTicks;
     private static LivingMotion lastForcedMotion;
     private static boolean wasPrototype;
@@ -57,6 +58,10 @@ public final class ClientMovementEvents {
     private static final WallTraversal CLIENT_WALL = new WallTraversal();
     private static int lastForwardInput, lastSidewaysInput;
     private static boolean lastDetach, lastSprintKey;
+    private static net.minecraft.world.entity.player.Player weaponMovementOwner;
+    private static com.codex.blacklight.combat.WeaponVisual ownedWeaponVisual;
+    private static net.minecraft.world.entity.player.Player pendingWeaponOwner;
+    private static int pendingWeaponUntil;
 
 
     static {
@@ -71,6 +76,89 @@ public final class ClientMovementEvents {
     @SubscribeEvent
     public static void registerKeys(RegisterKeyMappingsEvent event) {
         event.register(ENGINE_TUNER);
+    }
+
+    @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.LOWEST)
+    public static void lockWeaponMovement(net.neoforged.neoforge.client.event.MovementInputUpdateEvent event) {
+        beginWeaponMovementOwnership(event.getEntity());
+        if (event.getEntity().getData(ModAttachments.WEAPON_VISUAL).spec() == null
+                && !pendingWeaponMovement(event.getEntity())) return;
+        // Suppress vanilla walking/jumping as well as our traversal prediction.
+        // Physical KeyMappings remain readable so held inputs resume after the action.
+        clearWeaponTravelInput(event.getInput());
+    }
+
+    private static void clearWeaponTravelInput(net.minecraft.client.player.Input input) {
+        input.forwardImpulse = 0;
+        input.leftImpulse = 0;
+        input.jumping = false;
+        input.up = false;
+        input.down = false;
+        input.left = false;
+        input.right = false;
+    }
+
+    static void sendAttackDirection(Minecraft minecraft) {
+        if(minecraft.player==null||minecraft.getConnection()==null||minecraft.screen!=null)return;
+        int forward=(mappingDown(minecraft,minecraft.options.keyUp)?1:0)-(mappingDown(minecraft,minecraft.options.keyDown)?1:0);
+        int sideways=(mappingDown(minecraft,minecraft.options.keyRight)?1:0)-(mappingDown(minecraft,minecraft.options.keyLeft)?1:0);
+        // Deliver the direction before the attack packet, even when both keys
+        // were pressed between ticks. Preserve traversal's own jump/sprint edges.
+        PacketDistributor.sendToServer(new MovementInputPayload(lastJumpHeld,false,forward,sideways,lastSprinting,lastDetach));
+    }
+
+    /** Camera-relative intent survives Epic Fight consuming vanilla movement mappings. */
+    static Float movementHeading(Minecraft minecraft) {
+        if(minecraft.player==null||minecraft.screen!=null)return null;
+        int forward=(mappingDown(minecraft,minecraft.options.keyUp)?1:0)-(mappingDown(minecraft,minecraft.options.keyDown)?1:0);
+        int right=(mappingDown(minecraft,minecraft.options.keyRight)?1:0)-(mappingDown(minecraft,minecraft.options.keyLeft)?1:0);
+        return forward==0&&right==0?null:minecraft.player.getYRot()+(float)Math.toDegrees(Math.atan2(right,forward));
+    }
+
+    static boolean prepareGroundedWeaponMovement(Minecraft minecraft) {
+        var player=minecraft.player;
+        if(player==null||pendingWeaponMovement(player))return false;
+        // Cover the short interval before the authoritative visual arrives. A
+        // rejected request expires instead of trapping the player in a local lock.
+        pendingWeaponOwner=player;pendingWeaponUntil=player.tickCount+6;
+        player.setDeltaMovement(0,player.getDeltaMovement().y,0);
+        player.xxa=0;player.zza=0;
+        clearWeaponTravelInput(player.input);
+        return true;
+    }
+
+    private static boolean pendingWeaponMovement(net.minecraft.world.entity.player.Player player) {
+        if(pendingWeaponOwner!=player)return false;
+        if(player.tickCount>=pendingWeaponUntil||!player.isAlive()
+                ||!player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()
+                ||player.getData(ModAttachments.PLAYER_STATE).getActivePower()!=com.codex.blacklight.power.PowerForm.BLADE
+                ||player.getData(ModAttachments.WEAPON_VISUAL).spec()!=null){
+            pendingWeaponOwner=null;
+            return false;
+        }
+        return true;
+    }
+
+    private static void beginWeaponMovementOwnership(net.minecraft.world.entity.player.Player player) {
+        var visual=player.getData(ModAttachments.WEAPON_VISUAL);
+        var move=visual.spec();
+        if(move==null){weaponMovementOwner=null;ownedWeaponVisual=null;return;}
+        pendingWeaponOwner=null;
+        if(weaponMovementOwner==player&&visual.equals(ownedWeaponVisual))return;
+        boolean sameAction=weaponMovementOwner==player&&ownedWeaponVisual!=null
+                &&visual.move()==ownedWeaponVisual.move()&&visual.started()==ownedWeaponVisual.started()
+                &&visual.charging()==ownedWeaponVisual.charging()&&visual.clipOffset()==ownedWeaponVisual.clipOffset();
+        weaponMovementOwner=player;ownedWeaponVisual=visual;
+        // Render/contact yaw belongs to the action. Never feed its updates back
+        // into the camera, or mouse steering fights the authoritative body yaw.
+        player.yBodyRot=visual.yaw();
+        if(!sameAction&&player.onGround()&&(com.codex.blacklight.combat.LocalWeaponMotion.find(move.id).isPresent()
+                ||com.codex.blacklight.combat.WeaponMotionProfile.forMove(move)!=null)){
+            // Claim pre-action running inertia once, before vanilla travel. Later
+            // knockback and airborne actions keep their own deliberate velocity.
+            player.setDeltaMovement(0,player.getDeltaMovement().y,0);
+            player.xxa=0;player.zza=0;
+        }
     }
 
     @SubscribeEvent
@@ -103,6 +191,7 @@ public final class ClientMovementEvents {
                 WallContacts.sample(player,CLIENT_WALL),player.getY(),player.getDeltaMovement().horizontalDistance(),
                 MovementTuningSettings.wallClimbVelocity(),MovementUpgrade.wallMultiplier(
                         player.getData(ModAttachments.PLAYER_STATE).getMovementUpgradeMask()));
+        com.codex.blacklight.movement.WallPoseState.set(player,CLIENT_WALL.mode(),CLIENT_WALL.normalX(),CLIENT_WALL.normalZ());
         if (!frame.handled()) return false;
         player.setDeltaMovement(frame.x(),frame.y(),frame.z());player.setOnGround(false);player.resetFallDistance();
         player.setSprinting(frame.mode()==WallTraversal.Mode.RUN || frame.mode()==WallTraversal.Mode.LEAP);
@@ -114,12 +203,17 @@ public final class ClientMovementEvents {
 
     static WallTraversal.Mode wallMode() { return CLIENT_WALL.mode(); }
     static boolean isWallRunning() { return CLIENT_WALL.attached(); }
-    private static void resetClientWallRun() { CLIENT_WALL.reset();lastForwardInput=lastSidewaysInput=0;lastDetach=lastSprintKey=false; }
+    private static void resetClientWallRun() {
+        var player=Minecraft.getInstance().player;
+        if(player!=null)com.codex.blacklight.movement.WallPoseState.set(player,WallTraversal.Mode.NONE,0,0);
+        CLIENT_WALL.reset();lastForwardInput=lastSidewaysInput=0;lastDetach=lastSprintKey=false;
+    }
 
     /** Airborne claw left-click entry point owned by ClientClawEvents. */
     static void requestAirDashFromAttack(Minecraft minecraft) {
         if (minecraft.player == null || minecraft.screen != null
-                || minecraft.player.onGround() || !isPrototype(minecraft)) return;
+                || minecraft.player.onGround() || !isPrototype(minecraft)
+                || weaponOwnsMovement(minecraft)) return;
         PacketDistributor.sendToServer(new MovementInputPayload(
                 mappingDown(minecraft, minecraft.options.keyJump), true,
                 lastForwardInput, lastSidewaysInput, lastSprinting, lastDetach));
@@ -129,6 +223,7 @@ public final class ClientMovementEvents {
     public static void onClientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.getConnection() == null) {
+            weaponMovementOwner=null;ownedWeaponVisual=null;pendingWeaponOwner=null;
             lastJumpHeld = false;
             lastForwardHeld = false;
             lastMovingHeld = false;
@@ -145,16 +240,16 @@ public final class ClientMovementEvents {
         }
         // Read the hardware state rather than KeyMapping.isDown(). Epic Fight's control
         // engine is allowed to consume/reset mappings before NeoForge's post tick.
-        if (minecraft.player.getData(ModAttachments.CONSUMING)) {
+        if (minecraft.player.getData(ModAttachments.CONSUMING)&&com.codex.blacklight.combat.ConsumeVisual.blocksInput(minecraft.player.getData(ModAttachments.GRAB_STAGE))) {
             lastJumpHeld=false;lastForwardHeld=false;lastMovingHeld=false;lastSprinting=false;
             lastChargingAnimation=false;clientChargeTicks=0;
             resetClientWallRun();
-            if(minecraft.player.getData(ModAttachments.GRAB_STAGE)!=com.codex.blacklight.combat.ConsumeVisual.HOLD)
+            if(com.codex.blacklight.combat.ConsumeVisual.blocksTravel(minecraft.player.getData(ModAttachments.GRAB_STAGE)))
                 minecraft.player.setDeltaMovement(0, minecraft.player.getDeltaMovement().y, 0);
             return;
         }
         boolean prototype = isPrototype(minecraft);
-        boolean jumpHeld = minecraft.screen == null && mappingDown(minecraft, minecraft.options.keyJump);
+        boolean jumpHeld = minecraft.screen == null && mappingDown(minecraft, minecraft.options.keyJump)&&minecraft.player.getData(ModAttachments.GRAB_STAGE)!=com.codex.blacklight.combat.ConsumeVisual.THROW;
         int forwardInput=minecraft.screen==null ? (mappingDown(minecraft,minecraft.options.keyUp)?1:0)-(mappingDown(minecraft,minecraft.options.keyDown)?1:0) : 0;
         int sidewaysInput=minecraft.screen==null ? (mappingDown(minecraft,minecraft.options.keyRight)?1:0)-(mappingDown(minecraft,minecraft.options.keyLeft)?1:0) : 0;
         boolean forwardHeld=forwardInput>0;
@@ -166,7 +261,9 @@ public final class ClientMovementEvents {
         boolean sprinting=minecraft.screen==null && (CLIENT_WALL.attached()
                 ? movingHeld && !detach && (sprintKey || (lastSprinting && !lastSprintKey))
                 : physicalSprint(minecraft) || (forwardHeld && lastSprinting));
-        if (!prototype) {
+        // The server also suspends traversal in fluids. Cancel the local charge,
+        // including its frozen pose, and resend held inputs when leaving the water.
+        if (!prototype || minecraft.player.isInWater() || minecraft.player.isInLava()) {
             releaseFinalChargedJumpPose(minecraft);
             lastJumpHeld = false;
             lastForwardHeld = false;
@@ -174,6 +271,8 @@ public final class ClientMovementEvents {
             lastSprinting = false;
             lastChargingAnimation = false;
             clientChargeTicks = 0;
+            chargeDriverEngaged = false;
+            runningCharge = false;
             clientOffGroundTicks = 0;
             PrototypeAnimationController.tickLevel(minecraft, false, false, false);
             lastForcedMotion = null;
@@ -183,14 +282,23 @@ public final class ClientMovementEvents {
         }
         if (minecraft.player.onGround()) clientOffGroundTicks = 0;
         else clientOffGroundTicks++;
+        boolean weaponAction = weaponOwnsMovement(minecraft);
+        if (weaponAction) {
+            beginWeaponMovementOwnership(minecraft.player);
+            lastChargingAnimation = false;
+            clientChargeTicks = 0;
+            chargeDriverEngaged = false;
+            releaseFinalChargedJumpPose(minecraft);
+        }
         // Latch the pose at the moment charging begins. The server's movement and
         // animation synchronization can make onGround() flicker for a frame, but a
         // held charge must remain visually stable until release/full charge. The
         // crouch action itself is started by the server (playAnimationSynchronized)
         // and arrives via Epic Fight's normal animation sync.
-        if (jumpHeld && !lastJumpHeld && !CLIENT_WALL.attached() && minecraft.player.onGround()
+        if (!weaponAction && jumpHeld && !lastJumpHeld && !CLIENT_WALL.attached() && minecraft.player.onGround()
                 && !minecraft.player.getAbilities().flying) {
             lastChargingAnimation = true;
+            runningCharge=sprinting&&forwardHeld;
             clientChargeTicks = 0;
             chargeDriverEngaged = false;
         }
@@ -222,6 +330,16 @@ public final class ClientMovementEvents {
         lastSprinting = sprinting;
         wasPrototype = true;
 
+        if (weaponAction) {
+            // The input latches above continue tracking releases and sprint intent.
+            // Avoid resetClientWallRun(): it would erase those input latches every
+            // tick and manufacture a new edge when the weapon action finishes.
+            CLIENT_WALL.reset();
+            com.codex.blacklight.movement.WallPoseState.set(minecraft.player,WallTraversal.Mode.NONE,0,0);
+            PrototypeAnimationController.tickLevel(minecraft, false, lastMovingHeld, lastSprinting);
+            return;
+        }
+
         // Predict wall attachment before Epic Fight resolves the living motion. This
         // lets the same tick select CLIMB/WALL_RUN instead of briefly choosing JUMP.
         boolean wallHandled = predictWallRun(minecraft, forwardInput, sidewaysInput, sprinting, jumpHeld, detach);
@@ -234,7 +352,7 @@ public final class ClientMovementEvents {
         // Resolve once per tick and confirm WALK/RUN/IDLE before changing Epic Fight's
         // base layer. Velocity correction may flicker for one frame, but can no longer
         // restart the transition and visibly snap the whole body.
-        PrototypeAnimationController.tickLevel(minecraft, lastChargingAnimation,
+        PrototypeAnimationController.tickLevel(minecraft, lastChargingAnimation&&!runningCharge,
                 lastMovingHeld, lastSprinting);
 
         // Match the server acceleration locally.  Without this prediction the integrated
@@ -273,7 +391,7 @@ public final class ClientMovementEvents {
 
     private static void updateFinalChargedJumpPose(Minecraft minecraft) {
         int maximum = MovementTuningSettings.jumpChargeTicks();
-        if (!lastChargingAnimation || BlacklightEpicFightAnimations.CHARGED_JUMP == null) {
+        if (!lastChargingAnimation || runningCharge || BlacklightEpicFightAnimations.CHARGED_JUMP == null) {
             releaseFinalChargedJumpPose(minecraft);
             return;
         }
@@ -312,7 +430,7 @@ public final class ClientMovementEvents {
         // one tick before our next setElapsedTime pulls it back — imperceptible —
         // and the epsilon clamp keeps it from ever tripping isEnd().
         float chargeRatio = Math.min(1.0F, clientChargeTicks / (float) maximum);
-        float totalTime = AnimationPoseSettings.Action.CHARGED_JUMP.totalTime();
+        float totalTime = BlacklightEpicFightAnimations.CHARGED_JUMP.get().getTotalTime();
         float authoredTime = Math.min(totalTime * chargeRatio, totalTime - 0.001F);
         player.setElapsedTime(authoredTime, authoredTime);
         boolean fullyCharged = clientChargeTicks >= maximum;
@@ -344,8 +462,9 @@ public final class ClientMovementEvents {
 
     /** True while the local player is charging a jump, including the held full charge. */
     static boolean isChargingJump() {
-        return lastChargingAnimation;
+        return lastChargingAnimation&&!runningCharge;
     }
+    public static int visualJumpCharge(){return CLIENT_WALL.attached()?CLIENT_WALL.visualChargeTicks():lastChargingAnimation?clientChargeTicks:0;}
 
     /**
      * Keeps traversal poses on Epic Fight's base layer instead of firing a one-shot
@@ -359,6 +478,9 @@ public final class ClientMovementEvents {
         // back to RUN/WALK and the client never sees the authored plant pose.
         if (ClientClawEvents.isGroundSpikeActionActive()) return;
         var original = event.getPlayerPatch().getOriginal();
+        // Do not replace Epic Fight's swimming motion with stale land/wall/glide poses.
+        if (original.isInWater() || original.isInLava()) return;
+        if (original.getData(ModAttachments.WEAPON_VISUAL).spec() != null) return;
         // A fully charged jump is frozen on its final crouch frame by
         // updateFinalChargedJumpPose. Re-asserting KNEEL here every tick would make
         // Epic Fight restart the non-looping crouch clip, so the charge visibly
@@ -369,7 +491,7 @@ public final class ClientMovementEvents {
         // updateFinalChargedJumpPose. Asserting KNEEL here every tick would
         // restart the non-looping clip, so motion updates stop for the whole
         // charge (this is also what prevents the visible looping).
-        if (lastChargingAnimation) return;
+        if (original==minecraft.player && lastChargingAnimation&&!runningCharge) return;
         var wallMode=ClientWallMotion.modeFor(original);
         if (wallMode!=WallTraversal.Mode.NONE) {
             event.setMotion(wallMode==WallTraversal.Mode.MANTLE || wallMode==WallTraversal.Mode.VAULT
@@ -423,6 +545,8 @@ public final class ClientMovementEvents {
     /** Mirrors the server glide window: airborne, jump held, falling slowly. */
     private static boolean isGliding(Minecraft minecraft) {
         if (minecraft.player == null || minecraft.player.onGround()
+                || weaponOwnsMovement(minecraft)
+                || com.codex.blacklight.power.UtilityPowerSystem.active(minecraft.player,com.codex.blacklight.power.PowerForm.ARMOR)
                 || !lastJumpHeld || clientOffGroundTicks <= 2
                 || ClientClawEvents.isGroundSpikeActionActive()) return false;
         double verticalVelocity = minecraft.player.getDeltaMovement().y;
@@ -433,6 +557,12 @@ public final class ClientMovementEvents {
         return minecraft.player != null
                 && minecraft.player.getData(ModAttachments.PLAYER_STATE).isInfected()
                 && minecraft.player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode();
+    }
+
+    private static boolean weaponOwnsMovement(Minecraft minecraft) {
+        return minecraft.player != null
+                && (minecraft.player.getData(ModAttachments.WEAPON_VISUAL).spec() != null
+                ||pendingWeaponMovement(minecraft.player));
     }
 
     /** Stable sprint intent used to choose the moving attack on mouse release. */

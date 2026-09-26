@@ -29,6 +29,7 @@ public final class ClientPhysicalFeedback {
     private static float wallStrength;
     private static int ticksRemaining;
     private static int phase;
+    private static float bladeKick,previousBladeKick;
 
     private ClientPhysicalFeedback() {
     }
@@ -44,7 +45,13 @@ public final class ClientPhysicalFeedback {
             case SPRINT_START -> 0.55F;
             case WALL_RUN_START -> 0.72F;
             case WALL_MANTLE -> 0.82F;
+            case BLADE_CUT, BLADE_RETURN -> .55F;
+            case BLADE_HEAVY -> .90F;
         };
+        if(payload.effect()==PhysicalFeedbackPayload.Effect.BLADE_CUT||payload.effect()==PhysicalFeedbackPayload.Effect.BLADE_RETURN||payload.effect()==PhysicalFeedbackPayload.Effect.BLADE_HEAVY){
+            bladeKick=(payload.effect()==PhysicalFeedbackPayload.Effect.BLADE_RETURN?-1:1)*payload.intensity();
+            previousBladeKick=bladeKick;
+        }
         strength = Math.max(strength, payload.intensity() * effectScale);
         previousStrength = Math.max(previousStrength, strength);
         fovImpulse = Math.max(fovImpulse, payload.intensity() * effectScale);
@@ -73,6 +80,8 @@ public final class ClientPhysicalFeedback {
             case SPRINT_START -> 7;
             case WALL_RUN_START -> 8;
             case WALL_MANTLE -> 7;
+            case BLADE_CUT,BLADE_RETURN -> 3;
+            case BLADE_HEAVY -> 5;
             default -> 7;
         };
         ticksRemaining = Math.max(ticksRemaining, duration);
@@ -90,6 +99,7 @@ public final class ClientPhysicalFeedback {
         previousRunStrength = runStrength;
         previousWallStrength = wallStrength;
         previousFovImpulse = fovImpulse;
+        previousBladeKick=bladeKick;bladeKick*=.4F;
         if (ticksRemaining > 0) {
             ticksRemaining--;
             strength *= 0.72F;
@@ -127,16 +137,17 @@ public final class ClientPhysicalFeedback {
         float kick = Mth.lerp(partial, previousVerticalKick, verticalKick);
         float running = Mth.lerp(partial, previousRunStrength, runStrength);
         float wall = Mth.lerp(partial, previousWallStrength, wallStrength);
-        if (amplitude < 0.001F && kick < 0.001F && running < 0.001F && wall < 0.001F) return;
+        float blade=Mth.lerp(partial,previousBladeKick,bladeKick);
+        if (amplitude < 0.001F && kick < 0.001F && running < 0.001F && wall < 0.001F&&Math.abs(blade)<.001F) return;
         double time = phase + partial;
         double stride = (minecraft.player.tickCount + partial) * 1.08D;
-        event.setPitch(event.getPitch() + kick
+        event.setPitch(event.getPitch() + kick-Math.abs(blade)*.5F
                 + (float)Math.sin(time * 2.73D) * amplitude * 1.35F
                 + (float)Math.sin(stride * 2.0D) * running * 0.34F
                 + (float)Math.sin(stride * 2.4D) * wall * 0.42F);
         event.setYaw(event.getYaw() + (float)Math.cos(time * 2.11D) * amplitude * 0.62F
                 + (float)Math.sin(stride) * running * 0.14F);
-        event.setRoll(event.getRoll() + (float)Math.sin(time * 3.37D) * amplitude * 0.82F
+        event.setRoll(event.getRoll() +blade*1.15F+ (float)Math.sin(time * 3.37D) * amplitude * 0.82F
                 + (float)Math.cos(stride) * running * 0.68F
                 + (float)Math.sin(stride * 1.2D) * wall * 0.92F);
     }
@@ -167,5 +178,6 @@ public final class ClientPhysicalFeedback {
         wallStrength = 0.0F;
         ticksRemaining = 0;
         phase = 0;
+        bladeKick=previousBladeKick=0;
     }
 }

@@ -3,13 +3,23 @@
   "minVersion": "0.8",
   "package": "com.codex.blacklight.mixin",
   "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MobImpactMixin",
+    "ConsumePairPushMixin",
+    "ConsumeStunMixin"
+  ],
   "client": [
     "client.KeyboardInputMixin",
     "client.LocalPlayerMixin",
     "client.AgeableModelAccessor",
     "client.LivingConsumePoseMixin",
     "client.EpicConsumePoseMixin",
-    "client.ConsumeLayerPoseMixin"
+    "client.ConsumeMeshFractureMixin",
+    "client.ConsumeModelPartMixin",
+    "client.ConsumeTargetOutlineMixin",
+    "client.ConsumeLayerPoseMixin",
+    "client.ModelPartChildrenAccessor",
+    "client.DragonConsumePoseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

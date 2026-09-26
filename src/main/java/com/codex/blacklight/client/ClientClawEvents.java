@@ -100,7 +100,12 @@ public final class ClientClawEvents {
 
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerEntityRenderer(ModEntities.INFECTED_HOST.get(), com.codex.blacklight.client.renderer.InfectedHostRenderer::new);
         event.registerEntityRenderer(ModEntities.GROUND_SPIKE.get(), GroundSpikeRenderer::new);
+        for(var type:java.util.List.of(ModEntities.BLACKLIGHT_STALKER,ModEntities.BLACKLIGHT_SPITTER,ModEntities.BLACKLIGHT_BRUTE))
+            event.registerEntityRenderer(type.get(),context->new com.codex.blacklight.client.renderer.BlacklightCreatureRenderer<com.codex.blacklight.entity.BlacklightMutant>(context,com.codex.blacklight.entity.BlacklightMutant::asset));
+        event.registerEntityRenderer(ModEntities.BLACKLIGHT_HIVE.get(),context->new com.codex.blacklight.client.renderer.BlacklightCreatureRenderer<com.codex.blacklight.entity.BlacklightHive>(context,e->"blacklight_hive"));
+        event.registerEntityRenderer(ModEntities.BLACKLIGHT_SPIT.get(),ThrownItemRenderer::new);
         event.registerEntityRenderer(ModEntities.BLACKLIGHT_HUNTER.get(), com.codex.blacklight.client.renderer.BlacklightHunterRenderer::new);
         event.registerEntityRenderer(ModEntities.BLACKLIGHT_VIRUS_VIAL.get(), ThrownItemRenderer::new);
     }
@@ -113,7 +118,7 @@ public final class ClientClawEvents {
     @SubscribeEvent
     public static void lockConsumptionMovement(net.neoforged.neoforge.client.event.MovementInputUpdateEvent event) {
         if (!event.getEntity().getData(ModAttachments.CONSUMING)
-                || event.getEntity().getData(ModAttachments.GRAB_STAGE)==com.codex.blacklight.combat.ConsumeVisual.HOLD) return;
+                || !com.codex.blacklight.combat.ConsumeVisual.blocksInput(event.getEntity().getData(ModAttachments.GRAB_STAGE))) return;
         var input = event.getInput();
         input.forwardImpulse = 0; input.leftImpulse = 0; input.jumping = false;
         input.up = false; input.down = false; input.left = false; input.right = false;
@@ -136,10 +141,11 @@ public final class ClientClawEvents {
         }
         if (!state.isPrototypeMode()) return;
         if (minecraft.screen == null && CYCLE_FORM.matches(event.getKey(), event.getScanCode())) {
-            PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.CYCLE_FORM)); return;
+            if(!minecraft.player.getData(ModAttachments.CONSUMING))minecraft.setScreen(new com.codex.blacklight.client.screen.PowerWheelScreen(CYCLE_FORM)); return;
         }
         if (minecraft.screen == null && GRAB.matches(event.getKey(), event.getScanCode())) {
-            PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.GRAB));
+            if(ClientWeaponCombat.active())deferredGrabTick=minecraft.player.tickCount+2;
+            else PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.GRAB));
             minecraft.options.keyInventory.setDown(false);
             while(minecraft.options.keyInventory.consumeClick()) {}
             return;
@@ -170,6 +176,8 @@ public final class ClientClawEvents {
     public static void onClientTick(ClientTickEvent.Post event) {
         suppressPrototypePlayerList();
         tickGrabButtons();
+        ClientWeaponCombat.poll();
+        tickDeferredGrab();
         tickPhysicalLeftAttack();
         holdGroundSpikePlantPose();
         if (automaticTunerOpened || !Boolean.getBoolean("blacklight.test.openAnimationTuner")) return;
@@ -185,6 +193,9 @@ public final class ClientClawEvents {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.screen != null) return;
         var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
+        if(ClientWeaponCombat.active()&&(event.getButton()==0||event.getButton()==1)){
+            event.setCanceled(true);ClientWeaponCombat.poll();return;
+        }
         if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_LEFT
                 && event.getAction() == GLFW.GLFW_PRESS) {
             BlacklightNeoMod.LOGGER.debug(
@@ -243,12 +254,32 @@ public final class ClientClawEvents {
         if(mc.player!=null&&mc.screen==null&&mc.player.getData(ModAttachments.CONSUMING)) {
             clearLeftAttackHold();
             mc.options.keyAttack.setDown(false);mc.options.keyUse.setDown(false);
-            if(mc.player.getData(ModAttachments.GRAB_STAGE)==com.codex.blacklight.combat.ConsumeVisual.HOLD) {
+            if(com.codex.blacklight.combat.ConsumeVisual.holding(mc.player.getData(ModAttachments.GRAB_STAGE))) {
                 if(right&&!lastGrabRight)PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.CONSUME));
                 else if(left&&!lastGrabLeft)PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.THROW));
             }
         }
         lastGrabLeft=left;lastGrabRight=right;
+    }
+
+    private static int deferredGrabTick=-1;
+    static boolean physicalGrabDown(){
+        var mc=Minecraft.getInstance();if(mc.getWindow()==null)return false;
+        var key=GRAB.getKey();long window=mc.getWindow().getWindow();
+        return key.getType()==InputConstants.Type.MOUSE
+                ? GLFW.glfwGetMouseButton(window,key.getValue())==GLFW.GLFW_PRESS
+                : key.getValue()>=0&&GLFW.glfwGetKey(window,key.getValue())==GLFW.GLFW_PRESS;
+    }
+    private static void tickDeferredGrab(){
+        if(deferredGrabTick<0)return;
+        var mc=Minecraft.getInstance();
+        if(mc.player==null||mc.screen!=null||!mc.isWindowActive()){deferredGrabTick=-1;return;}
+        long window=mc.getWindow().getWindow();
+        if(GLFW.glfwGetMouseButton(window,0)==GLFW.GLFW_PRESS||GLFW.glfwGetMouseButton(window,1)==GLFW.GLFW_PRESS){deferredGrabTick=-1;return;}
+        if(mc.player.tickCount>=deferredGrabTick){
+            deferredGrabTick=-1;
+            PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.GRAB));
+        }
     }
 
     private static void toggleTargetLock(Minecraft minecraft) {
@@ -285,7 +316,7 @@ public final class ClientClawEvents {
             return;
         }
         var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
-        if (minecraft.player.getData(ModAttachments.CONSUMING) || !state.isInfected() || !state.isPrototypeMode()
+        if (ClientWeaponCombat.active() || minecraft.player.getData(ModAttachments.CONSUMING) || !state.isInfected() || !state.isPrototypeMode()
                 || state.getActivePower() != PowerForm.CLAWS) {
             clearLeftAttackHold();
             lastPhysicalLeftDown = physicallyDown;
@@ -503,6 +534,7 @@ public final class ClientClawEvents {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.screen != null) return;
         var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
+        if(ClientWeaponCombat.active()) {event.setSwingHand(false);event.setCanceled(true);ClientWeaponCombat.poll();return;}
         if(state.isPrototypeMode()&&minecraft.player.getData(ModAttachments.CONSUMING)) {
             event.setSwingHand(false);event.setCanceled(true);tickGrabButtons();return;
         }

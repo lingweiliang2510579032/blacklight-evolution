@@ -15,6 +15,10 @@ public final class WallTraversal {
     private double normalX, normalZ, lastY = Double.NaN, runSpeed;
     private int leapTicks, arcTicks, stallTicks, detachTicks;
     private boolean previousJump;
+    private int chargeTicks;
+    private double leapCharge;
+    public int chargeTicks(){return chargeTicks;}
+    public int visualChargeTicks(){return Math.round(chargeTicks/20F*MovementTuningSettings.jumpChargeTicks());}
 
     public Mode mode() { return mode; }
     public boolean attached() { return mode != Mode.NONE; }
@@ -24,6 +28,7 @@ public final class WallTraversal {
     public Frame tick(Input input, Surface surface, double y, double incomingSpeed,
                       double configuredRun, double upgrade) {
         boolean jumpPressed = input.jump() && !previousJump;
+        boolean jumpReleased = !input.jump() && previousJump;
         previousJump = input.jump();
         if (input.detach()) {
             boolean wasAttached = attached();
@@ -53,14 +58,17 @@ public final class WallTraversal {
             normalX = surface.normalX()/length; normalZ = surface.normalZ()/length;
         }
         if (wasAttached && !surface.torso() && surface.lower() && (input.forward() > 0 || mode == Mode.LEAP)) {
-            mode = Mode.MANTLE; arcTicks = 0; leapTicks = 0; stallTicks = 0;
+            mode = Mode.MANTLE; arcTicks = 0; leapTicks = 0; stallTicks = 0;chargeTicks=0;
             return frame(.48, .44, 0);
         }
         double multiplier = Double.isFinite(upgrade) ? Math.clamp(upgrade, .25, 3) : 1;
         double target = Math.min(1.4, WallRunPhysics.climbVelocity(configuredRun,
                 Math.max(incomingSpeed, runSpeed)) * 1.2 * multiplier);
         runSpeed = wasAttached ? runSpeed + Math.clamp(target-runSpeed, -.10, .10) : target;
-        if (jumpPressed) {
+        if (jumpPressed || !wasAttached&&input.jump()) chargeTicks=1;
+        else if(input.jump()&&chargeTicks>0)chargeTicks=Math.min(20,chargeTicks+1);
+        if (jumpReleased && chargeTicks>0) {
+            leapCharge=chargeTicks/20.0;chargeTicks=0;
             mode = Mode.LEAP; leapTicks = 8; stallTicks = 0;
             return leap();
         }
@@ -81,7 +89,7 @@ public final class WallTraversal {
 
     private Frame leap() {
         mode = Mode.LEAP;
-        double vertical = Math.max(runSpeed, .98 + runSpeed*.20 - (8-leapTicks)*.065);
+        double vertical = Math.max(runSpeed, .98 + leapCharge*.65 + runSpeed*.20 - (8-leapTicks)*.065);
         leapTicks--;
         return frame(.055, vertical, 0);
     }
@@ -92,7 +100,7 @@ public final class WallTraversal {
     }
     private Frame idle() { return new Frame(Mode.NONE, false, 0, 0, 0); }
     private void clearSurface() {
-        mode=Mode.NONE;normalX=normalZ=runSpeed=0;lastY=Double.NaN;leapTicks=arcTicks=stallTicks=0;
+        mode=Mode.NONE;normalX=normalZ=runSpeed=0;lastY=Double.NaN;leapTicks=arcTicks=stallTicks=chargeTicks=0;leapCharge=0;
     }
     public void reset() { clearSurface();previousJump=false;detachTicks=0; }
 }

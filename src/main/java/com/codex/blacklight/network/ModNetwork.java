@@ -19,7 +19,27 @@ public final class ModNetwork {
     }
 
     public static void register(RegisterPayloadHandlersEvent event) {
-        event.registrar("10")
+        event.registrar("24")
+                .playToServer(WeaponInputPayload.TYPE,WeaponInputPayload.STREAM_CODEC,(payload,context)->
+                    context.enqueueWork(()->{
+                        if(context.player() instanceof ServerPlayer player){
+                            if(payload.cancelled())com.codex.blacklight.combat.WeaponCombatSystem.cancelHeldInput(player);
+                            else com.codex.blacklight.combat.WeaponCombatSystem.acceptInput(player,payload.attack(),payload.special(),payload.action(),payload.jump());
+                        }
+                    }))
+                .playToServer(PowerSelectPayload.TYPE,PowerSelectPayload.STREAM_CODEC,(payload,context)->{
+                    context.enqueueWork(()->{
+                        if(context.player() instanceof ServerPlayer player && canAct(player)) {
+                            var forms=com.codex.blacklight.power.PowerForm.values();
+                            if(payload.formId()>=0 && payload.formId()<forms.length)
+                                com.codex.blacklight.power.PowerFormSystem.select(player,forms[payload.formId()],false);
+                        }
+                    });
+                })
+                .playToClient(WeaponAnimationPayload.TYPE,WeaponAnimationPayload.STREAM_CODEC,(payload,context)->
+                    context.enqueueWork(()->com.codex.blacklight.client.ClientWeaponCombat.animate(payload)))
+                .playToClient(CombatImpactPayload.TYPE,CombatImpactPayload.STREAM_CODEC,(payload,context)->
+                    context.enqueueWork(()->com.codex.blacklight.client.renderer.CombatImpactRenderer.accept(payload)))
                 .playToServer(ClawActionPayload.TYPE, ClawActionPayload.STREAM_CODEC, (payload, context) -> {
                     if (context.player() instanceof ServerPlayer player && canAct(player)) {
                         context.enqueueWork(() -> ClawCombatSystem.handle(player, payload.action()));

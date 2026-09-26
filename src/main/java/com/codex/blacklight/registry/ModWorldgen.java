@@ -1,0 +1,12 @@
+package com.codex.blacklight.registry;
+import com.codex.blacklight.world.HiveFeature;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.level.levelgen.feature.Feature;
+import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredRegister;
+public final class ModWorldgen {
+    private static final DeferredRegister<Feature<?>> FEATURES=DeferredRegister.create(Registries.FEATURE,"blacklight");
+    static {FEATURES.register("hive",()->new HiveFeature(NoneFeatureConfiguration.CODEC));}
+    public static void register(IEventBus bus){FEATURES.register(bus);}
+}

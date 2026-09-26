@@ -4,6 +4,7 @@ import com.codex.blacklight.BlacklightNeoMod;
 import com.codex.blacklight.client.tuning.AnimationPoseSettings;
 import com.codex.blacklight.combat.ClawCombatState;
 import com.codex.blacklight.combat.ClawDamageRules;
+import com.codex.blacklight.combat.WeaponCombatSystem;
 import com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations;
 import com.codex.blacklight.mode.PrototypeModeSystem;
 import com.codex.blacklight.network.ClawAnimationPayload;
@@ -69,23 +70,36 @@ public final class PrototypeMovementSystem {
     public static void acceptInput(ServerPlayer player, boolean jumpHeld, boolean dashPressed,
                                    int forward, int sideways, boolean sprinting, boolean detach) {
         if (!PrototypeModeSystem.isActive(player) || !player.isAlive()
-                || player.isSpectator() || player.isDeadOrDying()) {
+                || player.isSpectator() || player.isDeadOrDying()
+                || player.isInWater() || player.isInLava()) {
+            // A jump-key packet arriving on the riverbed must not start/release a
+            // land charge before onPlayerTick clears traversal for swimming.
             return;
         }
-        if (player.getData(ModAttachments.CONSUMING)) return;
+        if (player.getData(ModAttachments.CONSUMING)&&com.codex.blacklight.combat.ConsumeVisual.blocksInput(player.getData(ModAttachments.GRAB_STAGE))) return;
+        if(player.getData(ModAttachments.GRAB_STAGE)==com.codex.blacklight.combat.ConsumeVisual.THROW){jumpHeld=false;dashPressed=false;}
         MovementState movement = player.getData(ModAttachments.MOVEMENT_STATE);
         boolean wasJumpHeld = movement.jumpHeld();
         movement.acceptInput(jumpHeld, dashPressed, forward, sideways, sprinting, detach);
+        if (WeaponCombatSystem.busy(player)) {
+            WeaponCombatSystem.movementInput(player, jumpHeld && !wasJumpHeld);
+            // Keep current movement intent for after the action, but do not queue
+            // traversal edges that would replace its animation or movement track.
+            movement.consumeDashRequest();
+            return;
+        }
         if (!wasJumpHeld && jumpHeld && player.onGround() && !movement.wallTraversal().attached() && movement.chargeTicks() == 0) {
-            movement.beginCharge();
+            if(sprinting&&forward>0)movement.beginRunningCharge();else movement.beginCharge();
             // The crouch is an ActionAnimation played from the server: every client
             // sees it and Epic Fight's own tick never replaces an action with IDLE.
             // The explicit self payload is the same acknowledgement the groundspike
             // relies on — the controlling client's living-motion hooks otherwise race
             // the ordinary animator sync packet and the action never sticks locally.
-            play(player, BlacklightEpicFightAnimations.CHARGED_JUMP);
-            PacketDistributor.sendToPlayer(player, new ClawAnimationPayload(
-                    ClawAnimationPayload.Animation.CHARGED_JUMP));
+            if(!movement.runningCharge()) {
+                play(player, BlacklightEpicFightAnimations.CHARGED_JUMP);
+                PacketDistributor.sendToPlayer(player, new ClawAnimationPayload(ClawAnimationPayload.Animation.CHARGED_JUMP));
+            }
+            syncCharge(player,movement.chargeTicks());
             BlacklightNeoMod.LOGGER.debug("Started charged jump for {}",
                     player.getGameProfile().getName());
         } else if (wasJumpHeld && !jumpHeld && movement.chargeTicks() > 0) {
@@ -96,7 +110,7 @@ public final class PrototypeMovementSystem {
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
-        if (player.getData(ModAttachments.CONSUMING)) return;
+        if (player.getData(ModAttachments.CONSUMING)&&com.codex.blacklight.combat.ConsumeVisual.blocksInput(player.getData(ModAttachments.GRAB_STAGE))) return;
         MovementState movement = player.getData(ModAttachments.MOVEMENT_STATE);
         BlacklightState blacklight = player.getData(ModAttachments.PLAYER_STATE);
         if (!blacklight.isInfected() || !blacklight.isPrototypeMode()
@@ -118,6 +132,7 @@ public final class PrototypeMovementSystem {
                 }
             }
             movement.reset();
+            syncCharge(player,0);
             syncWallMotion(player, movement.wallTraversal());
             return;
         }
@@ -133,13 +148,36 @@ public final class PrototypeMovementSystem {
         MovementTuningSettings.load();
         LandingImpact.Observation landing = movement.observeLanding(
                 player.onGround(), player.getDeltaMovement().y, player.getY());
+        if (WeaponCombatSystem.busy(player)) {
+            // Weapon actions own their Coord (or their explicit airborne velocity).
+            // Consume landing/input edges without a delayed jump, air dash, landing
+            // animation, sprint impulse or wall attachment stealing that ownership.
+            if (player.onGround()) movement.land();
+            if (movement.chargeTicks() > 0) {
+                movement.cancelCharge();
+                unpauseServerAnimator(player);
+            }
+            movement.consumeDashRequest();
+            movement.endDash();
+            AIR_POUNCE_HITS.remove(player);
+            movement.cancelLandingRecovery();
+            movement.setRunningAnimation(false);
+            movement.updateSprintCollision(false);
+            movement.wallTraversal().reset();
+            syncCharge(player,0);
+            syncWallMotion(player, movement.wallTraversal());
+            movement.finishInputTick();
+            return;
+        }
         if (player.onGround()) {
             movement.land();
             LandingImpact.Profile impact = PrototypeMovementEffects.onLanding(player, landing);
             LandingImpact.Strength strength = impact.strength();
             if (strength != LandingImpact.Strength.NONE) {
                 movement.beginLandingRecovery(strength);
-                play(player, landingAnimation(strength));
+                play(player, strength==LandingImpact.Strength.LIGHT
+                        &&player.getDeltaMovement().horizontalDistance()>.12
+                        ?BlacklightEpicFightAnimations.LAND_MOVING:landingAnimation(strength));
                 PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
                         new LandingVisualPayload(player.getId(), strength,
                                 player.blockPosition().below(),
@@ -198,6 +236,7 @@ public final class PrototypeMovementSystem {
                     player.hurtMarked = true;
                     sweepAirPounceHits(player);
                     movement.endDash();
+                    finishDashPose(player);
                     movement.finishInputTick();
                     return;
                 }
@@ -209,6 +248,7 @@ public final class PrototypeMovementSystem {
                 player.hurtMarked = true;
                 sweepAirPounceHits(player);
                 movement.tickDash();
+                if(movement.dashTicks()==0)finishDashPose(player);
                 PrototypeMovementEffects.tickAirDash(player,
                         horizontalOf(direction, movement));
                 movement.finishInputTick();
@@ -221,6 +261,7 @@ public final class PrototypeMovementSystem {
                     Math.max(-0.02D, velocity.y), dashDirection.z * speed);
             sweepAirPounceHits(player);
             movement.tickDash();
+            if(movement.dashTicks()==0)finishDashPose(player);
             player.resetFallDistance();
             player.hurtMarked = true;
             PrototypeMovementEffects.tickAirDash(player, dashDirection);
@@ -233,7 +274,8 @@ public final class PrototypeMovementSystem {
         // charging, so sprinting into a facade never freezes at the wall.
         boolean wallRunning = tickWallRun(player, movement, forward, upgradeMask);
         if (!wallRunning) tickChargedJump(player, movement);
-        if (!wallRunning && movement.chargeTicks() > 0) {
+        syncCharge(player,Math.max(movement.chargeTicks(),movement.wallTraversal().visualChargeTicks()));
+        if (!wallRunning && movement.chargeTicks() > 0 && !movement.runningCharge()) {
             movement.finishInputTick();
             return;
         }
@@ -276,10 +318,12 @@ public final class PrototypeMovementSystem {
             // there. Left alone the server animator would advance the clip to its
             // total time, trip isEnd() and synchronize a living-motion swap that
             // pops every client off the held crouch frame.
-            holdServerChargePose(player, movement, maximum);
-            Vec3 velocity = player.getDeltaMovement();
-            player.setDeltaMovement(velocity.x * 0.72D, 0.0D, velocity.z * 0.72D);
-            player.hurtMarked = true;
+            if(!movement.runningCharge()) {
+                holdServerChargePose(player, movement, maximum);
+                Vec3 velocity = player.getDeltaMovement();
+                player.setDeltaMovement(velocity.x * 0.72D, 0.0D, velocity.z * 0.72D);
+                player.hurtMarked = true;
+            }
             if (movement.isFullyCharged(maximum)) {
                 if (becameFullyCharged) {
                     BlacklightNeoMod.LOGGER.debug("Charged jump reached maximum for {} and is holding",
@@ -288,7 +332,7 @@ public final class PrototypeMovementSystem {
                             SoundEvents.SCULK_CATALYST_BLOOM, SoundSource.PLAYERS,
                             0.72F, 0.58F);
                 }
-                emitFullChargeTendrils(player);
+                // Tendrils are attached to animated leg joints on the client.
             }
             return;
         }
@@ -297,6 +341,7 @@ public final class PrototypeMovementSystem {
     private static void releaseChargedJump(ServerPlayer player, MovementState movement) {
         unpauseServerAnimator(player);
         int held = movement.releaseCharge();
+        syncCharge(player,0);
         double charge = Math.min(1.0D, held / (double) MovementTuningSettings.jumpChargeTicks());
         double eased = charge * charge * (3.0D - 2.0D * charge);
         double jumpVelocity = MovementTuningSettings.jumpMinVelocity()
@@ -305,11 +350,11 @@ public final class PrototypeMovementSystem {
                 player.getData(ModAttachments.PLAYER_STATE).getMovementUpgradeMask());
         Vec3 forward = horizontalForward(player);
         double launch = 0.20D + charge * 0.42D;
-        player.setDeltaMovement(player.getDeltaMovement().add(
-                forward.x * launch, jumpVelocity, forward.z * launch));
+        var velocity=player.getDeltaMovement();
+        player.setDeltaMovement(velocity.x+forward.x*launch,jumpVelocity,velocity.z+forward.z*launch);
         player.setOnGround(false);
         player.hurtMarked = true;
-        play(player, Animations.BIPED_JUMP);
+        play(player, BlacklightEpicFightAnimations.JUMP_RISE);
         PrototypeMovementEffects.onChargedJumpReleased(player, charge);
         BlacklightNeoMod.LOGGER.debug("Released charged jump for {} at {} ticks (velocity={})",
                 player.getGameProfile().getName(), held, jumpVelocity);
@@ -361,11 +406,14 @@ public final class PrototypeMovementSystem {
             case CLING -> BlacklightEpicFightAnimations.WALL_CLING;
             case CLIMB -> BlacklightEpicFightAnimations.WALL_CLIMB;
             case LEAP -> BlacklightEpicFightAnimations.WALL_LEAP;
+            case MANTLE -> BlacklightEpicFightAnimations.WALL_MANTLE;
+            case VAULT -> BlacklightEpicFightAnimations.WALL_VAULT;
             default -> BlacklightEpicFightAnimations.JUMP_RISE;
         };
     }
 
     private static void syncWallMotion(ServerPlayer player, WallTraversal wall) {
+        WallPoseState.set(player,wall.mode(),wall.normalX(),wall.normalZ());
         WallTraversal.Mode previous=WALL_MODES.put(player,wall.mode());
         if (previous!=wall.mode() || (wall.attached() && player.tickCount%10==0))
             PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
@@ -375,22 +423,46 @@ public final class PrototypeMovementSystem {
     private static void tickGlide(ServerPlayer player, MovementState movement,
                                   Vec3 forward, int upgradeMask) {
         Vec3 velocity = player.getDeltaMovement();
-        if (player.onGround() || !movement.jumpHeld() || velocity.y >= -0.02D) {
+        if (com.codex.blacklight.power.UtilityPowerSystem.active(player,com.codex.blacklight.power.PowerForm.ARMOR)
+                || player.onGround() || !movement.jumpHeld() || velocity.y >= -0.02D
+                || player.horizontalCollision) {
             movement.setMode(MovementState.Mode.NORMAL);
+            movement.setGlideSpeed(0);
             return;
         }
-        double max = MovementTuningSettings.glideMaxSpeed()
+        double cruise = MovementTuningSettings.glideMaxSpeed()
                 * MovementUpgrade.glideSpeedScale(upgradeMask);
-        Vec3 horizontal = new Vec3(velocity.x, 0.0D, velocity.z)
-                .add(forward.scale(0.035D));
-        if (horizontal.length() > max) horizontal = horizontal.normalize().scale(max);
+        boolean entering = movement.mode() != MovementState.Mode.GLIDE;
+        boolean braking = movement.brakingGlide();
+        double actual = velocity.horizontalDistance();
+        // Vanilla air drag runs before this hook. Retain the authoritative glide
+        // speed, and ease inherited dash/sprint momentum down instead of clipping it.
+        double speed = entering ? Math.max(actual, cruise * (braking ? .45 : .85))
+                : Math.max(actual, movement.glideSpeed());
+        double desired = cruise * (braking ? .45 : 1);
+        speed = speed > desired ? Math.max(desired, speed * (braking ? .90 : .987))
+                : Math.min(desired, speed + cruise * .065);
+        Vec3 direction = actual > .08 ? new Vec3(velocity.x / actual, 0, velocity.z / actual) : forward;
+        // Bound the turn rate; looking backwards must not cancel the velocity vector.
+        double angle = Math.atan2(direction.x * forward.z - direction.z * forward.x,
+                direction.dot(forward));
+        double turn = Math.clamp(angle, -.14, .14);
+        double cos = Math.cos(turn), sin = Math.sin(turn);
+        Vec3 horizontal = new Vec3(direction.x * cos - direction.z * sin, 0,
+                direction.x * sin + direction.z * cos).scale(speed);
         player.setDeltaMovement(horizontal.x,
                 Math.max(velocity.y, -MovementTuningSettings.glideFallSpeed()
                         * MovementUpgrade.glideFallScale(upgradeMask)), horizontal.z);
         player.resetFallDistance();
         player.hurtMarked = true;
         movement.setMode(MovementState.Mode.GLIDE);
-        PrototypeMovementEffects.tickGlide(player, forward);
+        movement.setGlideSpeed(speed);
+        if (entering) PrototypeMovementEffects.onGlideStarted(player, horizontal.normalize());
+        if (entering || player.tickCount % 3 == 0) {
+            player.setData(ModAttachments.GLIDE_UNTIL, player.level().getGameTime() + 5);
+            player.syncData(ModAttachments.GLIDE_UNTIL);
+        }
+        PrototypeMovementEffects.tickGlide(player, horizontal.normalize());
     }
 
     private static void tickSprint(ServerPlayer player, MovementState movement,
@@ -414,8 +486,9 @@ public final class PrototypeMovementSystem {
         Vec3 velocity = player.getDeltaMovement();
         Vec3 horizontal = new Vec3(velocity.x, 0.0D, velocity.z)
                 .add(forward.scale(MovementTuningSettings.sprintAcceleration()));
-        double max = MovementTuningSettings.sprintMaxSpeed()
-                * MovementUpgrade.sprintMultiplier(upgradeMask);
+          double max = MovementTuningSettings.sprintMaxSpeed()
+                  * MovementUpgrade.sprintMultiplier(upgradeMask);
+          if(com.codex.blacklight.power.UtilityPowerSystem.active(player,com.codex.blacklight.power.PowerForm.ARMOR))max*=.75;
         if (horizontal.length() > max) horizontal = horizontal.normalize().scale(max);
         double impactSpeed = horizontal.length();
         Vec3 collisionStart = player.position().add(0.0D, 0.82D, 0.0D);
@@ -506,7 +579,8 @@ public final class PrototypeMovementSystem {
         for (LivingEntity target : player.serverLevel().getEntitiesOfClass(
                 LivingEntity.class, sweep,
                 target -> target != player && target.isAlive()
-                        && !player.isAlliedTo(target))) {
+                        && !player.isAlliedTo(target)
+                        && !target.getData(ModAttachments.CONSUME_VISUAL).active())) {
             Integer last = cooldowns.get(target.getUUID());
             if (last != null && player.tickCount - last < BODY_CHECK_COOLDOWN_TICKS) continue;
             float damage = 5.0F + 9.0F * intensity;
@@ -533,7 +607,8 @@ public final class PrototypeMovementSystem {
         for (LivingEntity target : player.serverLevel().getEntitiesOfClass(
                 LivingEntity.class, sweep,
                 target -> target != player && target.isAlive()
-                        && !player.isAlliedTo(target) && !hit.contains(target))) {
+                        && !player.isAlliedTo(target) && !hit.contains(target)
+                        && !target.getData(ModAttachments.CONSUME_VISUAL).active())) {
             hit.add(target);
             float damage = ClawDamageRules.applyDamageUpgrade(12.0F,
                     state.hasClawUpgrade(ClawUpgrade.DAMAGE));
@@ -558,6 +633,15 @@ public final class PrototypeMovementSystem {
             case DEVASTATING -> BlacklightEpicFightAnimations.LAND_DEVASTATING;
             default -> null;
         };
+    }
+
+    private static void syncCharge(ServerPlayer player,int charge){
+        if(player.getData(ModAttachments.JUMP_CHARGE)!=charge){player.setData(ModAttachments.JUMP_CHARGE,charge);player.syncData(ModAttachments.JUMP_CHARGE);}
+    }
+
+    private static void finishDashPose(ServerPlayer player){
+        if(!player.onGround())
+            play(player,BlacklightEpicFightAnimations.AIR_DASH_BRAKE);
     }
 
     private static void applyLandingRecovery(ServerPlayer player, MovementState movement) {
@@ -587,7 +671,7 @@ public final class PrototypeMovementSystem {
         if (real == null
                 || !(real.equals(BlacklightEpicFightAnimations.CHARGED_JUMP)
                 || real.equals(BlacklightEpicFightAnimations.CHARGED_JUMP.get()))) return;
-        float totalTime = AnimationPoseSettings.Action.CHARGED_JUMP.totalTime();
+        float totalTime = BlacklightEpicFightAnimations.CHARGED_JUMP.get().getTotalTime();
         float ratio = Math.min(1.0F, movement.chargeTicks() / (float) maximum);
         float time = Math.min(totalTime * ratio, totalTime - 0.001F);
         animationPlayer.setElapsedTime(time, time);

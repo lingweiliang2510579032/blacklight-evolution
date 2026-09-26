@@ -5,19 +5,26 @@ import com.codex.blacklight.power.PowerForm;
 /** Authored victim key poses on the same normalized clock as the consuming player. Angles in radians. */
 public final class ConsumeReaction {
     public record Pose(float bend, float twist, float slump, float brace, float kick, float head, float grounded) {}
-    // t, torso pitch degrees, twist degrees, lowered body fraction, arm brace, leg flex, head pitch degrees
-    private static final float[][] NORMAL={{0,0,0,0,0,0,0},{.12F,-12,-8,0,.8F,.2F,-18},{.24F,28,14,.13F,1,.7F,20},{.40F,-9,-12,.06F,.7F,.35F,-16},{.62F,36,9,.19F,.35F,.9F,27},{1,45,0,.25F,0,1,32}};
-    private static final float[][] HAMMER={{0,0,0,0,0,0,0},{.16F,-16,-9,.02F,1,.3F,-25},{.29F,-22,4,0,1,.2F,-28},{.34F,58,14,.29F,.5F,1,40},{.44F,39,-9,.23F,.7F,.8F,23},{.63F,62,5,.32F,.2F,1,35},{1,66,0,.35F,0,1,35}};
-    private static final float[][] BLADE={{0,0,0,0,0,0,0},{.15F,-8,-10,0,.6F,.1F,-8},{.24F,-29,23,.035F,1,.35F,-32},{.37F,-18,10,.06F,.8F,.5F,-18},{.51F,37,-18,.19F,.5F,.8F,32},{.70F,47,8,.26F,.15F,1,38},{1,52,0,.29F,0,1,38}};
-    private static final float[][] WHIP={{0,0,0,0,0,0,0},{.17F,0,0,0,0,0,0},{.23F,-22,-15,.03F,1,.3F,-20},{.30F,-26,14,.02F,.9F,.7F,-24},{.39F,33,-20,.16F,.8F,.9F,25},{.51F,-8,12,.10F,.5F,.5F,-12},{.66F,39,-9,.24F,.3F,1,30},{1,48,0,.30F,0,1,35}};
+    // Seconds relative to contact, pitch, twist, slump, brace, kick, head pitch.
+    // Negative times keep the victim resisting until the actual blow. Contact is
+    // held briefly, then limbs recoil after the torso rather than flailing uniformly.
+    private static final float[][] NORMAL={{-1,7,0,0,.8F,.5F,-12},{-.10F,-12,-8,0,.9F,.35F,-18},{0,30,15,.13F,1,.75F,24},{.08F,30,15,.13F,1,.75F,24},{.23F,-12,-14,.07F,.85F,1,-20},{.52F,35,9,.18F,.35F,.7F,27},{2,45,0,.25F,0,1,32}};
+    private static final float[][] HAMMER={{-1,7,0,0,.8F,.5F,-12},{-.12F,-20,-9,0,1,.3F,-28},{0,58,14,.29F,.5F,1,40},{.10F,58,14,.29F,.5F,1,40},{.23F,39,-9,.23F,.7F,.85F,23},{.55F,62,5,.32F,.2F,1,35},{2,66,0,.35F,0,1,35}};
+    private static final float[][] BLADE={{-1,7,0,0,.8F,.5F,-12},{-.10F,-8,-10,0,.85F,.3F,-10},{0,-30,24,.035F,1,.6F,-32},{.08F,-30,24,.035F,1,.6F,-32},{.25F,-17,10,.06F,.8F,1,-18},{.52F,39,-18,.20F,.5F,.8F,32},{2,52,0,.29F,0,1,38}};
+    private static final float[][] WHIP={{-1,7,0,0,.8F,.5F,-12},{-.10F,-14,-12,0,.9F,.5F,-18},{0,34,-21,.16F,1,.85F,25},{.08F,34,-21,.16F,1,.85F,25},{.23F,-10,13,.10F,.7F,1,-15},{.55F,40,-9,.24F,.3F,.8F,30},{2,48,0,.30F,0,1,35}};
     private ConsumeReaction() {}
     public static Pose sample(PowerForm form, float t) {
         var keys=switch(form){case HAMMERFISTS->HAMMER;case BLADE->BLADE;case WHIPFIST->WHIP;default->NORMAL;};
-        t=Math.clamp(t,0,1);int i=0;while(i<keys.length-2 && t>keys[i+1][0])i++;
-        float a=Math.clamp((t-keys[i][0])/(keys[i+1][0]-keys[i][0]),0,1);a=a*a*(3-2*a);
+        t=Math.clamp(t,0,1);
+        float contact=(t*ConsumeVisual.duration(form)-ConsumeVisual.impactTick(form))/20F;
+        int i=0;while(i<keys.length-2 && contact>keys[i+1][0])i++;
+        float segmentStart=i==0?-ConsumeVisual.impactTick(form)/20F:keys[i][0];
+        float a=Math.clamp((contact-segmentStart)/(keys[i+1][0]-segmentStart),0,1);a=a*a*(3-2*a);
         float[] v=new float[6];for(int k=0;k<6;k++)v[k]=keys[i][k+1]+(keys[i+1][k+1]-keys[i][k+1])*a;
-        float struggle=(float)Math.sin(t*61)*Math.min(t*8,1)*Math.max(0,1-t/.72F);
-        float grounded=form==PowerForm.HAMMERFISTS ? Math.clamp((t-.26F)/.10F,0,1) : 0;
+        // The brief contact hold must stay readable; struggle resumes only as recoil.
+        float struggle=contact<0?(float)Math.sin(t*61)*.35F:contact<.10F?0:
+                (float)Math.sin((contact-.1F)*28)*Math.max(0,1-(contact-.1F)/.5F)*.3F;
+        float grounded=form==PowerForm.HAMMERFISTS ? Math.clamp((contact+.12F)/.12F,0,1) : 0;
         grounded=grounded*grounded*(3-2*grounded);
         return new Pose((float)Math.toRadians(v[0])*(1-grounded*.8F),(float)Math.toRadians(v[1]+struggle*7),v[2]*(1-grounded),v[3],v[4]*(1-grounded*.65F),(float)Math.toRadians(v[5]+struggle*5)*(1-grounded*.8F),grounded);
     }

@@ -91,6 +91,24 @@ public final class HunterGameTest {
         });
     }
 
+    @GameTest(template="wall_test", timeoutTicks=60)
+    public static void hunterAttackResistsInterruptionButRecoveryCanBePunished(GameTestHelper h){
+        for(int x=1;x<8;x++)for(int z=1;z<8;z++)h.setBlock(x,1,z,net.minecraft.world.level.block.Blocks.STONE);
+        var hunter=h.spawn(ModEntities.BLACKLIGHT_HUNTER.get(),3,2,3);
+        var victim=h.spawn(EntityType.VILLAGER,3,2,4);victim.setNoAi(true);hunter.setTarget(victim);var p=player(h);
+        h.runAfterDelay(5,()->{
+            h.assertTrue(hunter.committedAttack(),"hunter entered its telegraphed swipe");
+            com.codex.blacklight.combat.WeaponImpact.apply(p,hunter,com.codex.blacklight.combat.WeaponMove.CLAW_AUTO1,new Vec3(0,0,1),false);
+            h.assertTrue(hunter.committedAttack()&&!com.codex.blacklight.combat.ImpactControl.stunned(hunter),"light hit does not erase committed hunter attack");
+        });
+        h.runAfterDelay(30,()->{
+            h.assertTrue(!hunter.committedAttack(),"attack enters recovery before next swing");
+            com.codex.blacklight.combat.WeaponImpact.apply(p,hunter,com.codex.blacklight.combat.WeaponMove.MUSCLE_UPPERCUT,new Vec3(0,0,1),false);
+            h.assertTrue(com.codex.blacklight.combat.ImpactControl.stunned(hunter),"recovery can be punished with launch");
+        });
+        h.runAfterDelay(35,()->{h.assertTrue(!hunter.committedAttack(),"stunned hunter cannot start a custom tick attack");hunter.discard();victim.discard();h.succeed();});
+    }
+
     @GameTest(template="wall_test", timeoutTicks=30)
     public static void damageInterruptsAndReloadRestoresAi(GameTestHelper h) {
         var p=player(h);var target=victim(h);target.setNoAi(false);ConsumeSystem.request(p);

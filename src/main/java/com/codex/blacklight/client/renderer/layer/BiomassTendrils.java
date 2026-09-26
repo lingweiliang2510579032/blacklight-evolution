@@ -6,6 +6,15 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 /** Temporary strands wrapping the arm during growth and retraction. Joint local, no world lag. */
 public final class BiomassTendrils {
     private BiomassTendrils() {}
+    public static void charge(PoseStack stack,VertexConsumer out,int light,float intensity,float length,float time){
+        for(int strand=0;strand<3;strand++)for(int i=0;i<24;i++){
+            double t=i/24.,u=(i+1)/24.,radius=.135+.018*intensity;
+            double a=t*Math.PI*3+strand*Math.PI*2/3-time*.10,b=u*Math.PI*3+strand*Math.PI*2/3-time*.10;
+            var from=new net.minecraft.world.phys.Vec3(Math.cos(a)*radius,t*length,Math.sin(a)*radius);
+            var to=new net.minecraft.world.phys.Vec3(Math.cos(b)*radius,u*length,Math.sin(b)*radius);
+            com.codex.blacklight.client.renderer.ConsumedMobVisuals.tube(stack,out,light,from,to,.012+.013*intensity,strand==1?0xff65251f:0xff201c20);
+        }
+    }
     public static void render(PoseStack stack,VertexConsumer out,int light,float progress,float length,float time) {
         if(progress<=.001F||progress>=.999F)return;
         float envelope=(float)Math.sin(Math.PI*progress);

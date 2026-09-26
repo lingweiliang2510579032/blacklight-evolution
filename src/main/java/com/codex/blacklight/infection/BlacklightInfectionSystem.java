@@ -25,26 +25,20 @@ public final class BlacklightInfectionSystem {
     }
 
     public static boolean infect(LivingEntity target, Entity source) {
-        if (target.level().isClientSide || !target.isAlive() || target instanceof com.codex.blacklight.entity.BlacklightHunter) return false;
+        if (target.level().isClientSide || !target.isAlive() || target instanceof com.codex.blacklight.entity.BlacklightInfectedHost || target instanceof com.codex.blacklight.entity.BlacklightHunter || target instanceof com.codex.blacklight.entity.BlacklightMutant || target instanceof com.codex.blacklight.entity.BlacklightHive) return false;
 
-        if (target instanceof Player player) {
-            if (player.isCreative() || player.isSpectator() || !player.isAlive()) return false;
-            BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
-            if (state.isInfected()) return false;
-            state.infect();
-            player.setData(ModAttachments.PLAYER_STATE, state);
-            player.syncData(ModAttachments.PLAYER_STATE);
-            player.displayClientMessage(Component.translatable("message.blacklight.infected"), false);
-            return true;
-        }
+        // Player awakening is voluntary. Contact and splashes only infect creatures.
+        if (target instanceof Player) return false;
 
+        // Encounter bosses require a dedicated infected boss, not replacement with a generic host.
+        if (!(target instanceof Mob) || com.codex.blacklight.combat.ConsumeSequence.boss(target)) return false;
         if (target.hasEffect(ModEffects.BLACKLIGHT_INFECTION)) return false;
         boolean applied = target.addEffect(new MobEffectInstance(
                 ModEffects.BLACKLIGHT_INFECTION,
                 MobEffectInstance.INFINITE_DURATION,
                 0,
                 false,
-                !(target instanceof net.minecraft.world.entity.monster.Zombie),
+                false,
                 false), source);
         if (applied) {
             target.setData(ModAttachments.INFECTION_START, target.level().getGameTime());
@@ -53,11 +47,26 @@ public final class BlacklightInfectionSystem {
         return applied;
     }
 
+    public static boolean awaken(Player player) {
+        if (player.level().isClientSide || player.isSpectator() || !player.isAlive()) return false;
+        BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
+        if (state.isInfected()) return false;
+        state.infect();
+        player.setData(ModAttachments.PLAYER_STATE, state);
+        player.syncData(ModAttachments.PLAYER_STATE);
+        player.displayClientMessage(Component.translatable("message.blacklight.infected"), false);
+        player.displayClientMessage(Component.translatable("message.blacklight.awakening_guide"), false);
+        if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+            com.codex.blacklight.power.GrowthSystem.award(serverPlayer, "awakening");
+        }
+        return true;
+    }
+
     public static boolean isInfected(LivingEntity entity) {
         if (entity instanceof Player player) {
             return player.getData(ModAttachments.PLAYER_STATE).isInfected();
         }
-        return entity instanceof com.codex.blacklight.entity.BlacklightHunter || entity.hasEffect(ModEffects.BLACKLIGHT_INFECTION);
+        return entity instanceof com.codex.blacklight.entity.BlacklightInfectedHost || entity instanceof com.codex.blacklight.entity.BlacklightHunter || entity instanceof com.codex.blacklight.entity.BlacklightMutant || entity instanceof com.codex.blacklight.entity.BlacklightHive || entity.hasEffect(ModEffects.BLACKLIGHT_INFECTION);
     }
 
     public static void notifyBurstOwner(Entity owner, int exposedCount) {
@@ -81,56 +90,44 @@ public final class BlacklightInfectionSystem {
     public static void onInfectedMobTick(EntityTickEvent.Post event) {
         if (!(event.getEntity() instanceof Mob mob)
                 || !(mob.level() instanceof ServerLevel serverLevel)
-                || !mob.isAlive() || mob instanceof com.codex.blacklight.entity.BlacklightHunter || !isInfected(mob)) return;
+                || !mob.isAlive() || mob instanceof com.codex.blacklight.entity.BlacklightInfectedHost || mob instanceof com.codex.blacklight.entity.BlacklightHunter || mob instanceof com.codex.blacklight.entity.BlacklightMutant || mob instanceof com.codex.blacklight.entity.BlacklightHive || !isInfected(mob)) return;
         long onset=mob.getData(ModAttachments.INFECTION_START);
+        // Migrate existing saved infections too, without removing infection or other effects.
+        var infection=mob.getEffect(ModEffects.BLACKLIGHT_INFECTION);
+        if(infection!=null&&infection.isVisible())mob.addEffect(new MobEffectInstance(
+                infection.getEffect(),infection.getDuration(),infection.getAmplifier(),infection.isAmbient(),false,false));
+        if(com.codex.blacklight.combat.ImpactControl.stunned(mob)
+                || mob.getData(ModAttachments.CONSUME_VISUAL).active())return;
         if(onset>=0 && serverLevel.getGameTime()-onset<InfectionTimeline.DURATION) {
             mob.getNavigation().stop();
             return;
         }
-        if (mob.getType() == net.minecraft.world.entity.EntityType.ZOMBIE) {
-            convertZombie(mob, serverLevel);
-            return;
-        }
-        if(mob.tickCount % 20 != 0)return;
-
-        LivingEntity target = mob.getTarget();
-        if (!isValidTarget(mob, target)) {
-            target = serverLevel.getEntitiesOfClass(
-                            LivingEntity.class,
-                            mob.getBoundingBox().inflate(HUNT_RADIUS, HUNT_RADIUS * 0.5D, HUNT_RADIUS),
-                            candidate -> isValidTarget(mob, candidate))
-                    .stream()
-                    .min(Comparator.comparingDouble(mob::distanceToSqr))
-                    .orElse(null);
-        }
-
-        if (target == null) return;
-        mob.setTarget(target);
-        mob.getNavigation().moveTo(target, 1.2D);
-        if (mob.distanceToSqr(target) <= 5.0D && mob.hasLineOfSight(target)
-                && mob.tickCount % 40 == 0) {
-            mob.swing(InteractionHand.MAIN_HAND);
-            target.hurt(mob.damageSources().mobAttack(mob), 3.0F);
-        }
+        if (!com.codex.blacklight.combat.ConsumeSequence.boss(mob)) convertHost(mob, serverLevel);
     }
 
-    private static void convertZombie(Mob source, ServerLevel level) {
-        var hunter = com.codex.blacklight.registry.ModEntities.BLACKLIGHT_HUNTER.get().create(level);
-        if (hunter == null) return;
-        hunter.copyPosition(source);
-        hunter.setHealth(Math.max(1, hunter.getMaxHealth() * source.getHealth() / source.getMaxHealth()));
-        hunter.setNoAi(source.isNoAi()); hunter.setInvulnerable(source.isInvulnerable());
-        hunter.setCustomName(source.getCustomName()); hunter.setCustomNameVisible(source.isCustomNameVisible());
-        if (source.isPersistenceRequired()) hunter.setPersistenceRequired();
-        source.getTags().forEach(hunter::addTag);
-        // Keep the original alive if a mod vetoes spawning the replacement.
-        if (!level.addFreshEntity(hunter)) return;
+    private static void convertHost(Mob source, ServerLevel level) {
+        var infected = com.codex.blacklight.registry.ModEntities.INFECTED_HOST.get().create(level);
+        if (infected == null) return;
+        infected.inherit(source);
+        infected.copyPosition(source);
+        infected.yBodyRot=source.yBodyRot;infected.yHeadRot=source.yHeadRot;
+        infected.setDeltaMovement(source.getDeltaMovement());
+        infected.setNoAi(source.isNoAi()); infected.setInvulnerable(source.isInvulnerable());
+        infected.setCustomName(source.getCustomName()); infected.setCustomNameVisible(source.isCustomNameVisible());
+        source.getTags().forEach(infected::addTag);
+        // The source and its inventory survive if another mod vetoes replacement.
+        if (!level.addFreshEntity(infected)) return;
         for (var slot : net.minecraft.world.entity.EquipmentSlot.values()) {
-            hunter.setItemSlot(slot, source.getItemBySlot(slot).copyAndClear());
-            hunter.setDropChance(slot, 1.0F);
+            infected.setItemSlot(slot, source.getItemBySlot(slot).copyAndClear());
+            infected.setDropChance(slot, 1.0F);
         }
-        if (source.getVehicle() != null) hunter.startRiding(source.getVehicle(), true);
-        for (var passenger : java.util.List.copyOf(source.getPassengers())) passenger.startRiding(hunter, true);
+        if (source.getVehicle() != null) infected.startRiding(source.getVehicle(), true);
+        for (var passenger : java.util.List.copyOf(source.getPassengers())) passenger.startRiding(infected, true);
+        level.sendParticles(net.minecraft.core.particles.ParticleTypes.SCULK_SOUL,
+                infected.getX(),infected.getY()+infected.getBbHeight()*.5,infected.getZ(),
+                12,infected.getBbWidth()*.35,infected.getBbHeight()*.25,infected.getBbWidth()*.35,.025);
+        level.playSound(null,infected.blockPosition(),net.minecraft.sounds.SoundEvents.SCULK_CATALYST_BLOOM,
+                net.minecraft.sounds.SoundSource.HOSTILE,.8F,.65F);
         source.discard();
     }
 

@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -23,11 +22,12 @@ class MvpResourceTest {
     @Test
     void authoredActionsHaveCompleteNormalizedTracksAndMatchServerDurations() throws IOException {
         Map<String, Double> clips = Map.ofEntries(
-                Map.entry("action/air_dash", 0.6),
+
                 Map.entry("action/consume", 2.3),
                 Map.entry("action/consume_normal", 2.3), Map.entry("action/consume_hammer", 2.8),
                 Map.entry("action/consume_blade", 2.4), Map.entry("action/consume_whip", 1.9),
                 Map.entry("action/grab_reach", .6), Map.entry("action/grab_hold", 2.0),
+                Map.entry("action/grab_blade", 1.0), Map.entry("action/grab_blade_hold", 2.0), Map.entry("action/grab_blade_throw", .7),
                 Map.entry("action/grab_throw", .7), Map.entry("action/grab_whip", 1.8),
                 Map.entry("action/transform_claws", 1.2),
                 Map.entry("combat/claw_auto1", 0.7),
@@ -35,21 +35,8 @@ class MvpResourceTest {
                 Map.entry("combat/claw_auto3", 1.1),
                 Map.entry("combat/claw_dashing_slice", 1.0),
                 Map.entry("combat/claw_groundspike", 2.2),
-                Map.entry("combat/claw_sprint_attack", 0.8),
-                Map.entry("living/claw_idle", 1.6),
-                Map.entry("living/claw_sprint", 0.54),
-                Map.entry("living/claw_walk", 0.9),
-                Map.entry("living/landing_devastating", 0.62),
-                Map.entry("living/landing_heavy", 0.44),
-                Map.entry("living/landing_light", 0.28),
-                Map.entry("living/prototype_glide", 0.7),
-                Map.entry("living/prototype_jump_charge", 2.05),
-                Map.entry("living/prototype_jump_fall", 0.2),
-                Map.entry("living/prototype_jump_rise", 0.2),
-                Map.entry("living/wall_run", 0.48),
-                Map.entry("living/wall_climb", 0.96),
-                Map.entry("living/wall_cling", 1.0),
-                Map.entry("living/wall_leap", 0.4));
+                Map.entry("combat/claw_sprint_attack", 0.8));
+
         for (var entry : clips.entrySet()) {
             var data = tracks(readAnimation("biped/" + entry.getKey() + ".json"));
             assertEquals(20, data.size(), entry.getKey() + " must animate the complete skeleton");
@@ -76,24 +63,6 @@ class MvpResourceTest {
     }
 
     @Test
-    void wallRunUsesBentRunningArmsWhileClimbReachesUpAndClingHoldsStill() throws IOException {
-        var run=readAnimation("biped/living/wall_run.json");
-        var climb=readAnimation("biped/living/wall_climb.json");
-        for (double time:new double[]{0,.12,.24,.36}) {
-            var running=worldPose(run,time);var climbing=worldPose(climb,time*2);
-            for(String side:new String[]{"R","L"}) {
-                double[] wrist=point(running.get("Hand_"+side),0,.272858,0);
-                assertTrue(wrist[2]<running.get("Arm_"+side)[2][3]-.15,"running arms stay bent below shoulders");
-                assertTrue(point(climbing.get("Hand_"+side),0,.272858,0)[2]>wrist[2]+.12,"climbing hands reach higher");
-            }
-        }
-        for(var track:tracks(readAnimation("biped/living/wall_cling.json")).values()) {
-            var frames=track.getAsJsonArray("transform");
-            for(var frame:frames) assertEquals(frames.get(0),frame,"cling must not keep cycling the limbs");
-        }
-    }
-
-    @Test
     void everyServerTimedMvpActionHasAnEpicFightAnimation() {
         assertResource("biped/combat/claw_auto1.json");
         assertResource("biped/combat/claw_auto2.json");
@@ -101,19 +70,12 @@ class MvpResourceTest {
         assertResource("biped/combat/claw_groundspike.json");
         assertResource("biped/combat/claw_dashing_slice.json");
         assertResource("biped/action/transform_claws.json");
-        assertResource("biped/action/air_dash.json");
-        assertResource("biped/living/prototype_jump_charge.json");
-        assertResource("biped/living/prototype_jump_rise.json");
-        assertResource("biped/living/prototype_jump_fall.json");
-        assertResource("biped/living/landing_light.json");
-        assertResource("biped/living/landing_heavy.json");
-        assertResource("biped/living/landing_devastating.json");
+
     }
 
     @Test
     void groundedCrouchesKeepTheFeetAtTheFloorInsteadOfSinkingTheWholeBody() throws IOException {
-        for (String path : new String[] {"combat/claw_groundspike", "living/prototype_jump_charge",
-                "living/landing_light", "living/landing_heavy", "living/landing_devastating"}) {
+        for (String path : new String[] {"combat/claw_groundspike"}) {
             var clip=readAnimation("biped/"+path+".json");
             var times=tracks(clip).get("Root").getAsJsonArray("time");
             double contact=path.endsWith("light")?.07:path.endsWith("heavy")?.12:path.endsWith("devastating")?.18:0;
@@ -178,45 +140,6 @@ class MvpResourceTest {
     }
 
     @Test
-    void prototypeWalkAndRunAnimateTheCompleteBipedWithoutRootTranslation() throws IOException {
-        assertCompleteLocomotion("biped/living/claw_walk.json");
-        assertCompleteLocomotion("biped/living/claw_sprint.json");
-        assertCompleteLocomotion("biped/living/wall_run.json");
-    }
-
-    @Test
-    void landingAnimationsNeverTranslateRootThroughTheWorld() throws IOException {
-        for (String path : new String[] {
-                "biped/living/landing_light.json",
-                "biped/living/landing_heavy.json",
-                "biped/living/landing_devastating.json"}) {
-            JsonArray root = tracks(readAnimation(path)).get("Root").getAsJsonArray("transform");
-            for (JsonElement frame : root) {
-                JsonArray location = frame.getAsJsonObject().getAsJsonArray("loc");
-                JsonArray rotation = frame.getAsJsonObject().getAsJsonArray("rot");
-                assertEquals(0.0D, location.get(0).getAsDouble(), 0.00001D);
-                assertEquals(0.0D, location.get(2).getAsDouble(), 0.00001D);
-                assertIdentity(rotation);
-            }
-        }
-    }
-
-    @Test
-    void chargedJumpCrouchesForwardSweepsBothArmsBackwardAndKeepsRootUpright() throws IOException {
-        var clip=readAnimation("biped/living/prototype_jump_charge.json");
-        var start=worldPose(clip,0);var end=worldPose(clip,2.05);
-        assertTrue(end.get("Root")[2][3]<start.get("Root")[2][3]-.22,"charge must compress the legs");
-        assertTrue(end.get("Chest")[1][3] > end.get("Root")[1][3] + .08, "the skin faces +Y: charge must lean forward, not backward");
-        assertTrue(end.get("Head")[1][3] > end.get("Root")[1][3] + .20, "the head must travel toward the front of the skin while crouching");
-        for(String side:new String[]{"R","L"}) {
-            double[] wrist=point(end.get("Hand_"+side),0,.272858,0);
-            assertTrue(wrist[1]<end.get("Arm_"+side)[1][3]-.15,"arms must sweep behind the shoulders");
-        }
-        for(var frame:tracks(clip).get("Root").getAsJsonArray("transform"))
-            assertIdentity(frame.getAsJsonObject().getAsJsonArray("rot"));
-    }
-
-    @Test
     void groundSpikeKeepsThePlayerUprightPlantsOnlyTheRightClawAndEruptsUpward()
             throws IOException {
         var clip=readAnimation("biped/combat/claw_groundspike.json");
@@ -266,56 +189,20 @@ class MvpResourceTest {
                 "the eruption must retain the server's 22-tick lifetime");
     }
 
-    private static void assertCompleteLocomotion(String path) throws IOException {
-        JsonObject animation = readAnimation(path);
-        Map<String, JsonObject> tracks = tracks(animation);
-
-        Set<String> completeBiped = Set.of(
-                "Root", "Thigh_R", "Leg_R", "Knee_R", "Thigh_L", "Leg_L", "Knee_L",
-                "Torso", "Chest", "Head",
-                "Shoulder_R", "Arm_R", "Elbow_R", "Hand_R", "Tool_R",
-                "Shoulder_L", "Arm_L", "Elbow_L", "Hand_L", "Tool_L");
-        assertTrue(tracks.keySet().containsAll(completeBiped),
-                path + " missing joints " + completeBiped.stream()
-                        .filter(joint -> !tracks.containsKey(joint)).toList());
-
-        JsonArray rootFrames = tracks.get("Root").getAsJsonArray("transform");
-        for (JsonElement frame : rootFrames) {
-            JsonArray location = frame.getAsJsonObject().getAsJsonArray("loc");
-            JsonArray rotation = frame.getAsJsonObject().getAsJsonArray("rot");
-            assertEquals(0.0D, location.get(0).getAsDouble(), 0.00001D,
-                    path + " must not translate sideways");
-            assertEquals(0.0D, location.get(2).getAsDouble(), 0.00001D,
-                    path + " must not translate through the world");
-            assertEquals(0,rotation.get(1).getAsDouble(),.001,"locomotion pelvis must not pitch");
-            assertEquals(0,rotation.get(3).getAsDouble(),.001,"locomotion pelvis must not roll");
-        }
-
-        JsonArray rightThigh = tracks.get("Thigh_R").getAsJsonArray("transform");
-        JsonArray leftThigh = tracks.get("Thigh_L").getAsJsonArray("transform");
-        assertNotEquals(rightThigh.get(0).toString(), leftThigh.get(0).toString(),
-                path + " legs must be half a stride out of phase");
-        for(String joint:completeBiped) {
-            var frames=tracks.get(joint).getAsJsonArray("transform");
-            for(String property:new String[]{"loc","rot","sca"}) {
-                var first=frames.get(0).getAsJsonObject().getAsJsonArray(property);
-                var last=frames.get(frames.size()-1).getAsJsonObject().getAsJsonArray(property);
-                for(int axis=0;axis<first.size();axis++) assertEquals(first.get(axis).getAsDouble(),last.get(axis).getAsDouble(),.0001,path+" loop "+joint);
-            }
-        }
+    @Test
+    void removedTraversalFallbacksCannotReturnToTheDistributedResources() {
+        for(String name:new String[]{"claw_idle","claw_walk","claw_sprint","prototype_jump_charge",
+                "prototype_jump_rise","prototype_jump_fall","prototype_glide","wall_run","wall_climb",
+                "wall_cling","wall_leap","wall_mantle","wall_vault","landing_light","landing_moving",
+                "landing_heavy","landing_devastating"})
+            org.junit.jupiter.api.Assertions.assertNull(MvpResourceTest.class.getResource(
+                    "/assets/blacklight/animmodels/animations/biped/living/"+name+".json"),name);
+        org.junit.jupiter.api.Assertions.assertNull(MvpResourceTest.class.getResource(
+                "/assets/blacklight/animmodels/animations/biped/action/air_dash.json"));
     }
 
     private static void assertIdentity(JsonArray q) {
         for(int i=0;i<4;i++) assertEquals(i==0?1:0,q.get(i).getAsDouble(),.00001);
-    }
-
-    @Test
-    void glideSpreadsTheWristsOutsideTheShoulders() throws IOException {
-        var pose = worldPose(readAnimation("biped/living/prototype_glide.json"), .35);
-        double[] right = point(pose.get("Hand_R"), 0, .272858, 0);
-        double[] left = point(pose.get("Hand_L"), 0, .272858, 0);
-        assertTrue(right[0] > .80 && left[0] < -.80,
-                "glide must spread both arms rather than fold them through the torso");
     }
 
     @Test
@@ -338,9 +225,9 @@ class MvpResourceTest {
     }
 
     @Test
-    void wallAndMorphActionsKeepTheActualClawMeshClearOfTheHeadThroughoutEachClip() throws IOException {
+    void morphAndGrabActionsKeepTheActualClawMeshClearOfTheHeadThroughoutEachClip() throws IOException {
         var mesh=readJson("/assets/blacklight/models/claw_blender.json").getAsJsonObject("joints");
-        for(String name:new String[]{"living/wall_run","living/wall_climb","living/wall_cling","living/wall_leap","action/transform_claws","action/consume","action/grab_reach","action/grab_hold","action/grab_throw"}) {
+        for(String name:new String[]{"action/transform_claws","action/consume","action/grab_reach","action/grab_hold","action/grab_throw"}) {
             var clip=readAnimation("biped/"+name+".json");
             for(var time:tracks(clip).get("Head").getAsJsonArray("time")) {
                 var pose=worldPose(clip,time.getAsDouble());var head=pose.get("Head");
@@ -360,10 +247,64 @@ class MvpResourceTest {
     }
 
     @Test
+    void heldTargetAnchorMatchesTheRenderedClawPalm() throws IOException {
+        var mesh=readJson("/assets/blacklight/models/claw_blender.json");
+        var center=clawPartCenter(mesh,"L / palm");
+        var clip=readAnimation("biped/action/grab_hold.json");
+        for(double t=0;t<=2;t+=.05) {
+            var hand=worldPose(clip,t).get("Hand_L");
+            var palm=point(hand,center[0],center[1],center[2]);
+            // World yaw zero reverses model X; Blender Y maps to forward Z.
+            assertEquals(com.codex.blacklight.combat.GrabPlacement.LEFT,-palm[0]*.9375,.065,"hold palm lateral contact");
+            assertEquals(com.codex.blacklight.combat.GrabPlacement.HEIGHT,palm[2]*.9375,.065,"hold palm height");
+            assertEquals(com.codex.blacklight.combat.GrabPlacement.FORWARD,palm[1]*.9375,.065,"hold palm depth");
+        }
+    }
+
+    @Test
+    void bladeHoldPlacesContinuousEdgeInTheRightSideBodyAnchor() throws IOException {
+        var clip=readAnimation("biped/action/grab_blade_hold.json");
+        for(double t=0;t<=2;t+=.05) {
+            var blade=point(worldPose(clip,t).get("Hand_R"),-.0636396,.68,-.0636396);
+            assertEquals(com.codex.blacklight.combat.GrabPlacement.BLADE_RIGHT,blade[0]*.9375,.04);
+            assertEquals(com.codex.blacklight.combat.GrabPlacement.BLADE_FORWARD,blade[1]*.9375,.04);
+            assertEquals(com.codex.blacklight.combat.GrabPlacement.BLADE_HEIGHT,blade[2]*.9375,.04);
+        }
+    }
+
+    @Test
+    void consumeStartsFromTheCarryPoseInsteadOfDroppingBothHandsToIdle() throws IOException {
+        var held=worldPose(readAnimation("biped/action/grab_hold.json"),0);
+        for(String clip:new String[]{"consume","consume_normal","consume_hammer","consume_blade","consume_whip"}) {
+            if(clip.equals("consume_blade"))held=worldPose(readAnimation("biped/action/grab_blade_hold.json"),0);
+            else held=worldPose(readAnimation("biped/action/grab_hold.json"),0);
+            var first=worldPose(readAnimation("biped/action/"+clip+".json"),0);
+            for(String joint:new String[]{"Torso","Chest","Hand_L","Hand_R","Head"})
+                for(int row=0;row<4;row++)for(int col=0;col<4;col++)
+                    assertEquals(held.get(joint)[row][col],first.get(joint)[row][col],.0001,clip+" carry continuity "+joint);
+        }
+    }
+
+    @Test
+    void hammerContactIsFastThenBrieflySettlesBeforeRecovery() throws IOException {
+        var clip=readAnimation("biped/action/consume_hammer.json");
+        var ready=worldPose(clip,.80).get("Hand_R");
+        var contact=worldPose(clip,.90).get("Hand_R");
+        var held=worldPose(clip,1.0).get("Hand_R");
+        double travel=0,settle=0;
+        for(int axis=0;axis<3;axis++) {
+            travel+=Math.pow(contact[axis][3]-ready[axis][3],2);
+            settle+=Math.pow(held[axis][3]-contact[axis][3],2);
+        }
+        assertTrue(travel>.25,"hammer must travel decisively into contact in two ticks");
+        assertTrue(settle<.0001,"contact needs a readable settle instead of a continuous soft swing");
+    }
+
+    @Test
     void newConsumeFormsKeepTheirOwnMeshesClearOfTheHead() throws IOException {
         var failures = new java.util.ArrayList<String>();
         for (var form : Map.of("hammerfists", "hammer", "blade", "blade", "whipfist", "whip").entrySet()) {
-            for(String name:new String[]{"action/consume_"+form.getValue(),"action/grab_reach","action/grab_hold","action/grab_throw",form.getKey().equals("whipfist")?"action/grab_whip":"action/grab_hold"}) {
+            for(String name:form.getKey().equals("blade")?new String[]{"action/consume_blade","action/grab_blade","action/grab_blade_hold","action/grab_blade_throw"}:new String[]{"action/consume_"+form.getValue(),"action/grab_reach","action/grab_hold","action/grab_throw",form.getKey().equals("whipfist")?"action/grab_whip":"action/grab_hold"}) {
             var mesh = readJson("/assets/blacklight/models/form_"+form.getKey()+".json").getAsJsonObject("joints");
             double min = 100; String closest = "";
             var clip=readAnimation("biped/"+name+".json");

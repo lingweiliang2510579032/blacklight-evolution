@@ -20,46 +20,63 @@ import net.neoforged.neoforge.client.event.RenderLivingEvent;
 public final class ConsumedMobVisuals {
     public static final ResourceLocation WHITE = ResourceLocation.fromNamespaceAndPath("blacklight", "textures/entity/claw_white.png");
     private static final java.util.Set<LivingEntity> SCALED = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+    private static final java.util.Set<LivingEntity> RENDERING = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
     private ConsumedMobVisuals() {}
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void before(RenderLivingEvent.Pre<?, ?> event) {
         var mob = event.getEntity();
+        if (RENDERING.contains(mob)) return;
         if (mob instanceof BlacklightHunter) return;
         var data = mob.getData(ModAttachments.CONSUME_VISUAL);
-        if (!data.active()) return;
+        if (!data.active()) {
+            var hit=mob.getData(ModAttachments.HIT_REACTION);
+            if(hit.weight(mob.level().getGameTime(),event.getPartialTick())<=0)return;
+            var patch=yesman.epicfight.world.capabilities.EpicFightCapabilities.getEntityPatch(mob,yesman.epicfight.world.capabilities.entitypatch.LivingEntityPatch.class);
+            if(com.codex.blacklight.client.animation.NativeHitPose.available(patch))return;
+            var stack=event.getPoseStack();stack.pushPose();
+            com.codex.blacklight.client.animation.HitBodyPose.apply(mob,stack,event.getPartialTick());
+            var engine=yesman.epicfight.client.events.engine.RenderEngine.getInstance();
+            if(patch!=null&&patch.overrideRender()&&engine.hasRendererFor(mob)){
+                event.setCanceled(true);
+                try{engine.renderEntityArmatureModel(mob,patch,event.getRenderer(),event.getMultiBufferSource(),stack,event.getPackedLight(),event.getPartialTick());}
+                finally{stack.popPose();}
+            }else SCALED.add(mob);
+            return;
+        }
         var owner = mob.level().getEntity(data.consumerId());
         if (owner == null) return;
         float partial = event.getPartialTick(), t = data.progress(mob.level().getGameTime(), partial);
-        Vec3 delta = owner.getPosition(partial).subtract(mob.getPosition(partial));
+        Vec3 placement=com.codex.blacklight.client.ClientCarryPlacement.consumeOffset(mob,partial);
+        Vec3 delta = owner.getPosition(partial).subtract(mob.getPosition(partial).add(placement));
         var stack = event.getPoseStack();
+        stack.pushPose();stack.translate(placement.x,placement.y,placement.z);
         var out = event.getMultiBufferSource().getBuffer(RenderType.entityCutoutNoCull(WHITE));
-        Vec3 from = com.codex.blacklight.client.animation.ConsumeVictimPose.point(mob,new Vec3(0, mob.getBbHeight() * .52, 0),partial);
-        Vec3 to = delta.add(delta.multiply(-1, 0, -1).normalize().scale(.27)).add(0, 1.15, 0);
-        float start = data.form() == PowerForm.WHIPFIST.ordinal() ? .47F : data.form() == PowerForm.HAMMERFISTS.ordinal() ? .38F : .12F;
-        if (t > start) BlacklightHunterRenderer.strands(stack, out, event.getPackedLight(), from, to,
-                Math.clamp((t - start) / (1-start), 0, 1), mob.level().getGameTime() + partial, mob.getBbHeight(), mob.getBbWidth(),
-                com.codex.blacklight.client.animation.ConsumeVictimPose.bodyTransform(mob,partial));
         whip(mob, stack, out, event.getPackedLight(), delta, tetherProgress(mob,partial));
-        if (t >= .73F) { event.setCanceled(true); return; }
-        stack.pushPose();
+        if (t >= .995F && !com.codex.blacklight.combat.ConsumeSequence.boss(mob)) { stack.popPose();event.setCanceled(true); return; }
+        ConsumeFracture fragments=ConsumeFracture.visible(mob,partial)?new ConsumeFracture(mob,partial,stack,event.getMultiBufferSource(),ConsumeAbsorptionFx.destination(mob,partial,placement)):null;
+        if(fragments!=null)fragments.bindModel(event.getRenderer().getModel());
         com.codex.blacklight.client.animation.ConsumeVictimPose.body(mob, stack, partial);
-        float dissolve = Math.clamp((t - .40F) / .33F, 0, 1);
-        float size = 1 - dissolve * dissolve * .75F;
-        stack.translate(delta.x * dissolve * .25, .12 * dissolve, delta.z * dissolve * .25);
-        stack.scale(size, 1 - dissolve * .15F, size);
         var engine = yesman.epicfight.client.events.engine.RenderEngine.getInstance();
         var patch = yesman.epicfight.world.capabilities.EpicFightCapabilities.getEntityPatch(mob,
                 yesman.epicfight.world.capabilities.entitypatch.LivingEntityPatch.class);
-        // Epic Fight normally draws from its Pre listener and cancels the vanilla render.
-        // Render that same armature once inside our transform instead of losing the dissolve.
-        if (patch != null && patch.overrideRender() && engine.hasRendererFor(mob)) {
+        boolean epic=patch != null && patch.overrideRender() && engine.hasRendererFor(mob);
+        if (epic || fragments!=null) {
             event.setCanceled(true);
+            var buffers=fragments==null?event.getMultiBufferSource():fragments;
             try {
-                engine.renderEntityArmatureModel(mob, patch, event.getRenderer(), event.getMultiBufferSource(),
-                        stack, event.getPackedLight(), partial);
-            } finally { stack.popPose(); }
+                if(epic)engine.renderEntityArmatureModel(mob, patch, event.getRenderer(), buffers,stack, event.getPackedLight(), partial);
+                else {
+                    RENDERING.add(mob);
+                    renderVanilla(event,mob,buffers);
+                }
+                if(fragments!=null)fragments.finish();
+            } finally { RENDERING.remove(mob);stack.popPose(); }
         } else SCALED.add(mob);
+    }
+    @SuppressWarnings({"rawtypes","unchecked"})
+    private static void renderVanilla(RenderLivingEvent.Pre<?,?> event,LivingEntity mob,net.minecraft.client.renderer.MultiBufferSource buffers){
+        ((net.minecraft.client.renderer.entity.LivingEntityRenderer)event.getRenderer()).render(mob,mob.getYRot(),event.getPartialTick(),event.getPoseStack(),buffers,event.getPackedLight());
     }
     @SubscribeEvent
     public static void after(RenderLivingEvent.Post<?, ?> event) {
@@ -68,6 +85,8 @@ public final class ConsumedMobVisuals {
 
     public static float tetherProgress(LivingEntity mob,float partial) {
         var data=mob.getData(ModAttachments.CONSUME_VISUAL);
+        if(data.stage()==com.codex.blacklight.combat.ConsumeVisual.WHIP_PULL)
+            return Math.min(.44F,(mob.level().getGameTime()-data.started()+partial)/60F);
         if(data.stage()==com.codex.blacklight.combat.ConsumeVisual.CAPTURE)
             return (mob.level().getGameTime()-data.started()+partial)/60F;
         if(data.stage()==com.codex.blacklight.combat.ConsumeVisual.HOLD)return .44F;
@@ -76,15 +95,18 @@ public final class ConsumedMobVisuals {
     }
     /** A thick, continuous cable and tightening coil distinguish whip capture from generic tendrils. */
     public static void whip(LivingEntity mob, PoseStack stack, VertexConsumer out, int light, Vec3 delta, float t) {
-        if (mob.getData(ModAttachments.CONSUME_VISUAL).form() != PowerForm.WHIPFIST.ordinal() || t > .8F) return;
+        if (mob.getData(ModAttachments.CONSUME_VISUAL).form() != PowerForm.WHIPFIST.ordinal() || t > .9F) return;
         if (t < .185F) return;
-        double radius = mob.getBbWidth() * .58 * (1-Math.clamp((t-.5)/.3, 0, 1));
+        stack.pushPose();
+        stack.mulPose(com.codex.blacklight.client.animation.ConsumeVictimPose.effectTransform(mob,net.minecraft.client.Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false)));
+        double radius = mob.getBbWidth() * .58 * (1-Math.clamp((t-.85)/.05, 0, 1));
         for (int i = 0; i < 48; i++) {
             double a = i / 48.0, b = (i+1) / 48.0;
             Vec3 p = new Vec3(Math.cos(a*Math.PI*5)*radius, mob.getBbHeight()*(.22+.6*a), Math.sin(a*Math.PI*5)*radius);
             Vec3 q = new Vec3(Math.cos(b*Math.PI*5)*radius, mob.getBbHeight()*(.22+.6*b), Math.sin(b*Math.PI*5)*radius);
             tube(stack, out, light, p, q, .045, i%4==0 ? 0xff833b32 : 0xff35292a);
         }
+        stack.popPose();
     }
     public static void tube(PoseStack stack, VertexConsumer out, int light, Vec3 a, Vec3 b, double radius, int color) {
         Vec3 axis = b.subtract(a).normalize(), u = axis.cross(new Vec3(0,1,0)).normalize();

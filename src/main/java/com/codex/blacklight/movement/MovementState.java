@@ -20,6 +20,9 @@ public final class MovementState {
     private boolean forwardHeld;
     private boolean sprinting;
     private int chargeTicks;
+    private boolean runningCharge;
+    public boolean runningCharge(){return chargeTicks>0&&runningCharge;}
+    public void beginRunningCharge(){beginCharge();runningCharge=true;}
     private int chargeOffGroundTicks;
     private int dashTicks;
     private int airDashes = 1;
@@ -27,6 +30,11 @@ public final class MovementState {
     private double dashDirectionX;
     private double dashDirectionZ;
     private Mode mode = Mode.NORMAL;
+    private double glideSpeed;
+    public boolean brakingGlide() { return forwardInput < 0; }
+    public double glideSpeed() { return glideSpeed; }
+    public void setGlideSpeed(double speed) { glideSpeed = speed; }
+
     private boolean runningAnimation;
     private boolean sprintColliding;
     private double wallNormalX;
@@ -127,7 +135,7 @@ public final class MovementState {
         return true;
     }
     public int chargeTicks() { return chargeTicks; }
-    public void beginCharge() { chargeTicks = 1; chargeOffGroundTicks = 0; mode = Mode.CHARGING_JUMP; }
+    public void beginCharge() { chargeTicks = 1; runningCharge=false; chargeOffGroundTicks = 0; mode = Mode.CHARGING_JUMP; }
     /** Advances toward maximum once and reports the exact tick maximum is reached. */
     public boolean tickCharge(int maximum) {
         int cappedMaximum = Math.max(1, maximum);

@@ -63,12 +63,18 @@ public final class ClawCombatSystem {
                 request, player.getGameProfile().getName(), state.getActivePower().id(), combat.action());
 
         if (request == ClawActionPayload.Action.TOGGLE_CLAWS) {
+            if(WeaponCombatSystem.busy(player))return;
             // Per-player minimum interval prevents morph-spam sound/particle floods.
             if (!combat.canToggleTransform(player.tickCount)) return;
             toggleClaws(player, state, combat);
             return;
         }
 
+        if(WeaponMove.supports(state.getActivePower())) {
+            if(request==ClawActionPayload.Action.ATTACK||request==ClawActionPayload.Action.SPRINT_ATTACK||request==ClawActionPayload.Action.DASHING_SLICE)WeaponCombatSystem.request(player,false);
+            else if(request==ClawActionPayload.Action.WEAPON_SPECIAL||request==ClawActionPayload.Action.GROUND_SPIKE||request==ClawActionPayload.Action.GROUND_SPIKE_CHARGE_START)WeaponCombatSystem.requestSpecial(player);
+            return;
+        }
         if (!canUseClaws(state)) {
             player.displayClientMessage(Component.translatable("message.blacklight.claws_required"), true);
             return;
@@ -201,6 +207,7 @@ public final class ClawCombatSystem {
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        if(WeaponCombatSystem.busy(player))return;
 
         if (player.getData(ModAttachments.CONSUMING)) return;
         BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
@@ -364,7 +371,7 @@ public final class ClawCombatSystem {
         Vec3 forward = new Vec3(combat.dashX(), 0.0D, combat.dashZ());
         if (forward.lengthSqr() < 1.0E-5D) forward = new Vec3(0.0D, 0.0D, 1.0D);
         forward = forward.normalize();
-        double reach = ClawDamageRules.comboReach(action);
+        double reach = ClawDamageRules.comboReach(action)*AttackReach.scale(player);
         AABB sweep = player.getBoundingBox().inflate(0.85D, 0.55D, 0.85D)
                 .expandTowards(forward.scale(reach));
         Vec3 attackOrigin = player.position().add(0.0D, player.getBbHeight() * 0.55D, 0.0D);
@@ -401,11 +408,14 @@ public final class ClawCombatSystem {
         ClawPhysicalEffects.onComboImpact(player, action, forward, hitCount);
     }
 
-    private static void eruptGroundSpike(ServerPlayer player) {
+    static void eruptGroundSpike(ServerPlayer player) {
+        if (!canUseClaws(player.getData(ModAttachments.PLAYER_STATE))) return;
         ServerLevel level = player.serverLevel();
         BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
-        double rangeMultiplier = state.hasClawUpgrade(ClawUpgrade.RANGE) ? 1.25D : 1.0D;
-        Vec3 forward = player.getLookAngle().multiply(1.0D, 0.0D, 1.0D);
+        double rangeMultiplier = (state.hasClawUpgrade(ClawUpgrade.RANGE) ? 1.25D : 1.0D)*AttackReach.scale(player);
+        var weapon = player.getData(ModAttachments.WEAPON_VISUAL);
+        Vec3 forward = weapon.spec() == WeaponMove.CLAW_GROUNDSPIKE
+                ? Vec3.directionFromRotation(0, weapon.yaw()) : player.getLookAngle().multiply(1.0D, 0.0D, 1.0D);
         if (forward.lengthSqr() < 0.001D) forward = new Vec3(0.0D, 0.0D, 1.0D);
         forward = forward.normalize();
         LivingEntity lockedTarget = lockedGroundSpikeTarget(player);
@@ -438,8 +448,7 @@ public final class ClawCombatSystem {
                 } else {
                     away = away.normalize();
                 }
-                away = away.scale(0.55D);
-                target.push(away.x, 0.75D, away.z);
+                WeaponImpact.apply(player,target,WeaponMove.CLAW_GROUNDSPIKE,away.multiply(1,0,1).normalize(),false);
             }
         }
         for (Entity loose : level.getEntities(player, hitBox,
@@ -499,7 +508,7 @@ public final class ClawCombatSystem {
     private static LivingEntity lockedGroundSpikeTarget(ServerPlayer player) {
         ServerPlayerPatch patch = EpicFightCapabilities.getServerPlayerPatch(player);
         LivingEntity target = patch == null ? null : patch.getTarget();
-        double maxDistance = GroundSpikeRules.MAX_LOCKED_TARGET_DISTANCE;
+        double maxDistance = GroundSpikeRules.MAX_LOCKED_TARGET_DISTANCE*AttackReach.scale(player);
         if (target == null || !target.isAlive() || target.level() != player.level()
                 || player.isAlliedTo(target)
                 || player.distanceToSqr(target) > maxDistance * maxDistance

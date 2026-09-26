@@ -23,5 +23,3 @@
 本轮还原抓取后的决策流程，不包含隐匿吸收、车辆/物件抓取、身份伪装或所有原作投掷升级。抓取起手仍限制为地面状态；持有时暂不启用黑光高速墙跑、蓄力跳跃。第三方特殊骨架与多人高延迟需继续验证。
 
 参考：[一代官方 PC 手册，第 3 页](https://cdn.akamai.steamstatic.com/steam/apps/10150/manuals/Manual_english.pdf?t=1422643299)、[PC 吸收操作说明](https://www.supercheats.com/pc/questions/prototype/270423/consume-button-for-pc.htm)。
-
-[七组当前实机录像](media/grab-r11.mp4) · [验证记录](media/grab-r11-verification.json)

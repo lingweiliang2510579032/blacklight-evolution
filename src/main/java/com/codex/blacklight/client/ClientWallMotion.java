@@ -19,6 +19,9 @@ public final class ClientWallMotion {
     }
     public static void accept(WallMotionPayload payload) {
         checkLevel();if(level==null)return;
+        var entity=level.getEntity(payload.entityId());
+        if(entity instanceof AbstractClientPlayer player && player!=Minecraft.getInstance().player)
+            com.codex.blacklight.movement.WallPoseState.set(player,payload.wallMode(),payload.normalX(),payload.normalZ());
         if(payload.wallMode()==WallTraversal.Mode.NONE)MODES.remove(payload.entityId());
         else MODES.put(payload.entityId(),new Entry(payload.wallMode(),level.getGameTime()+40));
     }

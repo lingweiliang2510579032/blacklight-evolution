@@ -42,6 +42,21 @@ public final class OrdinaryConsumeGameTest {
         h.succeed();
     }
     @GameTest(template="wall_test", timeoutTicks=30)
+    public static void hammerKeepsSmallVictimLiftedUntilTheDownstroke(GameTestHelper h) {
+        var p=player(h,PowerForm.HAMMERFISTS);var pig=h.spawn(EntityType.PIG,3,2,5);pig.setNoAi(true);
+        ConsumeSystem.request(p);
+        for(int i=0;i<ConsumeVisual.captureDuration(PowerForm.HAMMERFISTS);i++)tick(p);
+        h.assertTrue(ConsumeSystem.holding(p),"pig must reach held pose");
+        double heldHeight=pig.getY();
+        h.assertTrue(heldHeight>p.getY()+.3,"small target must visibly hang in the restraint");
+        ConsumeSystem.consume(p);
+        for(int i=0;i<14;i++)tick(p);
+        h.assertTrue(Math.abs(pig.getY()-heldHeight)<.001,"wind-up must not lower the body early");
+        for(int i=0;i<4;i++)tick(p);
+        h.assertTrue(pig.getY()<=p.getY()+.01 && pig.isAlive(),"body reaches floor at contact, without early reward");
+        ConsumeSystem.cancel(p);pig.discard();h.succeed();
+    }
+    @GameTest(template="wall_test", timeoutTicks=30)
     public static void normalEnemyNeedsWeakeningAndClaimsAreExclusive(GameTestHelper h) {
         var p=player(h,PowerForm.BLADE);var z=h.spawn(EntityType.ZOMBIE,3,2,5);z.setNoAi(true);
         ConsumeSystem.request(p);h.assertTrue(!p.getData(ModAttachments.CONSUMING),"healthy hostile rejected");
@@ -75,6 +90,35 @@ public final class OrdinaryConsumeGameTest {
         for(int y=2;y<5;y++)h.setBlock(3,y,5,net.minecraft.world.level.block.Blocks.STONE);
         tick(p);
         h.assertTrue(!p.getData(ModAttachments.CONSUMING)&&cow.isAlive()&&p.getHealth()==10,"wall interrupts, no remote reward");cow.discard();h.succeed();
+    }
+    @GameTest(template="wall_test", timeoutTicks=30)
+    public static void whipGrabsAtTwelveBlocksButNotBeyondAndReelsInBeforeConsuming(GameTestHelper h) {
+        var p=player(h,PowerForm.WHIPFIST);
+        // Use an elevated isolated lane so neighbouring template walls cannot
+        // accidentally make this a line-of-sight test instead of a range test.
+        p.setPos(p.position().add(0,20,0));
+        // World terrain can still cross this elevated lane. Explicitly clear
+        // the small test corridor; obstruction behaviour has its own test.
+        for(int x=-1;x<=1;x++)for(int y=0;y<=3;y++)for(int z=-1;z<=14;z++)
+            h.getLevel().setBlockAndUpdate(p.blockPosition().offset(x,y,z),net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+        var cow=EntityType.COW.create(h.getLevel());cow.setNoAi(true);
+        cow.setPos(p.position().add(0,0,12.25));h.getLevel().addFreshEntity(cow);
+        ConsumeSystem.request(p);
+        h.assertTrue(!p.getData(ModAttachments.CONSUMING),"beyond twelve blocks must be rejected");
+        cow.setPos(p.position().add(0,0,12));ConsumeSystem.request(p);
+        h.assertTrue(p.getData(ModAttachments.CONSUMING),"twelve-block target must be captured; ground="+p.onGround()
+                +" distance="+p.distanceToSqr(cow)+" eligible="+ConsumeSystem.eligible(cow)
+                +" dot="+p.getLookAngle().dot(cow.getBoundingBox().getCenter().subtract(p.getEyePosition()).normalize())
+                +" query="+p.serverLevel().getEntitiesOfClass(Mob.class,p.getBoundingBox().inflate(12)).size()
+                +" ray="+p.level().clip(new net.minecraft.world.level.ClipContext(p.getEyePosition(),cow.getEyePosition(),
+                net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,p)).getType());
+        var before=cow.position();for(int i=0;i<13;i++)tick(p);
+        h.assertTrue(cow.position().distanceToSqr(before)<.0001,"long-range target waits for whip contact");
+        for(int i=13;i<36;i++)tick(p);
+        h.assertTrue(ConsumeSystem.holding(p)&&p.distanceToSqr(cow)<2,"reel-in must finish inside the capture animation");
+        ConsumeSystem.consume(p);for(int i=0;i<38;i++)tick(p);
+        h.assertTrue(cow.isRemoved()&&p.getHealth()>10,"long-range capture can then be consumed at hand");
+        h.succeed();
     }
     @GameTest(template="wall_test", timeoutTicks=30)
     public static void petsConstructsAndMountedAnimalsAreExcluded(GameTestHelper h) {

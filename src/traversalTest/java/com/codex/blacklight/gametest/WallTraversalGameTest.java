@@ -39,7 +39,8 @@ public final class WallTraversalGameTest {
         helper.assertTrue(player.getY()<stoppedY && player.getX()<x,"S/D must climb down and right on wall");
         helper.assertTrue(wall.mode()==WallTraversal.Mode.CLIMB,"ordinary wall movement must climb");
         double beforeJump=player.getY(),gap=player.getZ();
-        for(int i=0;i<8;i++) step(helper,player,wall,new WallTraversal.Input(1,0,true,true,false));
+        step(helper,player,wall,new WallTraversal.Input(1,0,true,true,false));
+        for(int i=0;i<8;i++) step(helper,player,wall,RUN);
         helper.assertTrue(player.getY()>beforeJump+5,"wall leap must gain height");
         helper.assertTrue(Math.abs(player.getZ()-gap)<.02,"wall leap must stay against wall");
         step(helper,player,wall,RUN);

@@ -1,4 +1,4 @@
-"""Author original unarmed, hammerfist, blade and whipfist consume animations."""
+"""Author a close-contact claw consume: left restraint, right puncture, spread, biomass recoil."""
 import bpy,ast,math,json,sys,importlib.util
 from pathlib import Path
 from mathutils import Matrix,Vector

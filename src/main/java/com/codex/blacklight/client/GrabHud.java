@@ -18,8 +18,8 @@ public final class GrabHud {
         var mc=Minecraft.getInstance();
         if(mc.player==null||mc.screen!=null||mc.options.hideGui)return;
         int stage=mc.player.getData(ModAttachments.GRAB_STAGE);
-        if(stage!=ConsumeVisual.HOLD)return;
-        event.getGuiGraphics().drawCenteredString(mc.font,Component.translatable("message.blacklight.grab_held"),
+        if(!ConsumeVisual.holding(stage))return;
+        event.getGuiGraphics().drawCenteredString(mc.font,Component.translatable(stage==ConsumeVisual.MOUNT_HOLD?"message.blacklight.grab_mounted":"message.blacklight.grab_held"),
                 mc.getWindow().getGuiScaledWidth()/2,mc.getWindow().getGuiScaledHeight()/2+42,0xffe5ddd7);
     }
 }

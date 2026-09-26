@@ -21,6 +21,7 @@ public abstract class LivingConsumePoseMixin {
     }
     @Inject(method="render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",at=@At("RETURN"))
     private void blacklight$restore(LivingEntity entity,float yaw,float partial,PoseStack stack,MultiBufferSource buffer,int light,CallbackInfo ci) {
+        com.codex.blacklight.client.renderer.InfectedMorphology.flush(entity,buffer);
         ConsumeVictimPose.restore(model);
     }
 }

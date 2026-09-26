@@ -32,6 +32,11 @@ public final class ModAttachments {
             "movement_state",
             () -> AttachmentType.builder(MovementState::new).build());
 
+    /** Short-lived glide visual lease; expires on interruption, logout or dimension change. */
+    public static final Supplier<AttachmentType<Long>> GLIDE_UNTIL = ATTACHMENTS.register(
+            "glide_until", () -> AttachmentType.builder(() -> -1L)
+                    .sync(net.minecraft.network.codec.ByteBufCodecs.VAR_LONG).build());
+
     /** Server game time of infection onset; -1 denotes a pre-existing infection. */
     public static final Supplier<AttachmentType<Long>> INFECTION_START = ATTACHMENTS.register(
             "infection_start", () -> AttachmentType.builder(() -> -1L)
@@ -47,8 +52,22 @@ public final class ModAttachments {
             "grab_stage", () -> AttachmentType.builder(() -> 0)
                     .sync(net.minecraft.network.codec.ByteBufCodecs.VAR_INT).build());
 
+    public static final Supplier<AttachmentType<com.codex.blacklight.combat.WeaponVisual>> WEAPON_VISUAL=ATTACHMENTS.register(
+            "weapon_visual",()->AttachmentType.builder(()->com.codex.blacklight.combat.WeaponVisual.EMPTY).sync(com.codex.blacklight.combat.WeaponVisual.CODEC).build());
+
+    public static final Supplier<AttachmentType<com.codex.blacklight.state.GrowthProgress>> GROWTH=ATTACHMENTS.register(
+            "growth",()->AttachmentType.builder(()->com.codex.blacklight.state.GrowthProgress.EMPTY).serialize(com.codex.blacklight.state.GrowthProgress.CODEC).copyOnDeath().sync(com.codex.blacklight.state.GrowthProgress.STREAM_CODEC).build());
     private ModAttachments() {
     }
+    public static final Supplier<AttachmentType<Integer>> JUMP_CHARGE=ATTACHMENTS.register("jump_charge",
+            ()->AttachmentType.builder(()->0).sync(net.minecraft.network.codec.ByteBufCodecs.VAR_INT).build());
+    public static final Supplier<AttachmentType<com.codex.blacklight.combat.HitReaction>> HIT_REACTION=ATTACHMENTS.register("hit_reaction",
+            ()->AttachmentType.builder(()->com.codex.blacklight.combat.HitReaction.EMPTY).sync(com.codex.blacklight.combat.HitReaction.CODEC).build());
+    public static final Supplier<AttachmentType<Integer>> UTILITY_POWERS=ATTACHMENTS.register("utility_powers",()->AttachmentType.builder(()->0).sync(net.minecraft.network.codec.ByteBufCodecs.VAR_INT).build());
+
+    public static final Supplier<AttachmentType<com.codex.blacklight.combat.ConsumeVisual>> CONSUME_RECOVERY = ATTACHMENTS.register(
+            "consume_recovery", () -> AttachmentType.builder(() -> com.codex.blacklight.combat.ConsumeVisual.EMPTY)
+                    .sync(com.codex.blacklight.combat.ConsumeVisual.CODEC).build());
 
     public static final Supplier<AttachmentType<com.codex.blacklight.combat.ConsumeVisual>> CONSUME_VISUAL = ATTACHMENTS.register(
             "consume_visual", () -> AttachmentType.builder(() -> com.codex.blacklight.combat.ConsumeVisual.EMPTY)

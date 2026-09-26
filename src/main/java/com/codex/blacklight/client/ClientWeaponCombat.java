@@ -1,0 +1,71 @@
+package com.codex.blacklight.client;
+
+import com.codex.blacklight.combat.WeaponMove;
+import com.codex.blacklight.registry.ModAttachments;
+import com.codex.blacklight.network.*;
+import com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations;
+import net.minecraft.client.Minecraft;
+import net.neoforged.neoforge.network.PacketDistributor;
+import org.lwjgl.glfw.GLFW;
+import yesman.epicfight.world.capabilities.EpicFightCapabilities;
+import yesman.epicfight.client.world.capabilites.entitypatch.player.AbstractClientPlayerPatch;
+
+public final class ClientWeaponCombat {
+    private static boolean left,right,action,jump,controlling;
+    private static boolean requireLeftRelease,requireRightRelease;
+    private static int sentAt;
+    private static com.codex.blacklight.power.PowerForm inputForm;
+    private ClientWeaponCombat(){}
+    public static boolean active(){
+        var mc=Minecraft.getInstance();if(mc.player==null||mc.screen!=null)return false;
+        var state=mc.player.getData(ModAttachments.PLAYER_STATE);
+        return state.isPrototypeMode()&&state.isInfected()&&WeaponMove.controls(state.getActivePower(),mc.player.getMainHandItem().isEmpty()&&mc.player.getOffhandItem().isEmpty())&&!mc.player.getData(ModAttachments.CONSUMING);
+    }
+    public static void poll(){
+        var mc=Minecraft.getInstance();if(mc.getWindow()==null)return;
+        long window=mc.getWindow().getWindow();
+        boolean l=GLFW.glfwGetMouseButton(window,0)==GLFW.GLFW_PRESS,r=GLFW.glfwGetMouseButton(window,1)==GLFW.GLFW_PRESS;
+        boolean a=ClientClawEvents.physicalGrabDown(),j=mc.options.keyJump.isDown();
+        // Match vanilla's controlled-camera input boundary; background/cinematic views
+        // must not turn unrelated mouse clicks into attacks on the player entity.
+        if(!mc.isWindowActive()||mc.getCameraEntity()!=mc.player||!active()){
+            if(controlling&&mc.getConnection()!=null)PacketDistributor.sendToServer(new WeaponInputPayload(false,false,true));
+            controlling=false;left=l;right=r;action=a;jump=j;requireLeftRelease=l;requireRightRelease=r;return;
+        }
+        if(active()){
+            var form=mc.player.getData(ModAttachments.PLAYER_STATE).getActivePower();
+            if(inputForm!=null&&inputForm!=form){
+                PacketDistributor.sendToServer(new WeaponInputPayload(false,false,true));
+                requireLeftRelease=l;requireRightRelease=r;
+            }
+            inputForm=form;
+            if(!l)requireLeftRelease=false;if(!r)requireRightRelease=false;
+            if(r&&!right&&!requireRightRelease)prepareSpecialMovement();
+            if(l!=left||r!=right||a!=action||j!=jump||mc.player.tickCount-sentAt>=10){
+                if(l&&!left&&!requireLeftRelease||r&&!right&&!requireRightRelease)
+                    ClientMovementEvents.sendAttackDirection(mc);
+                PacketDistributor.sendToServer(new WeaponInputPayload(l&&!requireLeftRelease,r&&!requireRightRelease,a,j,false));sentAt=mc.player.tickCount;
+            }
+            controlling=true;
+            mc.options.keyAttack.setDown(false);mc.options.keyUse.setDown(false);
+        }
+        left=l;right=r;action=a;jump=j;
+    }
+    /** Predict only the grounded blade start; the server still selects and owns the action. */
+    static boolean prepareSpecialMovement(){
+        var mc=Minecraft.getInstance();
+        if(!active()||!mc.player.isAlive()||mc.player.isSpectator()||mc.player.isPassenger()
+                ||!mc.player.onGround()||!mc.player.getData(ModAttachments.PLAYER_STATE).isInfected()
+                ||mc.player.getData(ModAttachments.PLAYER_STATE).getActivePower()!=com.codex.blacklight.power.PowerForm.BLADE
+                ||mc.player.getData(ModAttachments.WEAPON_VISUAL).spec()!=null
+                ||mc.player.getData(ModAttachments.CLAW_COMBAT).action()!=com.codex.blacklight.combat.ClawCombatState.Action.IDLE
+                ||ClientMovementEvents.isChargingJump()||ClientMovementEvents.isWallRunning())return false;
+        return ClientMovementEvents.prepareGroundedWeaponMovement(mc);
+    }
+    public static void animate(WeaponAnimationPayload payload){
+        var mc=Minecraft.getInstance();var move=WeaponMove.byId(payload.move());if(mc.player==null||move==null)return;
+        var patch=EpicFightCapabilities.getEntityPatch(mc.player,AbstractClientPlayerPatch.class);
+        var animation=payload.charging()?BlacklightEpicFightAnimations.weaponCharge(move):BlacklightEpicFightAnimations.weapon(move);
+        if(patch!=null&&animation!=null&&(payload.clipOffset()>0||!patch.getAnimator().isPlaying(animation)))patch.getAnimator().playAnimation(animation,-payload.clipOffset());
+    }
+}

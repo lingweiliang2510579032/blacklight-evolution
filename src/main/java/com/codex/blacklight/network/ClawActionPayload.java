@@ -32,7 +32,8 @@ public record ClawActionPayload(Action action) implements CustomPacketPayload {
         CONSUME(7),
         CYCLE_FORM(8),
         GRAB(9),
-        THROW(10);
+        THROW(10),
+        WEAPON_SPECIAL(11);
 
         private final int id;
 
@@ -56,6 +57,7 @@ public record ClawActionPayload(Action action) implements CustomPacketPayload {
                 case 8 -> CYCLE_FORM;
                 case 9 -> GRAB;
                 case 10 -> THROW;
+                case 11 -> WEAPON_SPECIAL;
                 default -> {
                     // Unknown ids fall back to the least powerful action so a corrupt
                     // or malicious packet cannot silently map to a stronger one.

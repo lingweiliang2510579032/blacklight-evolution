@@ -55,6 +55,19 @@
     "minecraft:silverfish",
     "minecraft:endermite",
     "minecraft:creeper",
-    "blacklight:blacklight_hunter"
+    "blacklight:blacklight_hunter",
+    "blacklight:blacklight_stalker",
+    "blacklight:blacklight_spitter",
+    "blacklight:blacklight_brute",
+    "blacklight:infected_host",
+    "minecraft:ravager",
+    "minecraft:warden",
+    "minecraft:guardian",
+    "minecraft:elder_guardian",
+    "minecraft:strider",
+    "minecraft:iron_golem",
+    "minecraft:snow_golem",
+    "minecraft:wither",
+    "minecraft:ender_dragon"
   ]
 }

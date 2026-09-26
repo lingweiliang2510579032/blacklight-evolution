@@ -21,18 +21,34 @@ import java.util.*;
 @EventBusSubscriber(modid=BlacklightNeoMod.MOD_ID,value=Dist.CLIENT)
 public final class WhipTetherRenderer {
     private static final Map<Integer,Vec3> HANDS=new HashMap<>();
+    private static final Map<Integer,Vec3> GRIPS=new HashMap<>();
     private static Vec3 camera=Vec3.ZERO;
     private WhipTetherRenderer() {}
     public static void capture(AbstractClientPlayer player,PoseStack handStack) {
         // The hook's authored local tip. This stack is the very same one used to draw the right forearm.
         // LevelRenderer puts view rotation in RenderSystem's global matrix. Entity stacks are already camera-relative world space.
-        var relative=handStack.last().pose().transformPosition(new Vector3f(.18F,.75F,0));
+        var relative=handStack.last().pose().transformPosition(new Vector3f(0,.30F,.05F));
         HANDS.put(player.getId(),new Vec3(relative.x,relative.y,relative.z).add(camera));
     }
     public static Vec3 capturedHand(int entityId) { return HANDS.get(entityId); }
+    public static boolean extended(AbstractClientPlayer player){
+        if(player.getData(ModAttachments.PLAYER_STATE).getActivePower()!=PowerForm.WHIPFIST)return false;
+        var visual=player.getData(ModAttachments.WEAPON_VISUAL);var move=visual.spec();
+        return move!=null&&move.form==PowerForm.WHIPFIST&&!visual.traveling()||player.getData(ModAttachments.GRAB_STAGE)!=0;
+    }
+    /** Actual rendered claw palm, also used by the opt-in contact acceptance harness. */
+    public static void captureGrip(AbstractClientPlayer player,PoseStack stack) {
+        var v=stack.last().pose().transformPosition(new Vector3f(.00267F,.32362F,.07666F));
+        GRIPS.put(player.getId(),new Vec3(v.x,v.y,v.z).add(camera));
+    }
+    public static void captureBlade(AbstractClientPlayer player,PoseStack stack) {
+        var v=stack.last().pose().transformPosition(new Vector3f(-.0636396F,.68F,-.0636396F));
+        GRIPS.put(player.getId(),new Vec3(v.x,v.y,v.z).add(camera));
+    }
+    public static Vec3 capturedGrip(int entityId) { return GRIPS.get(entityId); }
     @SubscribeEvent public static void render(RenderLevelStageEvent event) {
         if(event.getStage()==RenderLevelStageEvent.Stage.AFTER_SKY) {
-            HANDS.clear();camera=event.getCamera().getPosition();return;
+            HANDS.clear();GRIPS.clear();camera=event.getCamera().getPosition();return;
         }
         if(event.getStage()!=RenderLevelStageEvent.Stage.AFTER_ENTITIES)return;
         var mc=Minecraft.getInstance();if(mc.level==null)return;
@@ -44,12 +60,14 @@ public final class WhipTetherRenderer {
             var data=mob.getData(ModAttachments.CONSUME_VISUAL);
             if(!data.active()||data.form()!=PowerForm.WHIPFIST.ordinal())continue;
             var owner=mc.level.getEntity(data.consumerId());if(owner==null)continue;
-            float t=ConsumedMobVisuals.tetherProgress(mob,partial);if(t<.075F||t>.8F)continue;
+            float t=ConsumedMobVisuals.tetherProgress(mob,partial);if(t<.075F||t>.9F)continue;
             Vec3 delta=mob.getPosition(partial).subtract(owner.getPosition(partial));
             // First person / culled owner has no rendered body joint. Keep a local wrist fallback in that case.
             Vec3 right=new Vec3(-delta.z,0,delta.x).normalize().scale(.38);
             Vec3 hand=HANDS.getOrDefault(owner.getId(),owner.getPosition(partial).add(right).add(0,1.05,0));
-            Vec3 body=mob.getPosition(partial).add(ConsumeVictimPose.point(mob,new Vec3(0,mob.getBbHeight()*.55,0),partial));
+            Vec3 placement=com.codex.blacklight.client.ClientCarryPlacement.consumeOffset(mob,partial);
+            double wrapRadius=mob.getBbWidth()*.58*(1-Math.clamp((t-.85)/.05,0,1));
+            Vec3 body=mob.getPosition(partial).add(placement).add(ConsumeVictimPose.effectPoint(mob,new Vec3(wrapRadius,mob.getBbHeight()*.22,0),partial));
             float reach=Math.clamp((t-.075F)/.11F,0,1);
             Vec3 end=hand.lerp(body,reach);
             Vec3 side=new Vec3(-delta.z,0,delta.x).normalize();
@@ -57,11 +75,10 @@ public final class WhipTetherRenderer {
             Vec3 control=hand.lerp(end,.45).add(side.scale(sweep)).add(0,.28*(1-reach)-.12,0);
             stack.pushPose();stack.translate(hand.x-camera.x,hand.y-camera.y,hand.z-camera.z);
             int light=mc.getEntityRenderDispatcher().getPackedLightCoords(mob,partial);
-            for(int i=0;i<32;i++) {
-                double a=i/32.0,b=(i+1)/32.0;
-                Vec3 p=bezier(hand,control,end,a).subtract(hand),q=bezier(hand,control,end,b).subtract(hand);
-                ConsumedMobVisuals.tube(stack,out,light,p,q,.052*Math.min(1,(.8-t)*10),i%6==0?0xff83382d:0xff30282a);
-            }
+            var points=new ArrayList<Vec3>();
+            for(int i=0;i<=32;i++)points.add(bezier(hand,control,end,i/32.0).subtract(hand));
+            // The cutting tip stays outside the wrapped body, never a spear through its center.
+            WhipArmSurface.render(stack,out,light,points,.115,false);
             stack.popPose();
         }
         buffers.endBatch(type);

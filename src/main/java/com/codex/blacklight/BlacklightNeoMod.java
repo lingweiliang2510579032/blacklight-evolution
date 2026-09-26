@@ -30,15 +30,22 @@ public final class BlacklightNeoMod {
         ModEntities.register(modBus);
         ModEffects.register(modBus);
         ModItems.register(modBus);
+        com.codex.blacklight.registry.ModBlocks.register(modBus);
+        com.codex.blacklight.registry.ModWorldgen.register(modBus);
         ModParticles.register(modBus);
         modBus.addListener(ModNetwork::register);
         NeoForge.EVENT_BUS.register(BlacklightCommands.class);
         NeoForge.EVENT_BUS.register(ClawCombatSystem.class);
+        NeoForge.EVENT_BUS.register(com.codex.blacklight.power.GrowthSystem.class);
+        NeoForge.EVENT_BUS.register(com.codex.blacklight.power.UtilityPowerSystem.class);
+        NeoForge.EVENT_BUS.register(com.codex.blacklight.combat.WeaponCombatSystem.class);
         NeoForge.EVENT_BUS.register(PrototypeMovementSystem.class);
         NeoForge.EVENT_BUS.register(LandingDebrisSystem.class);
         NeoForge.EVENT_BUS.register(PrototypeSurvivalLock.class);
         NeoForge.EVENT_BUS.register(PrototypeModeSystem.class);
         NeoForge.EVENT_BUS.register(BlacklightInfectionSystem.class);
+        NeoForge.EVENT_BUS.register(com.codex.blacklight.world.ResearchStationTrades.class);
+        NeoForge.EVENT_BUS.register(com.codex.blacklight.world.SurvivalGuide.class);
         NeoForge.EVENT_BUS.register(com.codex.blacklight.combat.ConsumeSystem.class);
         NeoForge.EVENT_BUS.register(ModNetwork.class);
         if (net.neoforged.fml.ModList.get().isLoaded("parcool")) {

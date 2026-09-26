@@ -24,6 +24,7 @@ public final class PrototypeModeSystem {
         }
         if (state.isPrototypeMode() == enabled) return;
 
+        com.codex.blacklight.combat.WeaponCombatSystem.cancel(player);
         state.setPrototypeMode(enabled);
         player.setData(ModAttachments.PLAYER_STATE, state);
         player.syncData(ModAttachments.PLAYER_STATE);

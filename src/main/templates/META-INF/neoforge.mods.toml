@@ -123,3 +123,11 @@ config="${mod_id}.mixins.json"
     versionRange="[21.0.0,21.1)"
     ordering="AFTER"
     side="BOTH"
+
+# Optional motion provider; assets remain in the separately installed dependency.
+[[dependencies.${mod_id}]]
+    modId="wom"
+    type="optional"
+    versionRange="[2.0.178,2.1)"
+    ordering="AFTER"
+    side="BOTH"

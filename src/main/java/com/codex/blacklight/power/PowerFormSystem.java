@@ -7,9 +7,10 @@ import net.minecraft.server.level.ServerPlayer;
 
 /** Selection is server-authoritative; unavailable and busy forms cannot be selected by packets. */
 public final class PowerFormSystem {
-    private static final PowerForm[] FORMS = {PowerForm.NONE, PowerForm.CLAWS, PowerForm.HAMMERFISTS, PowerForm.BLADE, PowerForm.WHIPFIST};
+    private static final PowerForm[] FORMS = {PowerForm.NONE, PowerForm.CLAWS, PowerForm.HAMMERFISTS, PowerForm.BLADE, PowerForm.WHIPFIST,PowerForm.MUSCLE_MASS};
     private PowerFormSystem() {}
     public static boolean supported(PowerForm form) {
+        if(UtilityPowerSystem.supported(form))return true;
         for (var candidate : FORMS) if (form == candidate) return true;
         return false;
     }
@@ -17,12 +18,23 @@ public final class PowerFormSystem {
         var state = player.getData(ModAttachments.PLAYER_STATE);
         var combat = player.getData(ModAttachments.CLAW_COMBAT);
         if (!state.isInfected() || !state.isPrototypeMode() || player.getData(ModAttachments.CONSUMING)
-                || combat.action() != ClawCombatState.Action.IDLE || !supported(form) || !combat.canToggleTransform(player.tickCount)) return false;
+                || !supported(form)) return false;
+        // Stowing a weapon must take effect even during its action. Previously the
+        // wheel closed while this request silently failed, leaving claws active.
+        if (form == PowerForm.NONE) {
+            com.codex.blacklight.combat.WeaponCombatSystem.cancel(player);
+            com.codex.blacklight.combat.WeaponCombatSystem.cancelHeldInput(player);
+            combat.reset();
+        } else if (combat.action() != ClawCombatState.Action.IDLE || !combat.canToggleTransform(player.tickCount)) {
+            player.displayClientMessage(Component.literal("当前动作尚未结束，能力未切换；选择无能力可收起武器。"), true);
+            return false;
+        }
         if (form != PowerForm.NONE && !state.hasUnlocked(form) && !(purchase && state.buy(form))) {
             player.displayClientMessage(Component.translatable("message.blacklight.form_locked", Component.translatable("power.blacklight." + form.id()), form.epCost()), true);
             return false;
         }
-        if (!state.activate(form)) return false;
+        if(UtilityPowerSystem.supported(form))UtilityPowerSystem.toggle(player,form);
+        else if (!state.activate(form)) return false;
         combat.markTransformToggled(player.tickCount);
         player.setData(ModAttachments.PLAYER_STATE, state); player.syncData(ModAttachments.PLAYER_STATE);
         player.displayClientMessage(Component.translatable("message.blacklight.form_selected", Component.translatable("power.blacklight." + form.id())), true);

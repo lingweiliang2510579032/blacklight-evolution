@@ -71,6 +71,11 @@ public final class ClientClawMotionEvents {
         // animation can be its zero-duration EMPTY clip at that point; transitioning
         // away from it makes ConcurrentLinkAnimation calculate NaN and spin forever in
         // AnimationClip's binary search, leaving the client on "Loading terrain".
+        var base=animator.getPlayerFor(BlacklightEpicFightAnimations.CLAW_IDLE);
+        if(player.tickCount>20&&base!=null&&base.getRealAnimation()!=null
+                &&base.getRealAnimation().get().getTotalTime()>0){
+            installIfChanged(animator,motions,LivingMotions.IDLE,BlacklightEpicFightAnimations.CLAW_IDLE);
+        }
         installIfChanged(animator, motions, LivingMotions.WALK,
                 BlacklightEpicFightAnimations.CLAW_WALK);
         installIfChanged(animator, motions, LivingMotions.RUN,
@@ -78,7 +83,11 @@ public final class ClientClawMotionEvents {
         installIfChanged(animator, motions, LivingMotions.KNEEL,
                 BlacklightEpicFightAnimations.CHARGED_JUMP);
         installIfChanged(animator, motions, LivingMotions.JUMP,
-                BlacklightEpicFightAnimations.JUMP_RISE);
+                switch(ClientWallMotion.modeFor(player)){
+                    case MANTLE -> BlacklightEpicFightAnimations.WALL_MANTLE;
+                    case VAULT -> BlacklightEpicFightAnimations.WALL_VAULT;
+                    default -> BlacklightEpicFightAnimations.JUMP_RISE;
+                });
         installIfChanged(animator, motions, LivingMotions.FALL,
                 BlacklightEpicFightAnimations.JUMP_FALL);
         installIfChanged(animator, motions, LivingMotions.CLIMB,
@@ -86,6 +95,8 @@ public final class ClientClawMotionEvents {
                     case RUN -> BlacklightEpicFightAnimations.WALL_RUN;
                     case CLING -> BlacklightEpicFightAnimations.WALL_CLING;
                     case LEAP -> BlacklightEpicFightAnimations.WALL_LEAP;
+                    case MANTLE -> BlacklightEpicFightAnimations.WALL_MANTLE;
+                    case VAULT -> BlacklightEpicFightAnimations.WALL_VAULT;
                     default -> BlacklightEpicFightAnimations.WALL_CLIMB;
                 });
         installIfChanged(animator, motions, LivingMotions.FLY,

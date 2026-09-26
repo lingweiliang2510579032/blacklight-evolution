@@ -26,6 +26,56 @@ public final class GrabInteractionGameTest {
     }
     private static void tick(ServerPlayer p,int count) {for(int i=0;i<count;i++){p.tickCount++;ConsumeSystem.tick(new PlayerTickEvent.Post(p));}}
     @GameTest(template="wall_test",timeoutTicks=30)
+    public static void bladeImpalesWithRightArmThenConsumesWithoutDroppingVictim(GameTestHelper h) {
+        for(var type:new EntityType<?>[]{EntityType.CHICKEN,EntityType.COW}) {
+            var p=player(h);var state=p.getData(ModAttachments.PLAYER_STATE);
+            state.unlock(PowerForm.BLADE);state.activate(PowerForm.BLADE);
+            var mob=(net.minecraft.world.entity.Mob)h.spawn(type,3,2,5);mob.setNoAi(true);
+            var before=mob.position();ConsumeSystem.request(p);tick(p,5);
+            h.assertTrue(mob.position().distanceToSqr(before)<.0001,"wind-up must not drag the victim before blade contact");
+            tick(p,15);h.assertTrue(ConsumeSystem.holding(p),"blade capture reaches a decision hold");
+            for(float yaw:new float[]{0,90,180,270})for(float pitch:new float[]{-60,0,60}) {
+                p.setYRot(yaw);p.setXRot(pitch);tick(p,5);
+                var expected=GrabPlacement.bladeAnchor(p.position(),yaw,pitch,mob.getBbHeight(),0);
+                h.assertTrue(mob.position().distanceTo(expected)<.03,"right blade body anchor follows view");
+            }
+            p.setXRot(0);tick(p,5);ConsumeSystem.consume(p);tick(p,24);
+            var expected=GrabPlacement.bladeAnchor(p.position(),p.getYRot(),0,mob.getBbHeight(),.5F);
+            h.assertTrue(mob.isAlive()&&mob.position().distanceTo(expected)<.03,"consuming body stays impaled instead of falling to the ground");
+            tick(p,24);h.assertTrue(mob.isRemoved()&&p.getHealth()>10&&!p.getData(ModAttachments.CONSUMING),"blade consumes once and unlocks");
+        }
+        h.succeed();
+    }
+    @GameTest(template="wall_test",timeoutTicks=30)
+    public static void bladeThrowReleasesOnRightArmSwingWithoutConsumeRewards(GameTestHelper h) {
+        var p=player(h);var state=p.getData(ModAttachments.PLAYER_STATE);
+        state.unlock(PowerForm.BLADE);state.activate(PowerForm.BLADE);
+        var cow=h.spawn(EntityType.COW,3,2,5);cow.setNoAi(true);
+        ConsumeSystem.request(p);tick(p,20);ConsumeSystem.throwTarget(p);tick(p,5);
+        h.assertTrue(cow.getData(ModAttachments.CONSUME_VISUAL).stage()==ConsumeVisual.THROW,"retain body before release");
+        tick(p,1);h.assertTrue(cow.getData(ModAttachments.CONSUME_VISUAL).stage()==ConsumeVisual.FLIGHT&&p.getHealth()==10&&state.getEvolutionPoints()==0,"blade throw releases without reward");
+        cow.discard();h.succeed();
+    }
+    @GameTest(template="wall_test",timeoutTicks=30)
+    public static void smallVictimsStayAtPalmHeightAndFollowTurns(GameTestHelper h) {
+        for(boolean baby:new boolean[]{false,true}) {
+            var p=player(h);var chicken=h.spawn(EntityType.CHICKEN,3,2,5);chicken.setBaby(baby);chicken.setNoAi(true);
+            ConsumeSystem.request(p);tick(p,12);
+            h.assertTrue(ConsumeSystem.holding(p),"chicken must be held");
+            h.assertTrue(Math.abs(chicken.getY()+chicken.getBbHeight()*.6-p.getY()-GrabPlacement.HEIGHT)<.02,
+                    "small bodies meet palm height instead of hovering below it");
+            for(float yaw:new float[]{90,180,270,0}) for(float pitch:new float[]{75,-75,0}) {
+                p.setYRot(yaw);p.setXRot(pitch);tick(p,5);
+                var forward=net.minecraft.world.phys.Vec3.directionFromRotation(0,yaw);
+                var contact=chicken.position().add(0,chicken.getBbHeight()*.6,0).subtract(forward.scale(chicken.getBbWidth()*.4));
+                var hand=GrabPlacement.palm(p.position(),yaw,p.getXRot());
+                h.assertTrue(contact.distanceTo(hand)<.03&&ConsumeSystem.holding(p),"turning, looking up or down must not detach the held chicken");
+            }
+            ConsumeSystem.cancel(p);chicken.discard();
+        }
+        h.succeed();
+    }
+    @GameTest(template="wall_test",timeoutTicks=30)
     public static void consumeCannotGrabOrQueueWhileReaching(GameTestHelper h) {
         var p=player(h);var cow=h.spawn(EntityType.COW,3,2,5);cow.setNoAi(true);
         ClawCombatSystem.handle(p,Action.CONSUME);
@@ -60,11 +110,13 @@ public final class GrabInteractionGameTest {
     public static void heldTargetFollowsWalkingAndTurning(GameTestHelper h) {
         var p=player(h);var cow=h.spawn(EntityType.COW,3,2,5);cow.setNoAi(true);
         ClawCombatSystem.handle(p,Action.GRAB);tick(p,12);Vec3 before=cow.position();
-        for(int i=0;i<20;i++){p.setPos(p.position().add(.07,0,0));p.setYRot(i*4);tick(p,1);}
+        // Forward travel and a turn cannot cancel each other at the new left-palm pivot.
+        for(int i=0;i<20;i++){p.setPos(p.position().add(0,0,.07));p.setYRot(i*4);tick(p,1);}
         h.assertTrue(ConsumeSystem.holding(p),"turning while walking must preserve the held state");
         Vec3 forward=Vec3.directionFromRotation(0,p.getYRot());
-        Vec3 expected=p.position().add(forward.scale(1.05)).add(forward.z*.28,Math.clamp(1.3-cow.getBbHeight()*.72,0,.65),-forward.x*.28);
-        h.assertTrue(cow.position().distanceToSqr(expected)<.01&&cow.position().distanceToSqr(before)>.09,"held body follows the rotated hand anchor after 1.4 blocks of walking");ConsumeSystem.cancel(p);cow.discard();h.succeed();
+        Vec3 expected=GrabPlacement.anchor(p.position(),p.getYRot(),cow.getBbWidth(),cow.getBbHeight());
+        h.assertTrue(expected.distanceToSqr(before)>.01,"walking and turning must produce a different contact point");
+        h.assertTrue(cow.position().distanceToSqr(expected)<.0025,"held body follows the rotated palm after walking; gap="+cow.position().distanceTo(expected));ConsumeSystem.cancel(p);cow.discard();h.succeed();
     }
     @GameTest(template="wall_test",timeoutTicks=30)
     public static void heldClicksDoNotStartGroundspikeOrClawAttack(GameTestHelper h) {
@@ -73,6 +125,30 @@ public final class GrabInteractionGameTest {
         for(var action:new Action[]{Action.ATTACK,Action.GROUND_SPIKE_CHARGE_START,Action.CYCLE_FORM,Action.TOGGLE_CLAWS})ClawCombatSystem.handle(p,action);
         h.assertTrue(ConsumeSystem.holding(p)&&p.getData(ModAttachments.CLAW_COMBAT).action()==ClawCombatState.Action.IDLE,"held actions exclude combat and morph");
         ConsumeSystem.cancel(p);cow.discard();h.succeed();
+    }
+    @GameTest(template="wall_test",timeoutTicks=30)
+    public static void carryingCanSprintTurnAndThrowWithoutStoppingOrHittingVictim(GameTestHelper h) {
+        var p=MovingCombatGameTest.player(h,PowerForm.CLAWS);p.setPos(p.position().add(2,0,0));
+        var chicken=h.spawn(EntityType.CHICKEN,5,25,5);chicken.setNoAi(true);
+        ConsumeSystem.request(p);tick(p,12);float health=chicken.getHealth();
+        double traveled=0;
+        com.codex.blacklight.movement.PrototypeMovementSystem.acceptInput(p,false,false,1,0,true,false);
+        p.setDeltaMovement(0,0,.6);
+        for(int i=0;i<8;i++) {
+            // Stay inside the bounded test arena while covering a full running turn.
+            p.setYRot(i*45);p.setOnGround(true);p.setDeltaMovement(Vec3.directionFromRotation(0,p.getYRot()).scale(.6));
+            com.codex.blacklight.movement.PrototypeMovementSystem.onPlayerTick(new PlayerTickEvent.Post(p));
+            h.assertTrue(p.isSprinting()&&p.getDeltaMovement().horizontalDistance()>.45,"held state accepts actual sprint input and acceleration");
+            traveled+=p.getDeltaMovement().horizontalDistance();p.setPos(p.position().add(p.getDeltaMovement().multiply(1,0,1)));tick(p,1);
+            var anchor=GrabPlacement.anchor(p.position(),p.getYRot(),chicken.getBbWidth(),chicken.getBbHeight());
+            h.assertTrue(ConsumeSystem.holding(p)&&chicken.position().distanceTo(anchor)<.03,"sprinting and turning keeps victim at palm: step="+i+" held="+ConsumeSystem.holding(p)+" gap="+chicken.position().distanceTo(anchor)+" player="+p.position()+" target="+chicken.position()+" anchor="+anchor);
+        }
+        h.assertTrue(traveled>4&&chicken.getHealth()==health,"running neither drops nor body-checks the carried chicken");
+        p.setYRot(0);p.setDeltaMovement(0,0,.7);ConsumeSystem.throwTarget(p);
+        for(int i=0;i<6;i++){p.setPos(p.position().add(0,0,.7));tick(p,1);}
+        h.assertTrue(!p.getData(ModAttachments.CONSUMING)&&chicken.getData(ModAttachments.CONSUME_VISUAL).stage()==ConsumeVisual.FLIGHT,"throw releases while carrier is moving");
+        h.assertTrue(p.getDeltaMovement().z>.65&&chicken.getDeltaMovement().z>1.8,"throw preserves running speed and inherits carrier momentum");
+        chicken.discard();h.succeed();
     }
     @GameTest(template="wall_test",timeoutTicks=30)
     public static void leavingPrototypeModeReleasesHeldBody(GameTestHelper h) {

@@ -19,8 +19,9 @@ import java.io.File;
 /** Opt-in acceptance on a dedicated QA save, never a user's gameplay world. */
 @EventBusSubscriber(modid=BlacklightNeoMod.MOD_ID,value=Dist.CLIENT)
 public final class GrabInteractionPreview {
-    private static final PowerForm[] FORMS={PowerForm.NONE,PowerForm.CLAWS,PowerForm.HAMMERFISTS,PowerForm.BLADE,PowerForm.WHIPFIST,PowerForm.CLAWS,PowerForm.WHIPFIST};
-    private static final String[] NAMES={"normal_cow","claws_zombie","hammer_villager","blade_hunter","whip_pig","claws_throw","whip_throw"};
+    private static final PowerForm[] FORMS={PowerForm.NONE,PowerForm.CLAWS,PowerForm.HAMMERFISTS,PowerForm.BLADE,PowerForm.WHIPFIST,Boolean.getBoolean("blacklight.test.bladeThrow")?PowerForm.BLADE:PowerForm.CLAWS,PowerForm.WHIPFIST};
+    private static final String[] NAMES={"normal_cow","claws_zombie","hammer_villager","blade_hunter","whip_pig",Boolean.getBoolean("blacklight.test.bladeThrow")?"blade_throw":"claws_throw","whip_throw"};
+    private static double bladeGap; private static int bladeSamples;
     private static int ticks,scene; private static volatile int cameraId=-1,victimId=-1;
     private static boolean ready,done;private static String pending;
     private static int oldFov;private static boolean oldGui,oldPause,oldGuide;private static CameraType oldCamera;
@@ -52,8 +53,24 @@ public final class GrabInteractionPreview {
         if(mc.screen instanceof net.minecraft.client.gui.screens.PauseScreen)mc.setScreen(null);
         mc.player.setYRot(180);mc.player.yBodyRot=180;mc.player.yHeadRot=180;mc.player.setXRot(0);
         int index=scene/185,phase=scene%185;scene++;
+        if(index==3 && Boolean.getBoolean("blacklight.test.bladeStudy")) {
+            // Compare the actual attached mesh from three idle camera positions.
+            float studyYaw=90;
+            double studyX=26,studyZ=22;
+            if(phase>=23 && phase<26){studyX=24;studyZ=18;studyYaw=45;}
+            if(phase>=26 && phase<30){studyX=16;studyZ=26;studyYaw=225;}
+            camera.setPos(studyX,220.1,studyZ);
+            camera.xo=studyX;camera.yo=220.1;camera.zo=studyZ;
+            camera.setYRot(studyYaw);camera.yRotO=studyYaw;
+            camera.setYHeadRot(studyYaw);
+            if(camera instanceof LivingEntity e)e.yHeadRotO=studyYaw;
+        }
         if(index>=Integer.getInteger("blacklight.test.grabCases",FORMS.length)) {
             verifySharedModel(mc, output);
+            if(Boolean.getBoolean("blacklight.test.bladeStudy")) {
+                try { java.nio.file.Files.writeString(java.nio.file.Path.of(output,"blade-contact-check.json"),"{\"samples\":"+bladeSamples+",\"maxGap\":"+bladeGap+"}"); } catch(Exception e){throw new IllegalStateException(e);}
+                if(bladeSamples<30||bladeGap>.18)throw new IllegalStateException("Blade contact gap "+bladeGap+" samples "+bladeSamples);
+            }
             done=true;yesman.epicfight.config.ClientConfig.enableTargetEntityGuide=oldGuide;
             mc.setCameraEntity(mc.player);mc.options.fov().set(oldFov);mc.options.hideGui=oldGui;mc.options.setCameraType(oldCamera);mc.options.pauseOnLostFocus=oldPause;mc.stop();return;
         }
@@ -61,13 +78,13 @@ public final class GrabInteractionPreview {
         if(phase==0)server.execute(()->{
             var p=server.getPlayerList().getPlayer(uuid);ConsumeSystem.cancel(p);
             var prior=server.overworld().getEntity(victimId);if(prior!=null)prior.discard();
-            server.overworld().getEntity(cameraId).setPos(index>=5?34:27,220.1,index>=5?17:index==4?19.8:21);
+            server.overworld().getEntity(cameraId).setPos(index==4||index==6?38:index>=5?34:27,220.1,index==4||index==6?16:index>=5?17:21);
             p.teleportTo(20,220,22);p.setYRot(180);p.setXRot(0);p.setOnGround(true);p.setHealth(10);
             var state=p.getData(ModAttachments.PLAYER_STATE);state.cure();state.infect();state.setPrototypeMode(true);state.unlock(FORMS[index]);state.activate(FORMS[index]);
             p.setData(ModAttachments.PLAYER_STATE,state);p.syncData(ModAttachments.PLAYER_STATE);
             p.getData(ModAttachments.CLAW_COMBAT).reset();p.getData(ModAttachments.MOVEMENT_STATE).reset();
             EntityType<? extends Mob> type=switch(index){case 0->EntityType.COW;case 1->EntityType.ZOMBIE;case 2->EntityType.VILLAGER;case 3->ModEntities.BLACKLIGHT_HUNTER.get();case 5,6->EntityType.VILLAGER;default->EntityType.PIG;};
-            var mob=type.create(p.level());mob.moveTo(20,220,(index==4||index==6)?17:20,0,0);mob.setNoAi(true);mob.setPersistenceRequired();
+            var mob=type.create(p.level());mob.moveTo(20,220,(index==4||index==6)?10:20,0,0);mob.setNoAi(true);mob.setPersistenceRequired();
             if(index==1)mob.setHealth(4);if(index==3)mob.setHealth(12);
             p.serverLevel().addFreshEntity(mob);victimId=mob.getId();
         });
@@ -87,7 +104,7 @@ public final class GrabInteractionPreview {
                 index==5?com.codex.blacklight.network.ClawActionPayload.Action.THROW:com.codex.blacklight.network.ClawActionPayload.Action.GRAB));
         if(phase>=20&&phase<=169)pending=String.format("%s_%03d.png",NAMES[index],phase-20);
         if(phase==174)server.execute(()->{
-            var p=server.getPlayerList().getPlayer(uuid);var data=new com.google.gson.JsonObject();data.addProperty("case",NAMES[index]);
+            var p=server.getPlayerList().getPlayer(uuid);var data=new com.google.gson.JsonObject();data.addProperty("case",NAMES[index]);data.addProperty("grabDistance",index==4||index==6?12:2);
             data.addProperty("consumed",server.overworld().getEntity(victimId)==null);
             var victim=server.overworld().getEntity(victimId);
             data.addProperty("thrown",index>=5&&victim!=null&&!victim.getData(ModAttachments.CONSUME_VISUAL).active());
@@ -120,6 +137,21 @@ public final class GrabInteractionPreview {
         if(name.startsWith("whip_") && mc.player!=null) {
             var hand=com.codex.blacklight.client.renderer.WhipTetherRenderer.capturedHand(mc.player.getId());
             if(hand==null||hand.distanceToSqr(mc.player.position())>9)throw new IllegalStateException("Whip detached from rendered arm: "+hand);
+        }
+        if(Boolean.getBoolean("blacklight.test.bladeStudy")&&mc.player!=null&&mc.level!=null) {
+            var mob=mc.level.getEntity(victimId);
+            var contact=com.codex.blacklight.client.renderer.WhipTetherRenderer.capturedGrip(mc.player.getId());
+            if(mob instanceof LivingEntity living && contact!=null && scene%185>=55 && scene%185<140) {
+                float partial=mc.getTimer().getGameTimeDeltaPartialTick(false);
+                var delta=contact.subtract(living.getPosition(partial));
+                var inv=com.codex.blacklight.client.animation.ConsumeVictimPose.bodyTransform(living,partial).invert();
+                var local=inv.transformPosition(new org.joml.Vector3f((float)delta.x,(float)delta.y,(float)delta.z));
+                double radius=mob.getBbWidth()*.5;
+                double dx=Math.max(0,Math.abs(local.x)-radius),dz=Math.max(0,Math.abs(local.z)-radius),dy=Math.max(0,Math.max(-local.y,local.y-mob.getBbHeight()));
+                double gap=Math.sqrt(dx*dx+dy*dy+dz*dz);
+                if(!Double.isFinite(gap))throw new IllegalStateException("Non-finite blade contact");
+                bladeGap=Math.max(bladeGap,gap);bladeSamples++;
+            }
         }
         Screenshot.grab(new File(System.getProperty("blacklight.test.grabPreview")),name,mc.getMainRenderTarget(),m->{});
     }

@@ -6,16 +6,31 @@ import software.bernie.geckolib.model.GeoModel;
 
 public final class BlacklightHunterModel extends GeoModel<BlacklightHunter> {
     private static ResourceLocation resource(String path) { return ResourceLocation.fromNamespaceAndPath("blacklight", path); }
-    @Override public ResourceLocation getModelResource(BlacklightHunter entity) { return resource("geo/blacklight_hunter.geo.json"); }
-    @Override public ResourceLocation getTextureResource(BlacklightHunter entity) { return resource("textures/entity/claw_biomass.png"); }
+    @Override public ResourceLocation getModelResource(BlacklightHunter entity) { return resource("geo/blacklight_hunter_authored.geo.json"); }
+    @Override public ResourceLocation getTextureResource(BlacklightHunter entity) { return resource("textures/entity/hunter_authored.png"); }
     @Override public ResourceLocation getAnimationResource(BlacklightHunter entity) { return resource("animations/blacklight_hunter.animation.json"); }
 
     @Override public void setCustomAnimations(BlacklightHunter entity, long instanceId,
             software.bernie.geckolib.animation.AnimationState<BlacklightHunter> state) {
         super.setCustomAnimations(entity, instanceId, state);
+        com.codex.blacklight.client.animation.NativeReceiverPose.resetRoot(this);
         var visual = entity.getData(com.codex.blacklight.registry.ModAttachments.CONSUME_VISUAL);
         float t = visual.active() ? visual.progress(entity.level().getGameTime(), state.getPartialTick()) : 0;
-        if (visual.active()) {
+        var hit=entity.getData(com.codex.blacklight.registry.ModAttachments.HIT_REACTION);
+        float hitWeight=hit.weight(entity.level().getGameTime(),state.getPartialTick());
+        boolean sourcePose=com.codex.blacklight.client.animation.NativeReceiverPose.apply(this,entity,state.getPartialTick());
+        if(!sourcePose&&!visual.active()&&hitWeight>0){
+            applyReaction("head",-.3F*hitWeight,0,.08F*hitWeight);
+            applyReaction("torso",-.15F*hitWeight,0,0);
+            for(String side:new String[]{"right","left"}){
+                float sign=side.equals("right")?1:-1;
+                applyReaction(side+"_arm",-.5F*hitWeight,0,sign*.25F*hitWeight);
+                applyReaction(side+"_forearm",-.8F*hitWeight,0,0);
+                applyReaction(side+"_thigh",-.4F*hitWeight,0,sign*.12F*hitWeight);
+                applyReaction(side+"_shin",.6F*hitWeight,0,0);
+            }
+        }
+        if (!sourcePose&&visual.active() && !com.codex.blacklight.client.animation.NativeGeckoConsume.apply(this,entity,state.getPartialTick())) {
             var reaction = com.codex.blacklight.client.animation.ConsumeVictimPose.reaction(entity, state.getPartialTick());
             applyReaction("torso", reaction.bend()*.55F, reaction.twist(), 0);
             applyReaction("head", -reaction.head()*.65F, -reaction.twist(), reaction.twist()*.4F);
@@ -27,19 +42,26 @@ public final class BlacklightHunterModel extends GeoModel<BlacklightHunter> {
                 applyReaction(side+"_shin", reaction.kick()*.95F, 0, 0);
             }
         }
-        // Finish converting the remaining trunk into the tendril mass before recovery;
-        // parent scaling must not leave a miniature or needle-shaped whole creature.
+        // Preserve the receiver's full skeletal action; old timed bone shrinkage
+        // erased the forearms/head while the source was still reacting.
         var root = getAnimationProcessor().getBone("root");
-        if (root != null) { root.setHidden(t >= .73F); root.setChildrenHidden(t >= .73F); }
+        if (root != null) { root.setHidden(t >= .995F); root.setChildrenHidden(t >= .995F); }
         String[] names = {"right_forearm","left_forearm","right_shin","left_shin","head",
-                "right_arm","left_arm","right_thigh","left_thigh","torso","hips"};
-        float[] starts = {.36F,.4F,.44F,.46F,.5F,.55F,.58F,.62F,.64F,.69F,.73F};
+                "right_arm","left_arm","right_thigh","left_thigh","torso","hips","jaw"};
         for (int i=0;i<names.length;i++) {
             var bone = getAnimationProcessor().getBone(names[i]); if (bone == null) continue;
-            float phase = Math.max(0, Math.min(1, (t-starts[i])/.19F));
-            float size = 1 - phase*phase*(3-2*phase);
-            bone.setHidden(size < .15F); bone.setChildrenHidden(size < .15F);
-            bone.setScaleX(Math.max(.01F,size)); bone.setScaleY(1); bone.setScaleZ(Math.max(.01F,size));
+            bone.setHidden(false);bone.setChildrenHidden(false);
+            bone.setScaleX(1);bone.setScaleY(1);bone.setScaleZ(1);
+        }
+        if(visual.stage()==com.codex.blacklight.combat.ConsumeVisual.HUNTER_CONSUME) {
+            float seconds=com.codex.blacklight.combat.HunterConsume.seconds(visual,entity.level().getGameTime(),state.getPartialTick());
+            float[] scale=com.codex.blacklight.combat.HunterConsume.jawScale(seconds);
+            var jaw=getAnimationProcessor().getBone("jaw");
+            if(jaw!=null){jaw.setScaleX(scale[0]);jaw.setScaleY(scale[1]);jaw.setScaleZ(scale[2]);}
+        }
+        if(entity.isConsumeRemains()) {
+            var head=getAnimationProcessor().getBone("head");
+            if(head!=null){head.setHidden(true);head.setChildrenHidden(true);}
         }
     }
     private void applyReaction(String name, float x, float y, float z) {

@@ -27,6 +27,26 @@ sourceSets.main.resources {
     exclude("src/generated/**/.cache") // datagen cache files
 }
 
+// Local bundled builds keep the source profile outside versioned resources.
+// Sync also removes old bundled output when the next build omits the property.
+def bundledMotionDirectory = providers.gradleProperty('bundleMotionDirectory')
+def stageBundledMotions = tasks.register('stageBundledMotions', Sync) {
+    into layout.buildDirectory.dir('generated/bundledMotionResources')
+    if (bundledMotionDirectory.isPresent()) {
+        from(bundledMotionDirectory.get()) {
+            into 'blacklight/bundled_motions'
+            include '*.json', 'combat-motion-tuning.data', 'consume-placement.data', 'receiver-poses.data', 'hunter-consume.data', 'hammer-scales.data'
+        }
+        doFirst {
+            def profile = file(bundledMotionDirectory.get())
+            ['basic_idle.json', 'combat-motion-tuning.data', 'consume-placement.data', 'receiver-poses.data', 'hunter-consume.data', 'hammer-scales.data'].each {
+                if (!new File(profile, it).isFile()) throw new GradleException("Incomplete bundled motion profile: ${it}")
+            }
+        }
+    }
+}
+sourceSets.main.resources.srcDir(stageBundledMotions)
+
 repositories {
     mavenCentral()
     maven {
@@ -53,7 +73,7 @@ base {
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 // Opt-in screenshot harness is excluded from normal builds and distributable JARs.
-if (project.hasProperty('captureMotionPreview') || project.hasProperty('captureInfectedPreview') || project.hasProperty('captureHunterPreview') || project.hasProperty('captureConsumeForms') || project.hasProperty('captureGrabPreview')) {
+if (project.hasProperty('captureMotionPreview') || project.hasProperty('captureInfectedPreview') || project.hasProperty('captureHunterPreview') || project.hasProperty('captureConsumeForms') || project.hasProperty('captureGrabPreview') || project.hasProperty('captureGrabContactPreview') || project.hasProperty('captureGameplayPreview') || project.hasProperty('captureClawReference') || project.hasProperty('captureBladeReference') || project.hasProperty('captureBladeSpecial')) {
     sourceSets.main.java.srcDir('src/visualTest/java')
 }
 if (project.hasProperty('wallTraversalTest')) {
@@ -66,6 +86,11 @@ tasks.named('jar', Jar).configure {
     exclude 'com/codex/blacklight/client/HunterPreviewCapture*.class'
     exclude 'com/codex/blacklight/client/ConsumeFormsPreview*.class'
     exclude 'com/codex/blacklight/client/GrabInteractionPreview*.class'
+    exclude 'com/codex/blacklight/client/GrabContactPreview*.class'
+    exclude 'com/codex/blacklight/client/GameplayPreview*.class'
+    exclude 'com/codex/blacklight/client/ClawReferencePreview*.class'
+    exclude 'com/codex/blacklight/client/BladeReferencePreview*.class'
+    exclude 'com/codex/blacklight/client/BladeSpecialPreview*.class'
     exclude 'com/codex/blacklight/gametest/**'
     exclude 'data/blacklight/structure/wall_test.nbt'
 }
@@ -87,6 +112,20 @@ neoForge {
     runs {
         client {
             client()
+            if (project.hasProperty('localWeaponMotions')) {
+                systemProperty 'blacklight.localWeaponMotions', file(project.property('localWeaponMotions')).absolutePath
+            }
+            if (project.hasProperty('captureBladeSpecial')) {
+                systemProperty 'blacklight.test.bladeSpecialPreview', project.property('captureBladeSpecial').toString()
+                programArguments.addAll '--width', '1280', '--height', '900'
+            }
+            if (project.hasProperty('captureBladeReference')) {
+                systemProperty 'blacklight.test.bladeReferencePreview', project.property('captureBladeReference').toString()
+                programArguments.addAll '--width', '1280', '--height', '900'
+            }
+            if (project.hasProperty('captureClawReference')) {
+                systemProperty 'blacklight.test.clawReferencePreview', project.property('captureClawReference').toString()
+            }
             // This machine has 16 GB RAM shared with other tools; cap the client heap
             // so the game JVM cannot exhaust native memory and crash (see hs_err logs).
             jvmArgument '-Xmx3G'
@@ -112,9 +151,20 @@ neoForge {
                 systemProperty 'blacklight.test.grabPreview', project.property('captureGrabPreview').toString()
                 programArguments.addAll '--width', '1100', '--height', '850'
             }
+            if (project.hasProperty('captureGrabContactPreview')) {
+                systemProperty 'blacklight.test.contactPreview', project.property('captureGrabContactPreview').toString()
+                programArguments.addAll '--width', '1100', '--height', '850'
+            }
             if (project.hasProperty('captureConsumeForms')) {
                 systemProperty 'blacklight.test.consumeForms', project.property('captureConsumeForms').toString()
                 programArguments.addAll '--width', '1100', '--height', '850'
+            }
+            if (project.hasProperty('captureGameplayPreview')) {
+                systemProperty 'blacklight.test.gameplayPreview', project.property('captureGameplayPreview').toString()
+                if (project.hasProperty('attackReview')) systemProperty 'blacklight.test.attackReview', 'true'
+                if (project.hasProperty('packReview')) systemProperty 'blacklight.test.packReview', 'true'
+                if (project.hasProperty('adaptedReview')) systemProperty 'blacklight.test.adaptedReview', 'true'
+                programArguments.addAll '--width', '1280', '--height', '900'
             }
             if (project.hasProperty('captureHunterPreview')) {
                 systemProperty 'blacklight.test.hunterCapture', project.property('captureHunterPreview').toString()
@@ -143,6 +193,9 @@ neoForge {
             gameDirectory = project.file('run-wall-gametest')
             jvmArgument '-Xmx2G'
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            if (project.hasProperty('localWeaponMotions')) {
+                systemProperty 'blacklight.localWeaponMotions', file(project.property('localWeaponMotions')).absolutePath
+            }
         }
 
         data {

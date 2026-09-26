@@ -12,6 +12,24 @@ Claw geometry and the authored animation tracks in the Blacklight resource
 namespace are this project's work. This statement does not grant permission to
 redistribute Epic Fight's own assets or commercial Prototype game assets.
 
+## Runtime motion adapters (Epic Fight / Weapons of Miracles)
+
+The nine `AdaptedWeaponAnimation` actions read joint keyframes from separately
+installed dependencies at runtime, retime them, and fit the arms to Blacklight's
+meshes in memory. They do not copy source attack events, colliders, skills, or
+animation files into this repository or its JAR. These dependency motions are
+not claimed as original Blacklight animation assets.
+
+- Epic Fight: 21.17.3.1, sword and fist motions; required existing dependency.
+- Weapons of Miracles by reascer: 2.0.178, Torment motions; optional dependency.
+  Source: https://www.curseforge.com/minecraft/mc-mods/weapons-of-miracles-epicfight/files/8829395
+  License: All Rights Reserved. Obtain its JAR separately; do not bundle it.
+- If WOM is absent, its three adapted moves use the existing authored Blacklight
+  clips. Install matching dependency versions on both client and server.
+
+Temporary runtime pose dumps used for local geometry checks are under ignored
+`tmp/` directories and are not release assets.
+
 ## Kenney Particle Pack 1.1
 
 - Creator: Kenney Vleugels (Kenney.nl)

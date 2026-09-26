@@ -30,6 +30,14 @@ public final class BlacklightCommands {
                     context.getSource().sendSuccess(() -> Component.translatable("command.blacklight.infected"), false);
                     return 1;
                 }))
+                .then(Commands.literal("hive_sample").requires(source->source.hasPermission(2)).executes(context->{
+                    var p=context.getSource().getPlayerOrException();var hive=com.codex.blacklight.registry.ModEntities.BLACKLIGHT_HIVE.get().create(p.level());
+                    var pos=net.minecraft.core.BlockPos.containing(p.position().add(p.getLookAngle().multiply(1,0,1).normalize().scale(14)));
+                    for(int x=-7;x<=7;x++)for(int z=-7;z<=7;z++)for(int y=0;y<=13;y++)
+                        if(!p.level().getBlockState(pos.offset(x,y,z)).isAir()){context.getSource().sendFailure(Component.literal("Hive needs a clear 15 x 15 x 14 site."));return 0;}
+                    com.codex.blacklight.world.HiveBuilding.build(p.serverLevel(),pos);
+                    hive.moveTo(pos.getX()+.5,pos.getY()+1,pos.getZ()+.5,0,0);p.serverLevel().addFreshEntity(hive);return 1;
+                }))
                 .then(Commands.literal("infected_sample").requires(source -> source.hasPermission(2)).executes(context -> {
                     ServerPlayer player = context.getSource().getPlayerOrException();
                     var level=player.serverLevel();

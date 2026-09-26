@@ -1,6 +1,7 @@
 package com.codex.blacklight.entity;
 
 import com.codex.blacklight.infection.BlacklightInfectionSystem;
+import com.codex.blacklight.combat.HunterConsume;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.*;
 import net.minecraft.sounds.SoundEvent;
@@ -24,6 +25,7 @@ public final class BlacklightHunter extends Monster implements GeoEntity {
     private static final EntityDataAccessor<Integer> ATTACK = SynchedEntityData.defineId(BlacklightHunter.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> CONSUMER = SynchedEntityData.defineId(BlacklightHunter.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> CONSUME_TICKS = SynchedEntityData.defineId(BlacklightHunter.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Long> REMAINS_STARTED = SynchedEntityData.defineId(BlacklightHunter.class, EntityDataSerializers.LONG);
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     private boolean previousNoAi;
     private int attackCooldown;
@@ -37,6 +39,7 @@ public final class BlacklightHunter extends Monster implements GeoEntity {
     }
     @Override protected void defineSynchedData(SynchedEntityData.Builder b) {
         super.defineSynchedData(b); b.define(ATTACK, 0); b.define(CONSUMER, -1); b.define(CONSUME_TICKS, 0);
+        b.define(REMAINS_STARTED, -1L);
     }
     @Override protected void registerGoals() {
         goalSelector.addGoal(0, new FloatGoal(this));
@@ -51,7 +54,8 @@ public final class BlacklightHunter extends Monster implements GeoEntity {
     }
     @Override public void tick() {
         super.tick();
-        if (level().isClientSide || isBeingConsumed()) return;
+        if (level().isClientSide || isBeingConsumed() || !isAlive()) return;
+        if(com.codex.blacklight.combat.ImpactControl.stunned(this)){entityData.set(ATTACK,0);swipeTarget=null;return;}
         if (attackCooldown > 0) attackCooldown--;
         int attack = entityData.get(ATTACK);
         if (attack > 0) {
@@ -65,6 +69,8 @@ public final class BlacklightHunter extends Monster implements GeoEntity {
         }
     }
     public boolean isBeingConsumed() { return entityData.get(CONSUMER) >= 0; }
+    public boolean committedAttack(){return entityData.get(ATTACK)>0;}
+    public int attackTicksRemaining(){return entityData.get(ATTACK);}
     public int consumerId() { return entityData.get(CONSUMER); }
     public int consumeTicks() { return entityData.get(CONSUME_TICKS); }
     public void setConsumeTicks(int ticks) { entityData.set(CONSUME_TICKS, ticks); }
@@ -78,10 +84,36 @@ public final class BlacklightHunter extends Monster implements GeoEntity {
         if (!isBeingConsumed()) return;
         setNoAi(previousNoAi); entityData.set(CONSUMER, -1); entityData.set(CONSUME_TICKS, 0);
     }
+    public boolean isConsumeRemains() { return entityData.get(REMAINS_STARTED)>=0; }
+    public float consumeRemainsAge(float partial) { return Math.max(0,level().getGameTime()-entityData.get(REMAINS_STARTED)+partial); }
+    public void beginConsumeRemains() {
+        if(level().isClientSide||isConsumeRemains())return;
+        release();setNoAi(true);getNavigation().stop();setTarget(null);
+        entityData.set(ATTACK,0);swipeTarget=null;
+        entityData.set(REMAINS_STARTED,level().getGameTime());
+        // Consumption has its own reward path. Do not call die() and drop loot/XP again.
+        setHealth(0);setDeltaMovement(0,0,0);deathTime=0;
+    }
+    @Override protected void tickDeath() {
+        if(!isConsumeRemains()){super.tickDeath();return;}
+        // The receiver clip owns the collapse; suppress the generic sideways death roll.
+        deathTime=0;
+        if(!level().isClientSide&&consumeRemainsAge(0)>=HunterConsume.REMAINS_TICKS)discard();
+    }
+    @Override public boolean isPushable() { return !isConsumeRemains()&&super.isPushable(); }
+    @Override public boolean isPickable() { return !isConsumeRemains()&&super.isPickable(); }
     @Override public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         // The transient grab must never persist as a permanently disabled AI after restart.
         if (isBeingConsumed()) tag.putBoolean("NoAI", previousNoAi);
+        if (isConsumeRemains()) tag.putLong("BlacklightConsumeRemains",entityData.get(REMAINS_STARTED));
+    }
+    @Override public void readAdditionalSaveData(CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        if(tag.contains("BlacklightConsumeRemains",net.minecraft.nbt.Tag.TAG_LONG)) {
+            entityData.set(REMAINS_STARTED,Math.max(0,tag.getLong("BlacklightConsumeRemains")));
+            setHealth(0);setNoAi(true);
+        }
     }
     @Override protected SoundEvent getHurtSound(DamageSource source) { return SoundEvents.RAVAGER_HURT; }
     @Override protected SoundEvent getDeathSound() { return SoundEvents.RAVAGER_DEATH; }
