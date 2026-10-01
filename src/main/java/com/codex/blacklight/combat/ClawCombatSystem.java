@@ -117,7 +117,7 @@ public final class ClawCombatSystem {
 
     private static void setClawsActive(ServerPlayer player, BlacklightState state,
                                        boolean activate) {
-        if(activate)com.codex.blacklight.disguise.DisguiseSystem.reveal(player);
+        if(activate)com.codex.blacklight.disguise.DisguiseSystem.visiblePower(player);
         state.activate(activate ? PowerForm.CLAWS : PowerForm.NONE);
         player.setData(ModAttachments.PLAYER_STATE, state);
         player.syncData(ModAttachments.PLAYER_STATE);

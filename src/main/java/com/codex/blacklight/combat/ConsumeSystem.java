@@ -198,7 +198,6 @@ public final class ConsumeSystem {
             message(player,"grab_ground");return;
         }
         if (target instanceof BlacklightHunter hunter && !hunter.claim(player)) return;
-        com.codex.blacklight.disguise.DisguiseSystem.reveal(player);
         ImpactControl.cancel(target);
         Session session=new Session(target,player,form);ACTIVE.put(player,session);
         target.getNavigation().stop();target.setTarget(null);
@@ -442,6 +441,7 @@ public final class ConsumeSystem {
         var state = player.getData(ModAttachments.PLAYER_STATE);
         state.addBiomass(session.biomass()); state.addEvolutionPoints(session.ep());
         player.setData(ModAttachments.PLAYER_STATE, state); player.syncData(ModAttachments.PLAYER_STATE);
+        com.codex.blacklight.disguise.DisguiseSystem.consumed(player,target);
         com.codex.blacklight.disguise.DisguiseSystem.captured(player,identity);
         player.heal(session.heal());
         player.level().playSound(null, player.blockPosition(), SoundEvents.GENERIC_EAT, SoundSource.PLAYERS, .8F, .55F);

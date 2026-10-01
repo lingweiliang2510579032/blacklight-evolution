@@ -119,7 +119,6 @@ public final class WeaponCombatSystem {
         if(charge&&(buttons==null||!buttons.held(input)))ACTIVE.get(p).released=true;
     }
     private static void start(ServerPlayer p,WeaponMove move,boolean charging,WeaponMove.Input input,float clipOffset){
-        com.codex.blacklight.disguise.DisguiseSystem.reveal(p);
         var target=acquireTarget(p,move);
         float heading=requestedYaw(p,move);
         if(target!=null) {

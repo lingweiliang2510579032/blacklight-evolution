@@ -41,7 +41,7 @@ public final class CombatTargeting {
         var entity=resolveTarget(player.serverLevel().getEntity(entityId));
         if(com.codex.blacklight.power.PrototypeMetabolism.active(player)
                 && entity != null && selectable(player,entity)
-                && inReach(player,entity,viewRange(player)) && visible(player,entity)) LOCKS.put(player,entity);
+                && visibleWithinRange(player,entity,viewRange(player))) LOCKS.put(player,entity);
         else LOCKS.remove(player);
     }
     public static boolean damageable(Player player, LivingEntity target) {
@@ -112,6 +112,43 @@ public final class CombatTargeting {
     }
     public static boolean visible(Player player,Vec3 from,AABB box) {
         return clearRay(player,from,closestPoint(from,box));
+    }
+    public static boolean visibleWithinRange(Player player,LivingEntity target,double range) {
+        if(target==null||target.level()!=player.level()||range<0)return false;
+        Vec3 eye=player.getEyePosition();double limit=range*range+1e-6;
+        if(!multipart(target))return distanceSquared(eye,target)<=limit&&visible(player,target);
+        // The exposed part must itself be in range: a hidden nearby foot must
+        // not borrow visibility from an out-of-range wing on the other side.
+        for(AABB box:hitboxes(target))if(distanceSquared(eye,box)<=limit){
+            Vec3 point=visiblePoint(player,eye,box);
+            if(point!=null&&eye.distanceToSqr(point)<=limit)return true;
+        }
+        return false;
+    }
+    /** A root column can be underground or between legs while a limb is visible.
+     * Probe only points on the actual damage box, never its enclosing empty space. */
+    private static Vec3 visiblePoint(Player player,Vec3 from,AABB box) {
+        Vec3 nearest=closestPoint(from,box);
+        if(clearRay(player,from,nearest))return nearest;
+        Vec3 centre=box.getCenter();
+        Vec3[] points={centre,new Vec3(box.minX,centre.y,centre.z),new Vec3(box.maxX,centre.y,centre.z),
+                new Vec3(centre.x,box.minY,centre.z),new Vec3(centre.x,box.maxY,centre.z),
+                new Vec3(centre.x,centre.y,box.minZ),new Vec3(centre.x,centre.y,box.maxZ)};
+        Vec3 result=null;double best=Double.POSITIVE_INFINITY;
+        for(Vec3 point:points){double distance=from.distanceToSqr(point);
+            if(distance<best&&clearRay(player,from,point)){best=distance;result=point;}}
+        return result;
+    }
+    /** Stable focus on the closest exposed body surface. Ordinary mob framing is unchanged. */
+    public static Vec3 lockPoint(Player player,LivingEntity target) {
+        if(!multipart(target))return target.getBoundingBox().getCenter();
+        Vec3 eye=player.getEyePosition(),result=null;double best=Double.POSITIVE_INFINITY;
+        for(AABB box:hitboxes(target)){
+            if(distanceSquared(eye,box)>=best)continue;
+            Vec3 point=visiblePoint(player,eye,box);
+            if(point!=null&&eye.distanceToSqr(point)<best){result=point;best=eye.distanceToSqr(point);}
+        }
+        return result==null?closestPoint(eye,target):result;
     }
     public static boolean visibleContact(Player player,LivingEntity target,AABB contact) {
         if(!multipart(target))return visible(player,target);

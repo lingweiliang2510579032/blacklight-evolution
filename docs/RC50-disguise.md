@@ -2,6 +2,8 @@
 
 Minecraft 1.21.1 / NeoForge / Blacklight: Ascension 0.2.0-rc.50。
 
+> 以下记录 RC50 的历史行为。伪装暴露和换装脱离追踪规则已在 [RC54](RC54-disguise-and-hive-commands.md) 修复，以新文档为准。
+
 ## 操作
 
 1. 在黑光模式下完成一次普通生物吸收，右上角会显示保存的身份。

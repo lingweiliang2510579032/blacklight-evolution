@@ -112,7 +112,9 @@ final class SourceCameraOrbit {
                         pitch=Mth.clamp(pitch+inputPitch,-80,80);
                         wantedYaw=yaw;wantedPitch=pitch;
                     }
-                    Vec3 center=target.position().add(0,target.getBbHeight()*.5,0);
+                    Vec3 center=com.codex.blacklight.combat.CombatTargeting.multipart(target)
+                            ?com.codex.blacklight.client.ClientTargetLock.focusPoint(target)
+                            :target.position().add(0,target.getBbHeight()*.5,0);
                     Vec3 delta=center.subtract(anchor);
                     if(delta.horizontalDistanceSqr()>.01) {
                         // Constrain the orbit to the actor/target viewing cone,

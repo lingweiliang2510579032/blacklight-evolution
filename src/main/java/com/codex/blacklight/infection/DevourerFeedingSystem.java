@@ -39,6 +39,7 @@ public final class DevourerFeedingSystem {
     private static final String BIOMASS="BlacklightDevourBiomass",MEALS="BlacklightDevourMeals";
     private static final String NEXT="BlacklightDevourNextFeed",CLAIM="BlacklightDevourClaim";
     private static final String RETRY="BlacklightDevourRetryAfter";
+    private static final String PAUSE="BlacklightDevourPause";
     private static final Map<BlacklightInfectedHost,Session> ACTIVE=new IdentityHashMap<>();
     private static final Map<Mob,Session> CAPTURED=new IdentityHashMap<>();
     private static final class Session {
@@ -54,6 +55,21 @@ public final class DevourerFeedingSystem {
     public static int biomass(BlacklightInfectedHost host) { return Mth.clamp(host.getPersistentData().getInt(BIOMASS),0,MAX_BIOMASS); }
     public static int meals(BlacklightInfectedHost host) { return Math.max(0,host.getPersistentData().getInt(MEALS)); }
     public static int availableGrowthTicks(BlacklightInfectedHost host) { return biomass(host)*300; }
+    private static int foodBuffer(BlacklightInfectedHost host) {
+        return Math.min(ColossusEvolutionSystem.EVOLUTION_TICKS,1200*HiveAcceleration.multiplier(host));
+    }
+    private static int mealInterval(BlacklightInfectedHost host) {
+        return Math.max(20,FEED_INTERVAL/HiveAcceleration.multiplier(host));
+    }
+    /** Rescale a pending delay once when the administrator changes this nursery's rate. */
+    public static void adjustMealWait(BlacklightInfectedHost host,int before,int after) {
+        if(ACTIVE.containsKey(host))return; // A captured victim always gets the full sequence.
+        CompoundTag data=host.getPersistentData();long now=host.level().getGameTime();
+        if(!data.contains(NEXT))return;
+        long remaining=Math.clamp(data.getLong(NEXT)-now,0,FEED_INTERVAL);
+        long scaled=(long)Math.ceil(remaining*(double)Mth.clamp(before,1,20)/Mth.clamp(after,1,20));
+        data.putLong(NEXT,now+Math.min(FEED_INTERVAL,scaled));
+    }
     public static BlockPos home(BlacklightInfectedHost host) {
         return host.getPersistentData().contains(HOME,Tag.TAG_LONG)?BlockPos.of(host.getPersistentData().getLong(HOME)):host.blockPosition();
     }
@@ -88,10 +104,10 @@ public final class DevourerFeedingSystem {
         if(session!=null){advance(level,session);return;}
         returnHome(host);
         long now=level.getGameTime();CompoundTag data=host.getPersistentData();
-        if(!data.contains(NEXT)){data.putLong(NEXT,now+100);return;}
+        if(!data.contains(NEXT)){data.putLong(NEXT,now+Math.max(5,100/HiveAcceleration.multiplier(host)));return;}
         if(now<data.getLong(NEXT)||!withinTerritory(host,host)||host.getTarget()!=null
-                ||availableGrowthTicks(host)>host.evolutionTicks()+1200)return;
-        // Failed searches are bounded to one per second, successful meals to one per 25 seconds.
+                ||availableGrowthTicks(host)>host.evolutionTicks()+foodBuffer(host))return;
+        // Failed searches remain bounded to one per second even in accelerated nurseries.
         data.putLong(NEXT,now+20);
         Vec3 home=center(host);
         Mob prey=level.getEntitiesOfClass(Mob.class,new AABB(home,home).inflate(24),mob->eligible(host,mob,now))
@@ -100,6 +116,7 @@ public final class DevourerFeedingSystem {
         if(prey.getPersistentData().contains(CLAIM))clearClaim(prey);
         CompoundTag claim=new CompoundTag();claim.putUUID("Owner",host.getUUID());claim.putLong("Until",now+200);
         prey.getPersistentData().put(CLAIM,claim);ACTIVE.put(host,new Session(host,prey,now));
+        data.remove(PAUSE);
         host.setTarget(null);host.getNavigation().stop();
     }
     private static boolean eligible(BlacklightInfectedHost host,Mob prey,long now) {
@@ -131,7 +148,7 @@ public final class DevourerFeedingSystem {
         CompoundTag claim=prey.getPersistentData().getCompound(CLAIM);
         if(!eligible(host,prey,now)||!claim.hasUUID("Owner")||!claim.getUUID("Owner").equals(host.getUUID())
                 ||!host.hasLineOfSight(prey)||host.position().distanceToSqr(center(host))>32*32
-                ||session.started<0&&now-session.acquired>240) { abort(session);return; }
+                ||session.started<0&&now-session.acquired>240) { abort(session,"猎物失效、脱离视线或无法在限定时间内接近");return; }
         claim.putLong("Until",now+200);host.setTarget(null);
         if(session.started<0) {
             host.getLookControl().setLookAt(prey,30,30);
@@ -154,7 +171,7 @@ public final class DevourerFeedingSystem {
         host.setDeltaMovement(host.getDeltaMovement().multiply(0,1,0));
         host.setYRot(session.yaw);host.yBodyRot=session.yaw;host.yHeadRot=session.yaw;
         double tether=4+18*host.bodyScale();
-        if(host.distanceToSqr(prey)>tether*tether){abort(session);return;}
+        if(host.distanceToSqr(prey)>tether*tether){abort(session,"猎物挣脱有效抓取距离");return;}
         if(age>=18&&!session.captured) {
             session.captured=true;session.origin=prey.position();
             claim.putBoolean("HadGravityFlag",true);claim.putBoolean("NoGravity",prey.isNoGravity());
@@ -169,7 +186,7 @@ public final class DevourerFeedingSystem {
             Vec3 before=prey.position();prey.move(MoverType.SELF,movement);prey.setDeltaMovement(Vec3.ZERO);prey.hurtMarked=true;prey.fallDistance=0;
             prey.yBodyRot=session.yaw+180;prey.yHeadRot=prey.yBodyRot;prey.setYRot(prey.yBodyRot);
             // Never drag through terrain. A blocked lift releases the still-living victim.
-            if(movement.lengthSqr()>.025&&prey.position().distanceToSqr(before)<.0004){abort(session);return;}
+            if(movement.lengthSqr()>.025&&prey.position().distanceToSqr(before)<.0004){abort(session,"抬起猎物的路径被地形阻挡");return;}
             if(age==42||age==61)recoil(prey,now,session.yaw);
             if(age>=48&&age%5==0)level.sendParticles(ParticleTypes.SCULK_SOUL,prey.getX(),prey.getY()+prey.getBbHeight()*.5,prey.getZ(),3,.25,.3,.25,.01);
         }
@@ -197,8 +214,12 @@ public final class DevourerFeedingSystem {
         boolean accepted=prey.isAlive()&&prey.hurt(host.damageSources().mobAttack(host),lethal);
         // DYING is set after LivingDeath vetoes. A refused damage/death event earns nothing.
         boolean killed=accepted&&!prey.isAlive()&&prey.getPose()==Pose.DYING;
-        release(host);host.getPersistentData().putLong(NEXT,level.getGameTime()+FEED_INTERVAL);
-        if(!killed)return;
+        // Keep normal death/experience bookkeeping, but never restore a full-sized
+        // corpse when the feeding target is cleared after its visible contraction.
+        if(killed)prey.setInvisible(true);
+        release(host);host.getPersistentData().putLong(NEXT,level.getGameTime()+mealInterval(host));
+        if(!killed){host.getPersistentData().putString(PAUSE,"上次吞噬伤害或死亡结算被阻止，未获得生物质");return;}
+        host.getPersistentData().remove(PAUSE);
         host.setFeedingVisual(-1,session.started);
         CompoundTag data=host.getPersistentData();data.putInt(BIOMASS,Math.min(MAX_BIOMASS,biomass(host)+units));
         data.putInt(MEALS,(int)Math.min(Integer.MAX_VALUE,(long)meals(host)+1));
@@ -208,9 +229,10 @@ public final class DevourerFeedingSystem {
         level.sendParticles(ParticleTypes.SCULK_SOUL,prey.getX(),prey.getY()+prey.getBbHeight()*.5,prey.getZ(),24,.6,.7,.6,.045);
         level.sendParticles(ParticleTypes.SMOKE,prey.getX(),prey.getY()+prey.getBbHeight()*.5,prey.getZ(),14,.5,.5,.5,.02);
     }
-    private static void abort(Session session) {
+    private static void abort(Session session,String reason) {
         session.prey.getPersistentData().putLong(RETRY,session.host.level().getGameTime()+600);
-        session.host.getPersistentData().putLong(NEXT,session.host.level().getGameTime()+100);release(session.host);
+        session.host.getPersistentData().putLong(NEXT,session.host.level().getGameTime()+100);
+        session.host.getPersistentData().putString(PAUSE,reason);release(session.host);
     }
     public static void release(BlacklightInfectedHost host) {
         Session session=ACTIVE.remove(host);host.setFeedingVisual(-1,-1);
@@ -227,7 +249,7 @@ public final class DevourerFeedingSystem {
     @SubscribeEvent public static void freeze(EntityTickEvent.Pre event) {
         if(!(event.getEntity() instanceof Mob prey)||prey.level().isClientSide)return;
         Session session=CAPTURED.get(prey);if(session==null)return;
-        if(!session.host.isAlive()||!prey.isAlive()||prey.getData(ModAttachments.CONSUME_VISUAL).active()) {abort(session);return;}
+        if(!session.host.isAlive()||!prey.isAlive()||prey.getData(ModAttachments.CONSUME_VISUAL).active()) {abort(session,"吞噬者或猎物死亡，或猎物已被玩家抓取");return;}
         // Keep interpolation endpoints current while AI/gravity are held for the paired motion.
         prey.xo=prey.getX();prey.yo=prey.getY();prey.zo=prey.getZ();
         prey.xOld=prey.getX();prey.yOld=prey.getY();prey.zOld=prey.getZ();
@@ -240,9 +262,39 @@ public final class DevourerFeedingSystem {
     @SubscribeEvent public static void leave(EntityLeaveLevelEvent event) {
         if(event.getLevel().isClientSide)return;
         if(event.getEntity() instanceof BlacklightInfectedHost host)release(host);
-        for(Session session:List.copyOf(ACTIVE.values()))if(session.prey==event.getEntity())abort(session);
+        for(Session session:List.copyOf(ACTIVE.values()))if(session.prey==event.getEntity())abort(session,"猎物离开当前已加载区域");
     }
     @SubscribeEvent public static void stop(ServerStoppingEvent event) {
         for(var host:List.copyOf(ACTIVE.keySet()))release(host);
+    }
+
+    /** Requested diagnostics only: no claims, timer changes, entity creation or chunk loading. */
+    public static String describe(BlacklightInfectedHost host) {
+        if(!(host.level() instanceof ServerLevel level)||!isDevourer(host))return "不是巢内吞噬者";
+        long now=level.getGameTime();
+        if(host.giantBoss())return "巨构已完成，不再吞噬成长";
+        if(!host.isAlive())return "吞噬者已死亡";
+        if(host.isNoAi()||host.isPassenger()||host.isVehicle()||host.isLeashed()
+                ||host.getData(ModAttachments.CONSUME_VISUAL).active()||ImpactControl.stunned(host))return "吞噬者被控制、骑乘、拴绳或停用 AI";
+        if(level.getDifficulty()==Difficulty.PEACEFUL)return "和平难度暂停进食";
+        if(!DevourerHabitat.suppliesLoaded(host))return "供养节点或核心区块未加载，暂停进食";
+        if(DevourerHabitat.liveNodes(host)<DevourerHabitat.REQUIRED_NODES)return "供养节点不足 2 个，暂停进食";
+        if(!DevourerHabitat.canFeed(host))return "所属蜂巢核心缺失或无法供养";
+        if(biomass(host)>=MAX_BIOMASS)return "生物质已满 60，等待成长条件满足";
+        Session session=ACTIVE.get(host);
+        if(session!=null)return session.started<0?"正在接近 "+session.prey.getDisplayName().getString()
+                :"正在吞噬 "+session.prey.getDisplayName().getString()+"（"+Math.min(FEED_TICKS,now-session.started)+"/80 tick）";
+        if(recovering(host))return "吞噬动作收势中";
+        if(!withinTerritory(host,host))return "正在返回巢室中心";
+        if(host.getTarget()!=null)return "正在应对闯入者，脱离战斗后继续进食";
+        if(availableGrowthTicks(host)>host.evolutionTicks()+foodBuffer(host))
+            return "已有 "+availableGrowthTicks(host)/20+" 秒成长养分，等待蜂巢成熟或成长消耗后再进食";
+        String last=host.getPersistentData().getString(PAUSE);
+        long remaining=host.getPersistentData().getLong(NEXT)-now;
+        if(remaining>0)return "下一次觅食约 "+(remaining+19)/20+" 秒后"+(last.isEmpty()?"":"；上次停止："+last);
+        var prey=level.getEntitiesOfClass(Mob.class,new AABB(center(host),center(host)).inflate(24),mob->eligible(host,mob,now));
+        if(prey.isEmpty())return "24 格内没有可吞噬的活猎物；宠物、命名或受保护生物不计入"+(last.isEmpty()?"":"；上次停止："+last);
+        if(prey.stream().noneMatch(host::hasLineOfSight))return "附近猎物被地形遮挡，无法开始抓取";
+        return "正在寻找可接近的猎物";
     }
 }

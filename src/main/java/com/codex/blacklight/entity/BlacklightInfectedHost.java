@@ -12,6 +12,7 @@ import net.minecraft.network.syncher.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.InteractionHand;
@@ -33,7 +34,9 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /** A saved host species with ordinary anatomy or an authored giant boss body. */
@@ -47,6 +50,8 @@ public final class BlacklightInfectedHost extends Monster {
     private final InfectedHostPart[] parts=new InfectedHostPart[PART_COUNT];
     private InfectedHostPart[] activeParts=new InfectedHostPart[0];
     private final ServerBossEvent bossBar=new ServerBossEvent(Component.empty(),BossEvent.BossBarColor.RED,BossEvent.BossBarOverlay.PROGRESS);
+    // Track viewers even before growth starts: changing form does not restart entity tracking.
+    private final Set<ServerPlayer> trackingPlayers=new HashSet<>();
     private Mob appearance;
     private EnderDragon dragonFightProxy;
     private int appearanceAnimationTick=Integer.MIN_VALUE;
@@ -120,6 +125,7 @@ public final class BlacklightInfectedHost extends Monster {
         if(next==evolutionTicks())return false;
         float base=baseBodyScale();CompoundTag data=hostData().copy();
         data.putFloat("BaseBodyScale",base);data.putFloat("BodyScale",base);data.putInt("EvolutionTicks",next);
+        data.putBoolean("EvolutionRegressing",next<evolutionTicks());
         data.putInt("FormVersion",2);data.putBoolean("Colossal",false);
         float scale=bodyScaleAt(next);InfectedBossProfile profile=bossProfile();
         data.putFloat("Width",profile.width()*scale);data.putFloat("Height",profile.height()*scale);
@@ -166,12 +172,14 @@ public final class BlacklightInfectedHost extends Monster {
         CompoundTag data=hostData().copy();data.putFloat("BaseBodyScale",baseBodyScale());
         data.putBoolean("Colossal",true);data.putInt("FormVersion",2);data.putInt("BossProfileVersion",2);
         data.putInt("EvolutionTicks",18000);data.putFloat("BodyScale",1);
+        data.putBoolean("EvolutionRegressing",false);
         data.putFloat("Width",profile.width());data.putFloat("Height",profile.height());
         entityData.set(HOST,data);
         getAttribute(Attributes.MAX_HEALTH).setBaseValue(profile.health());
         getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(profile.damage());
         applyBossAttributes(profile);setHealth(getMaxHealth()*fraction);
         setPersistenceRequired();
+        updateBossBar(true);
         return true;
     }
     @Override public boolean isBaby() {
@@ -231,6 +239,7 @@ public final class BlacklightInfectedHost extends Monster {
         if(colossal)applyBossAttributes(profile);else if(encounterBoss())applyCompactEncounterAttributes(profile);
         setHealth(Math.max(1,getMaxHealth()*source.getHealth()/source.getMaxHealth()));
         setPersistenceRequired();setupNavigation();
+        if(!level().isClientSide)updateBossBar(true);
     }
     private void applyBossAttributes(InfectedBossProfile profile) {
         getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(profile.speed());
@@ -262,6 +271,7 @@ public final class BlacklightInfectedHost extends Monster {
             // extra entries in NeoForge's global multipart collision queries.
             if(level().isClientSide&&level().getEntity(getId())==this)
                 level().getPartEntities().removeIf(p->p instanceof InfectedHostPart part&&part.getParent()==this&&!part.active());
+            if(!level().isClientSide&&bossBar!=null)updateBossBar(true);
         }
     }
     private EntityType<?> sourceType() {
@@ -336,7 +346,7 @@ public final class BlacklightInfectedHost extends Monster {
         super.tick();updateParts();if(level().isClientSide)return;setupNavigation();
         entityData.set(DEVOURER,DevourerFeedingSystem.isDevourer(this));
         DevourerFeedingSystem.tick(this);
-        if(encounterBoss())tickBoss();
+        tickBoss();
         if(family().equals("water")||hasMultipartBody())setAirSupply(getMaxAirSupply());
         if(getData(ModAttachments.CONSUME_VISUAL).active()||com.codex.blacklight.combat.ImpactControl.stunned(this)) { getNavigation().stop();return; }
         if(attackCooldown>0)attackCooldown--;
@@ -384,13 +394,39 @@ public final class BlacklightInfectedHost extends Monster {
         attackCooldown=bossProfile()==InfectedBossProfile.WITHER?60:100;
     }
     private void tickBoss() {
-        bossBar.setName(getDisplayName());bossBar.setProgress(Math.clamp(getHealth()/getMaxHealth(),0,1));refreshDragonFight();
-        bossBar.setVisible(isAlive()&&dragonFightId()==null);
-        if(tickCount%20==0&&level() instanceof ServerLevel server) {
-            var players=server.getPlayers(p->p.isAlive()&&!p.isSpectator()&&p.distanceToSqr(this)<160*160);
-            for(var player:List.copyOf(bossBar.getPlayers()))if(!players.contains(player))bossBar.removePlayer(player);
-            for(var player:players)bossBar.addPlayer(player);
+        if(isAlive()&&dragonFightId()!=null)refreshDragonFight();
+        updateBossBar(tickCount%20==0);
+    }
+    private boolean hasEncounterHealthBar() {
+        return encounterBoss()||DevourerFeedingSystem.isDevourer(this)||hasMultipartBody()&&evolutionTicks()>0;
+    }
+    private Component encounterBarName() {
+        if(!giantBoss()&&evolutionTicks()==0&&!DevourerFeedingSystem.isDevourer(this))return getDisplayName();
+        String stage=giantBoss()?"colossal":evolutionTicks()>0&&hostData().getBoolean("EvolutionRegressing")?"regressing":evolutionTicks()>=12000?"awakening"
+                :evolutionTicks()>=6000?"incubating":evolutionTicks()>0?"malformed":"nursery";
+        return Component.translatable("bossbar.blacklight.host_stage",getDisplayName(),
+                Component.translatable("bossbar.blacklight.stage_"+stage));
+    }
+    private boolean eligibleViewer(ServerPlayer player) {
+        return player.isAlive()&&!player.isSpectator()&&player.level()==level()&&player.distanceToSqr(this)<160*160;
+    }
+    private void updateBossBar(boolean refreshViewers) {
+        boolean visible=isAlive()&&hasEncounterHealthBar()&&dragonFightId()==null;
+        bossBar.setVisible(visible);
+        if(!visible){bossBar.removeAllPlayers();return;}
+        bossBar.setName(encounterBarName());
+        bossBar.setProgress(Math.clamp(getHealth()/Math.max(1,getMaxHealth()),0,1));
+        if(refreshViewers) {
+            for(var player:List.copyOf(bossBar.getPlayers()))
+                if(!trackingPlayers.contains(player)||!eligibleViewer(player))bossBar.removePlayer(player);
+            for(var player:trackingPlayers)if(eligibleViewer(player))bossBar.addPlayer(player);
         }
+    }
+    @Override public void startSeenByPlayer(ServerPlayer player) {
+        super.startSeenByPlayer(player);trackingPlayers.add(player);updateBossBar(true);
+    }
+    @Override public void stopSeenByPlayer(ServerPlayer player) {
+        super.stopSeenByPlayer(player);trackingPlayers.remove(player);bossBar.removePlayer(player);
     }
     public UUID dragonFightId() { return hostData().hasUUID("DragonFight")?hostData().getUUID("DragonFight"):null; }
     /** Preserve the vanilla portal/gateway/respawn progression until the replacement dies. */
@@ -427,7 +463,7 @@ public final class BlacklightInfectedHost extends Monster {
     }
     @Override public void remove(RemovalReason reason) {
         if(!level().isClientSide)DevourerFeedingSystem.release(this);
-        if(bossBar!=null)bossBar.removeAllPlayers();super.remove(reason);
+        if(bossBar!=null)bossBar.removeAllPlayers();if(trackingPlayers!=null)trackingPlayers.clear();super.remove(reason);
     }
     @Override protected boolean shouldDespawnInPeaceful() { return !encounterBoss(); }
     @Override public boolean fireImmune() { return giantBoss()||sourceType().fireImmune(); }

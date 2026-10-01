@@ -44,19 +44,22 @@ public final class ColossusEvolutionSystem {
     @SubscribeEvent
     public static void onTick(EntityTickEvent.Post event) {
         Entity entity = event.getEntity();
-        if (!(entity.level() instanceof ServerLevel level) || entity.tickCount % CHECK_INTERVAL != 0) return;
-        if (entity instanceof BlacklightHive hive) tickHive(level, hive);
+        if (!(entity.level() instanceof ServerLevel level)) return;
+        if (entity instanceof BlacklightHive hive) {
+            int interval = HiveAcceleration.multiplier(hive) > 1 ? 20 : CHECK_INTERVAL;
+            if (hive.tickCount % interval == 0) tickHive(level, hive, interval);
+        }
         else if (entity instanceof BlacklightInfectedHost host && host.isAlive()
-                && !host.giantBoss() && host.evolutionTicks() > 0) tickOrphan(level, host);
+                && !host.giantBoss() && host.evolutionTicks() > 0 && host.tickCount % CHECK_INTERVAL == 0) tickOrphan(level, host);
     }
 
-    private static void tickHive(ServerLevel level, BlacklightHive hive) {
+    private static void tickHive(ServerLevel level, BlacklightHive hive, int interval) {
         if (!hive.isAlive()) return;
         CompoundTag state = writableState(hive, HIVE_STATE);
-        if (state.getBoolean("Spent")) return;
+        if (state.getBoolean("Spent")) { HiveAcceleration.clear(hive); return; }
         if (level.getDifficulty() != Difficulty.PEACEFUL) {
             state.putInt("MaturityTicks", Math.min(HIVE_MATURITY_TICKS,
-                    state.getInt("MaturityTicks") + CHECK_INTERVAL));
+                    state.getInt("MaturityTicks") + interval * HiveAcceleration.multiplier(hive)));
         }
         // One bounded regional query serves both infection density and candidate selection.
         List<Mob> infected = regionalInfected(level, hive);
@@ -66,7 +69,7 @@ public final class ColossusEvolutionSystem {
             // its last known chunk is absent. Returning hosts also verify this Hive's UUID.
             boolean lastChunkLoaded = state.contains("ChosenX") && level.hasChunkAt(new BlockPos(
                     state.getInt("ChosenX"), hive.getBlockY(), state.getInt("ChosenZ")));
-            if (lastChunkLoaded) state.putInt("MissingTicks", state.getInt("MissingTicks") + CHECK_INTERVAL);
+            if (lastChunkLoaded) state.putInt("MissingTicks", state.getInt("MissingTicks") + interval);
             if (state.getInt("MissingTicks") < MISSING_HOST_GRACE) {
                 state.putString("BlockedReason", "等待已选宿主所在区块或实体恢复");
                 return;
@@ -75,6 +78,7 @@ public final class ColossusEvolutionSystem {
             state.putInt("MissingTicks", 0);
         }
         if (host != null && (!host.isAlive() || host.giantBoss())) {
+            HiveAcceleration.clear(hive);
             // Promotion by an administrator also consumes this Hive's single encounter.
             if (host.giantBoss()) state.putBoolean("Spent", true);
             state.remove("Chosen");
@@ -142,7 +146,7 @@ public final class ColossusEvolutionSystem {
             state.putString("BlockedReason", reason);
             return;
         }
-        int next = Math.min(EVOLUTION_TICKS, host.evolutionTicks() + CHECK_INTERVAL);
+        int next = Math.min(EVOLUTION_TICKS, host.evolutionTicks() + interval * HiveAcceleration.multiplier(host));
         if (DevourerFeedingSystem.isDevourer(host)) {
             next = Math.min(next, DevourerFeedingSystem.availableGrowthTicks(host));
             if (next <= host.evolutionTicks()) {
@@ -155,12 +159,13 @@ public final class ColossusEvolutionSystem {
             state.putString("BlockedReason", reason);
             return; // No clearing terrain, teleporting or growth/decay oscillation at walls.
         }
-        if (!canChange(link, now)) return;
+        if (!canChange(link, now, interval)) return;
         boolean changed = next == EVOLUTION_TICKS ? host.promoteToColossus() : host.setEvolutionProgress(next);
         if (!changed) return;
         link.putLong("LastChange", now);
         state.putString("BlockedReason", "培育中");
         if (host.giantBoss()) {
+            HiveAcceleration.clear(hive);
             state.putBoolean("Spent", true);
             state.putString("BlockedReason", "本蜂巢已完成一次巨构诞生");
         }
@@ -253,7 +258,11 @@ public final class ColossusEvolutionSystem {
     }
 
     private static boolean canChange(CompoundTag link, long now) {
-        return !link.contains("LastChange") || now - link.getLong("LastChange") >= CHECK_INTERVAL;
+        return canChange(link, now, CHECK_INTERVAL);
+    }
+
+    private static boolean canChange(CompoundTag link, long now, int interval) {
+        return !link.contains("LastChange") || now - link.getLong("LastChange") >= interval;
     }
 
     private static String spaceProblem(ServerLevel level, BlacklightInfectedHost host, int next) {
@@ -317,7 +326,9 @@ public final class ColossusEvolutionSystem {
         BlacklightHive hive = level.getEntitiesOfClass(BlacklightHive.class,
                 player.getBoundingBox().inflate(PLAYER_RADIUS), h -> h.isAlive()
                         && h.distanceToSqr(player) <= PLAYER_RADIUS * PLAYER_RADIUS).stream()
-                .min(Comparator.comparingDouble(player::distanceToSqr)).orElse(null);
+                .min(Comparator.comparingInt((BlacklightHive candidate) ->
+                        candidate.getPersistentData().getBoolean("BlacklightColossalHive") ? 0 : 1)
+                        .thenComparingDouble(player::distanceToSqr)).orElse(null);
         if (hive == null) return Component.literal("96 格内没有已加载的存活黑光蜂巢。");
         CompoundTag state = hive.getPersistentData().getCompound(HIVE_STATE);
         int maturity = Mth.clamp(state.getInt("MaturityTicks"), 0, HIVE_MATURITY_TICKS);
@@ -343,11 +354,17 @@ public final class ColossusEvolutionSystem {
                 + " " + host.evolutionTicks() / 20 + "/" + EVOLUTION_TICKS / 20 + " 秒";
         if (host != null && DevourerFeedingSystem.isDevourer(host))
             detail += "\n吞噬 " + DevourerFeedingSystem.meals(host) + " 只 · 生物质 "
-                    + DevourerFeedingSystem.biomass(host) + "/60 · 供养节点 " + DevourerHabitat.liveNodes(host) + "/4（至少 2 个）";
+                    + DevourerFeedingSystem.biomass(host) + "/60 · 供养节点 " + DevourerHabitat.liveNodes(host) + "/4（至少 2 个）"
+                    + "\n进食：" + DevourerFeedingSystem.describe(host);
+        int multiplier = HiveAcceleration.multiplier(hive);
         String reason = spent ? "本蜂巢已经产生过巨构" : state.getString("BlockedReason");
-        if (reason.isEmpty()) reason = idleReason(level, state, count, nearbyPlayer(level, hive), nearbyColossus(level, hive));
+        if (reason.isEmpty() || !spent && maturity < HIVE_MATURITY_TICKS)
+            reason = idleReason(level, state, count, nearbyPlayer(level, hive), nearbyColossus(level, hive));
         return Component.literal("蜂巢 " + hive.getBlockX() + ", " + hive.getBlockY() + ", " + hive.getBlockZ()
+                + " · 局部培育倍率 " + multiplier + "×"
                 + "\n成熟度 " + maturity / 20 + "/" + HIVE_MATURITY_TICKS / 20 + " 秒"
+                + (maturity < HIVE_MATURITY_TICKS && level.getDifficulty() != Difficulty.PEACEFUL
+                ? "（保持加载约还需 " + (HIVE_MATURITY_TICKS - maturity + 20 * multiplier - 1) / (20 * multiplier) + " 秒）" : "")
                 + " · 48 格内感染生物 " + count + "/" + REQUIRED_INFECTED
                 + "\n宿主：" + detail + "\n状态：" + reason);
     }

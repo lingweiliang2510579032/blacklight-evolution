@@ -16,10 +16,34 @@ import yesman.epicfight.api.client.camera.EpicFightCameraAPI;
 public final class ClientTargetLock {
     private static net.minecraft.client.player.LocalPlayer previousPlayer;
     private static int previousId=-1;
+    private record Focus(net.minecraft.client.player.LocalPlayer player,LivingEntity target,long tick,
+            net.minecraft.world.phys.Vec3 eye,net.minecraft.world.phys.Vec3 targetPosition,net.minecraft.world.phys.Vec3 point) {}
+    private static Focus cachedFocus;
     public static boolean active(){return PrototypeMetabolism.active(Minecraft.getInstance().player);}
     public static boolean valid(LivingEntity target){
         var p=Minecraft.getInstance().player;
         return p!=null && CombatTargeting.selectable(p,target);
+    }
+    public static boolean visibleInRange(LivingEntity target){
+        var p=Minecraft.getInstance().player;
+        double range=EpicFightCameraAPI.getInstance().getFocusingEntityPickRange();
+        return valid(target)&&CombatTargeting.visibleWithinRange(p,target,range);
+    }
+    public static net.minecraft.world.phys.Vec3 focusPoint(LivingEntity target){
+        var p=Minecraft.getInstance().player;
+        if(p==null||!CombatTargeting.multipart(target))return target.getBoundingBox().getCenter();
+        long tick=p.level().getGameTime();var eye=p.getEyePosition();var position=target.position();
+        var cached=cachedFocus;
+        if(cached!=null&&cached.player==p&&cached.target==target&&cached.tick==tick
+                &&cached.eye.equals(eye)&&cached.targetPosition.equals(position))return cached.point;
+        var point=CombatTargeting.lockPoint(p,target);
+        cachedFocus=new Focus(p,target,tick,eye,position,point);
+        return point;
+    }
+    public static net.minecraft.world.phys.AABB focusBounds(LivingEntity target){
+        if(!CombatTargeting.multipart(target))return target.getBoundingBox();
+        var point=focusPoint(target);
+        return new net.minecraft.world.phys.AABB(point,point).inflate(.4);
     }
     /** A stale EF lock flag must never reserve the camera without a live target. */
     public static boolean hasValidLock(){
@@ -31,22 +55,25 @@ public final class ClientTargetLock {
     public static void focusHitPart(){
         var minecraft=Minecraft.getInstance();var camera=EpicFightCameraAPI.getInstance();
         if(!active()||camera.isLockingOnTarget()&&valid(camera.getFocusingEntity()))return;
-        if(minecraft.hitResult instanceof net.minecraft.world.phys.EntityHitResult hit
+        // EF's detached camera traces farther than Minecraft's short interaction ray.
+        var result=camera.getCrosshairHitResult();
+        if(!(result instanceof net.minecraft.world.phys.EntityHitResult))result=minecraft.hitResult;
+        if(result instanceof net.minecraft.world.phys.EntityHitResult hit
                 &&hit.getEntity() instanceof net.neoforged.neoforge.entity.PartEntity<?>){
             var parent=CombatTargeting.resolveTarget(hit.getEntity());
-            if(valid(parent)&&camera.getFocusingEntity()!=parent)((TargetFocusAccess)(Object)camera).blacklight$focusEntity(parent);
+            if(visibleInRange(parent)&&camera.getFocusingEntity()!=parent)((TargetFocusAccess)(Object)camera).blacklight$focusEntity(parent);
         }
     }
     public static void sync(){
         var p=Minecraft.getInstance().player;
         var camera=EpicFightCameraAPI.getInstance();
         if(p==null){
-            previousPlayer=null;previousId=-1;
+            previousPlayer=null;previousId=-1;cachedFocus=null;
             if(camera.isLockingOnTarget())camera.setLockOn(false);
             return;
         }
         boolean replaced=p!=previousPlayer;
-        if(replaced){previousPlayer=p;previousId=-2;}
+        if(replaced){previousPlayer=p;previousId=-2;cachedFocus=null;}
         var target=camera.getFocusingEntity();
         if(camera.isLockingOnTarget()&&(replaced||!active()||!valid(target))){
             // setLockOn invokes sync through our mixin. The flag is already cleared

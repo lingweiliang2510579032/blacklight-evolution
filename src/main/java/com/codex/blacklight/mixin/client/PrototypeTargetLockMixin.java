@@ -1,8 +1,10 @@
 package com.codex.blacklight.mixin.client;
 
 import com.codex.blacklight.client.ClientTargetLock;
+import com.codex.blacklight.combat.CombatTargeting;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -67,6 +69,58 @@ public abstract class PrototypeTargetLockMixin implements com.codex.blacklight.c
     }
     @Inject(method="predicateFocusableEntity",at=@At("HEAD"),cancellable=true)
     private void blacklight$filterFocus(Entity entity,CallbackInfoReturnable<Boolean> callback){
-        if(ClientTargetLock.active() && entity instanceof LivingEntity living && !ClientTargetLock.valid(living)) callback.setReturnValue(false);
+        if(ClientTargetLock.active() && entity instanceof LivingEntity living){
+            if(!ClientTargetLock.valid(living))callback.setReturnValue(false);
+            // Limb rays resolve to a LivingEntity parent which intentionally is
+            // not pickable. Permit it as focus without adding a root hit surface.
+            else if(CombatTargeting.multipart(living))callback.setReturnValue(true);
+        }
+    }
+
+    @WrapOperation(method={"postClientTick","lambda$setNextLockOnTarget$0"},at=@At(value="INVOKE",
+            target="Lyesman/epicfight/api/utils/math/MathUtils;canBeSeen(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity;D)Z"))
+    private boolean blacklight$visibleBody(Entity target,Entity observer,double range,Operation<Boolean> original){
+        if(ClientTargetLock.active()&&target instanceof LivingEntity living&&CombatTargeting.multipart(living))
+            return ClientTargetLock.visibleInRange(living);
+        return original.call(target,observer,range);
+    }
+
+    @WrapOperation(method="postClientTick",at=@At(value="INVOKE",
+            target="Lnet/minecraft/client/player/LocalPlayer;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"))
+    private double blacklight$bodyRange(net.minecraft.client.player.LocalPlayer player,net.minecraft.world.phys.Vec3 point,Operation<Double> original){
+        return ClientTargetLock.active()&&focusingEntity!=null&&CombatTargeting.multipart(focusingEntity)
+                ?CombatTargeting.distanceSquared(player.getEyePosition(),focusingEntity):original.call(player,point);
+    }
+
+    @WrapOperation(method="lambda$setNextLockOnTarget$0",at=@At(value="INVOKE",
+            target="Lnet/minecraft/world/entity/Entity;distanceToSqr(Lnet/minecraft/world/entity/Entity;)D"))
+    private double blacklight$candidateRange(Entity target,Entity observer,Operation<Double> original){
+        return ClientTargetLock.active()&&target instanceof LivingEntity living&&CombatTargeting.multipart(living)
+                ?CombatTargeting.distanceSquared(observer.getEyePosition(),living):original.call(target,observer);
+    }
+
+    @WrapOperation(method="postClientTick",at=@At(value="INVOKE",
+            target="Lnet/minecraft/world/entity/LivingEntity;position()Lnet/minecraft/world/phys/Vec3;"))
+    private net.minecraft.world.phys.Vec3 blacklight$bodyPosition(LivingEntity target,Operation<net.minecraft.world.phys.Vec3> original){
+        return ClientTargetLock.active()&&CombatTargeting.multipart(target)?ClientTargetLock.focusPoint(target):original.call(target);
+    }
+
+    @WrapOperation(method="postClientTick",at=@At(value="INVOKE",
+            target="Lnet/minecraft/world/entity/LivingEntity;getEyePosition()Lnet/minecraft/world/phys/Vec3;"))
+    private net.minecraft.world.phys.Vec3 blacklight$bodyAim(LivingEntity target,Operation<net.minecraft.world.phys.Vec3> original){
+        return ClientTargetLock.active()&&CombatTargeting.multipart(target)?ClientTargetLock.focusPoint(target):original.call(target);
+    }
+
+    @WrapOperation(method="postClientTick",at=@At(value="INVOKE",
+            target="Lnet/minecraft/world/entity/LivingEntity;getBoundingBox()Lnet/minecraft/world/phys/AABB;"))
+    private net.minecraft.world.phys.AABB blacklight$bodyFrame(LivingEntity target,Operation<net.minecraft.world.phys.AABB> original){
+        return ClientTargetLock.active()&&CombatTargeting.multipart(target)?ClientTargetLock.focusBounds(target):original.call(target);
+    }
+
+    @WrapOperation(method="lambda$setNextLockOnTarget$1",at=@At(value="INVOKE",
+            target="Lnet/minecraft/world/entity/Entity;getBoundingBox()Lnet/minecraft/world/phys/AABB;"))
+    private net.minecraft.world.phys.AABB blacklight$candidateFrame(Entity target,Operation<net.minecraft.world.phys.AABB> original){
+        return ClientTargetLock.active()&&target instanceof LivingEntity living&&CombatTargeting.multipart(living)
+                ?ClientTargetLock.focusBounds(living):original.call(target);
     }
 }

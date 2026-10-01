@@ -33,7 +33,10 @@ public final class PowerFormSystem {
             player.displayClientMessage(Component.translatable("message.blacklight.form_locked", Component.translatable("power.blacklight." + form.id()), form.epCost()), true);
             return false;
         }
-        if(form!=PowerForm.NONE)com.codex.blacklight.disguise.DisguiseSystem.reveal(player);
+        boolean visible=UtilityPowerSystem.supported(form)
+                ?(form==PowerForm.SHIELD||form==PowerForm.ARMOR)&&!UtilityPowerSystem.active(player,form)
+                :form!=PowerForm.NONE;
+        if(visible)com.codex.blacklight.disguise.DisguiseSystem.visiblePower(player);
         if(UtilityPowerSystem.supported(form))UtilityPowerSystem.toggle(player,form);
         else if (!state.activate(form)) return false;
         combat.markTransformToggled(player.tickCount);

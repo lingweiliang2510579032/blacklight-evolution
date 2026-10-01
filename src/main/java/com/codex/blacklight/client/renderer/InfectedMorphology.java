@@ -25,9 +25,10 @@ public final class InfectedMorphology implements AutoCloseable {
         float volume(){return w*h*d;}
     }
     private record Box(float x,float y,float z,float w,float h,float d,int material) { }
-    private record Attachment(int anatomy,List<Box> boxes) { }
+    private record Attachment(int anatomy,List<Box> boxes,InfectedBite wound) { }
     private record Pending(Attachment attachment,PoseStack.Pose pose,int light,int overlay,int color) { }
     private final LivingEntity proxy;
+    private final String profile;
     private final InfectedMorphology previous;
     private final Map<ModelPart,Attachment> attachments;
     private final Map<ModelPart,Pending> pending = new IdentityHashMap<>();
@@ -42,13 +43,31 @@ public final class InfectedMorphology implements AutoCloseable {
         this.proxy=proxy;previous=ACTIVE.get();
         String type=host.hostData().getString("Type");
         var species=DEFINITIONS.getAsJsonObject("species");
-        String profile=species.has(type)?species.get(type).getAsString():
-                host.family().equals("air")?"winged":host.family().equals("water")?"aquatic":
-                host.humanoid()?"humanoid":host.quadruped()?"bovine":"generic";
-        attachments=CACHE.computeIfAbsent(model,k->new HashMap<>()).computeIfAbsent(profile,k->bind(model,k));
+        profile=species.has(type)?species.get(type).getAsString():switch(type){
+            case "minecraft:skeleton_horse","minecraft:zombie_horse"->"equine";
+            case "minecraft:giant"->"humanoid";
+            case "minecraft:shulker"->"shelled";
+            case "minecraft:tadpole"->"aquatic";
+            case "minecraft:blaze","minecraft:breeze"->"winged";
+            default->host.family().equals("air")?"winged":host.family().equals("water")?"aquatic":
+                    host.humanoid()?"humanoid":host.quadruped()?"bovine":"generic";
+        };
+        attachments=new IdentityHashMap<>(CACHE.computeIfAbsent(model,k->new HashMap<>()).computeIfAbsent(profile,k->bind(model,k)));
         ACTIVE.set(this);
     }
     @Override public void close(){pending.clear();if(previous==null)ACTIVE.remove();else ACTIVE.set(previous);}
+    /** Fur must reveal the same bite instead of covering it with an intact outer coat.
+     * Only clip the copied coat; do not emit a second set of body mutations. */
+    public static void copiedSkinLayer(LivingEntity entity,EntityModel<?> model,ResourceLocation texture){
+        var context=ACTIVE.get();
+        if(context==null||context.proxy!=entity)return;
+        String path=texture.getPath();
+        if(!path.contains("sheep_fur")&&!path.contains("drowned_outer_layer")
+                &&!path.contains("stray_overlay")&&!path.contains("bogged_overlay"))return;
+        var layer=CACHE.computeIfAbsent(model,k->new HashMap<>()).computeIfAbsent(context.profile,k->bind(model,k));
+        layer.forEach((part,attachment)->context.attachments.putIfAbsent(part,
+                new Attachment(attachment.anatomy,List.of(),attachment.wound)));
+    }
     private static Bounds bounds(ModelPart part){
         var cubes=((ModelPartChildrenAccessor)(Object)part).blacklight$cubes();
         if(cubes.isEmpty())return null;
@@ -65,6 +84,13 @@ public final class InfectedMorphology implements AutoCloseable {
         }
         // The humanoid hat may have the same cube size as the head but be hidden.
         if(model instanceof HumanoidModel<?> h){largest.put(ConsumeAnatomy.HEAD,h.head);largest.put(ConsumeAnatomy.BODY,h.body);}
+        else {
+            ModelPart root=com.codex.blacklight.client.animation.ReceiverModelPose.root(model);
+            if(root!=null){
+                preferNamed(largest,root,"head",ConsumeAnatomy.HEAD);
+                preferNamed(largest,root,"body",ConsumeAnatomy.BODY);
+            }
+        }
         var definition=DEFINITIONS.getAsJsonObject("profiles").getAsJsonObject(profile);
         Map<ModelPart,Attachment> result=new IdentityHashMap<>();
         for(var entry:largest.entrySet()){
@@ -73,18 +99,43 @@ public final class InfectedMorphology implements AutoCloseable {
             boolean horizontalBody=entry.getKey()==ConsumeAnatomy.BODY
                     && Set.of("bovine","porcine","woolly","canine","feline","equine","small_quadruped").contains(profile)
                     && Math.abs(Math.sin(entry.getValue().getInitialPose().xRot))<.5;
-            result.put(entry.getValue(),attachment(b,entry.getKey(),definition.getAsJsonArray(role),horizontalBody));
+            result.put(entry.getValue(),attachment(entry.getValue(),b,entry.getKey(),definition.getAsJsonArray(role),horizontalBody,profile));
         }
         // Spiders have eight articulated legs, not four humanoid limb slots.
         if(profile.equals("arthropod"))for(var entry:anatomy.entrySet()){
             if(entry.getValue()<ConsumeAnatomy.RIGHT_ARM||entry.getValue()>ConsumeAnatomy.LEFT_LEG)continue;
-            Bounds b=bounds(entry.getKey());if(b!=null)result.put(entry.getKey(),attachment(b,entry.getValue(),definition.getAsJsonArray("limb"),false));
+            Bounds b=bounds(entry.getKey());if(b!=null)result.put(entry.getKey(),attachment(entry.getKey(),b,entry.getValue(),definition.getAsJsonArray("limb"),false,profile));
         }
+        // Native outer hats and coats use the same body animation, but must not
+        // cover its bite with another intact quad or emit duplicate bone growth.
+        if(model instanceof HumanoidModel<?> h&&!result.containsKey(h.hat))
+            result.put(h.hat,new Attachment(ConsumeAnatomy.HEAD,List.of(),InfectedBite.create(h.hat,ConsumeAnatomy.HEAD,profile)));
+        ModelPart root=com.codex.blacklight.client.animation.ReceiverModelPose.root(model);
+        if(root!=null)bindCoats(root,result,anatomy,profile);
         return result;
     }
-    private static Attachment attachment(Bounds b,int anatomy,JsonArray source,boolean horizontalBody){
+    private static void preferNamed(Map<Integer,ModelPart> largest,ModelPart root,String name,int anatomy){
+        var children=((ModelPartChildrenAccessor)(Object)root).blacklight$children();
+        ModelPart part=children.get(name);
+        if(part!=null&&bounds(part)!=null){largest.put(anatomy,part);return;}
+        for(var child:children.values())preferNamed(largest,child,name,anatomy);
+    }
+    private static void bindCoats(ModelPart root,Map<ModelPart,Attachment> result,Map<ModelPart,Integer> anatomy,String profile){
+        for(var child:((ModelPartChildrenAccessor)(Object)root).blacklight$children().entrySet()){
+            String name=child.getKey();ModelPart part=child.getValue();
+            if(name.equals("hat")||name.equals("jacket")||name.endsWith("_sleeve")||name.endsWith("_pants")){
+                int role=anatomy.getOrDefault(part,ConsumeAnatomy.BODY);
+                if(!result.containsKey(part))result.put(part,new Attachment(role,List.of(),InfectedBite.create(part,role,profile)));
+            }
+            bindCoats(part,result,anatomy,profile);
+        }
+    }
+    private static Attachment attachment(ModelPart part,Bounds b,int anatomy,JsonArray source,boolean horizontalBody,String profile){
         List<Box> boxes=new ArrayList<>();
+        int index=0;
         for(var value:source){
+            // Keep one loaded side instead of mirroring the same mutation on every limb.
+            if((anatomy==ConsumeAnatomy.LEFT_ARM||anatomy==ConsumeAnatomy.LEFT_LEG)&&index++%3!=0)continue;
             var o=value.getAsJsonObject();var c=o.getAsJsonArray("center");var s=o.getAsJsonArray("size");
             int material=DEFINITIONS.getAsJsonObject("materials").get(o.get("material").getAsString()).getAsInt();
             // Keep small fish/wing details small, while preserving zero-thickness
@@ -96,7 +147,53 @@ public final class InfectedMorphology implements AutoCloseable {
             boxes.add(new Box(b.x+c.get(0).getAsFloat()*b.w,b.y+cy*b.h,b.z+cz*b.d,
                     Math.max(.18F,s.get(0).getAsFloat()*b.w),Math.max(.18F,sy*b.h),Math.max(.18F,sz*b.d),material));
         }
-        return new Attachment(anatomy,List.copyOf(boxes));
+        InfectedBite wound=InfectedBite.create(part,anatomy,profile);
+        if(wound!=null)addWoundInterior(boxes,wound);
+        return new Attachment(anatomy,List.copyOf(boxes),wound);
+    }
+    private static void addWoundInterior(List<Box> boxes,InfectedBite w){
+        float depth=w.depth,edge=Math.max(.16F,Math.min(.4F,depth*.24F));
+        for(int band=0;band<3;band++){
+            float lowY=w.y0+(w.y1-w.y0)*(band==0?0:band==1?.25F:.75F);
+            float highY=w.y0+(w.y1-w.y0)*(band==0?.25F:band==1?.75F:1);
+            float lowZ=w.z0+(w.z1-w.z0)*(band==0?.16F:0);
+            float highZ=w.z0+(w.z1-w.z0)*(band==2?.82F:1);
+            float middleX=w.face+w.inward*depth*.5F;
+            // The original skin is cut away. These are recessed surfaces inside
+            // the removed volume, rather than a red plate hiding an intact face.
+            boxes.add(new Box(w.face+w.inward*depth,(lowY+highY)*.5F,(lowZ+highZ)*.5F,.10F,highY-lowY,highZ-lowZ,1));
+            boxes.add(new Box(middleX,lowY+edge*.5F,(lowZ+highZ)*.5F,depth,edge,highZ-lowZ,0));
+            boxes.add(new Box(middleX,highY-edge*.5F,(lowZ+highZ)*.5F,depth,edge,highZ-lowZ,1));
+            boxes.add(new Box(middleX,(lowY+highY)*.5F,lowZ+edge*.5F,depth,highY-lowY,edge,0));
+            boxes.add(new Box(middleX,(lowY+highY)*.5F,highZ-edge*.5F,depth,highY-lowY,edge,1));
+        }
+        for(int i=0;i<2;i++)boxes.add(new Box(w.face+w.inward*depth*.55F,w.y0+(w.y1-w.y0)*(.40F+i*.23F),
+                w.z0+(w.z1-w.z0)*(.35F+i*.27F),Math.max(.2F,depth*.42F),Math.max(.25F,(w.y1-w.y0)*.11F),
+                Math.max(.3F,(w.z1-w.z0)*.32F),2));
+    }
+    /** Compile only selected native cubes through a local face cutter. No shared model mutation. */
+    public static boolean renderWounded(ModelPart part,PoseStack.Pose pose,VertexConsumer out,int light,int overlay,int color){
+        var context=ACTIVE.get();if(context==null)return false;
+        Attachment attachment=context.attachments.get(part);
+        // Slime's translucent shell bypasses RenderLayer's copied-cutout helper.
+        // Its full cuboid is still a ModelPart: open the matching recess there,
+        // keeping the slime's eyes/mouth and native transparency untouched.
+        if(attachment==null&&context.proxy instanceof net.minecraft.world.entity.monster.Slime){
+            Bounds b=bounds(part);
+            if(b!=null&&b.volume()>=64){
+                attachment=new Attachment(ConsumeAnatomy.BODY,List.of(),InfectedBite.create(part,ConsumeAnatomy.BODY,"soft"));
+                context.attachments.put(part,attachment);
+            }
+        }
+        if(attachment==null||attachment.wound==null)return false;
+        for(var cube:((ModelPartChildrenAccessor)(Object)part).blacklight$cubes()){
+            if(cube==attachment.wound.cube)attachment.wound.compile(pose,out,light,overlay,color);
+            else cube.compile(pose,out,light,overlay,color);
+        }
+        // Cancelling ModelPart.compile skips its TAIL hook; record the exact same posed
+        // attachment here so wound walls still participate in absorption/fracture.
+        capture(part,pose,light,overlay,color);
+        return true;
     }
     /** Called inside ModelPart.compile, after its complete animated transform. */
     public static void capture(ModelPart part,PoseStack.Pose pose,int light,int overlay,int color){

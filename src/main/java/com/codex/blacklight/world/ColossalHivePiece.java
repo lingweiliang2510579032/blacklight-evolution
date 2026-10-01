@@ -67,12 +67,24 @@ public final class ColossalHivePiece extends StructurePiece {
             if(!old.equals(placed))level.setBlock(at,placed,2);
         }
         // Each location's own chunk is complete before its finite inhabitants are added.
+        spawnResidents(level,clip,protectedBoxes);
+    }
+    /** Manual placement calls this only after every column in the entire hive is complete. */
+    public synchronized void spawnResidents(WorldGenLevel level,BoundingBox clip,List<BoundingBox> protectedBoxes) {
         spawn(level,clip,protectedBoxes,0,centre.offset(0,1,0),true,false);
         spawn(level,clip,protectedBoxes,1,centre.offset(ColossalHiveLayout.CORE_X,ColossalHiveLayout.CORE_Y,ColossalHiveLayout.CORE_Z),false,true);
         for(int i=0;i<20;i++) {
             int[] p=ColossalHiveLayout.preyPosition(i);
             spawn(level,clip,protectedBoxes,i+2,centre.offset(p[0],p[1],p[2]),false,false);
         }
+    }
+    /** Null means KEEP. The command shares exactly the natural structure's voxel layout. */
+    public BlockState plannedState(BlockPos at) {
+        var material=ColossalHiveLayout.materialAt(at.getX()-centre.getX(),at.getY()-centre.getY(),at.getZ()-centre.getZ(),shapeSeed);
+        return material==ColossalHiveLayout.Material.KEEP?null:state(material);
+    }
+    public static boolean canReplace(BlockState old) {
+        return old.getFluidState().isEmpty()&&!old.hasBlockEntity()&&replaceable(old);
     }
     private void spawn(WorldGenLevel level,BoundingBox clip,List<BoundingBox> protectedBoxes,int slot,BlockPos at,boolean devourer,boolean core) {
         long bit=1L<<slot;

@@ -8,9 +8,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ModelPart.class)
 public abstract class ConsumeModelPartMixin {
-    @Inject(method="compile",at=@At("HEAD"))
+    @Inject(method="compile",at=@At("HEAD"),cancellable=true)
     private void blacklight$anatomy(PoseStack.Pose pose,VertexConsumer out,int light,int overlay,int color,CallbackInfo ci){
         if(out instanceof ConsumeAnatomy.Consumer consumer)consumer.anatomy((ModelPart)(Object)this);
+        if(com.codex.blacklight.client.renderer.InfectedMorphology.renderWounded((ModelPart)(Object)this,pose,out,light,overlay,color))ci.cancel();
     }
     @Inject(method="compile",at=@At("TAIL"))
     private void blacklight$infectedGrowth(PoseStack.Pose pose,VertexConsumer out,int light,int overlay,int color,CallbackInfo ci){

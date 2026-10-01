@@ -18,13 +18,14 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
 
-/** Full authored replacement models; unknown modded hosts retain the old articulated fallback. */
+/** Native species bodies with wounds, plus the approved zombie and colossal meshes. */
 public final class InfectedHostRenderer extends EntityRenderer<BlacklightInfectedHost> {
     public InfectedHostRenderer(EntityRendererProvider.Context context){super(context);shadowRadius=.6F;}
     @Override public ResourceLocation getTextureLocation(BlacklightInfectedHost entity){return ConsumedMobVisuals.WHITE;}
     @Override @SuppressWarnings({"rawtypes","unchecked"})
     public void render(BlacklightInfectedHost entity,float yaw,float partial,PoseStack stack,MultiBufferSource buffers,int light){
-        var mesh=InfectedSpeciesMesh.get(entity.hostData().getString("Type"));
+        DevourerFeedingFx.render(entity,partial,stack,buffers,light);
+        var mesh=authoredMesh(entity);
         if(mesh!=null){renderAuthored(entity,mesh,yaw,partial,stack,buffers,light);return;}
         var proxy=entity.appearance();if(proxy==null)return;
         proxy.setId(entity.getId());proxy.copyPosition(entity);
@@ -36,6 +37,7 @@ public final class InfectedHostRenderer extends EntityRenderer<BlacklightInfecte
         proxy.tickCount=entity.tickCount;proxy.hurtTime=entity.hurtTime;proxy.deathTime=entity.deathTime;
         proxy.setOnGround(entity.onGround());proxy.setDeltaMovement(entity.getDeltaMovement());
         proxy.attackAnim=entity.attackAnim;proxy.oAttackAnim=entity.oAttackAnim;
+        proxy.swinging=entity.swinging;proxy.setInvisible(entity.isInvisible());
         // Do not advance animation per render frame: interpolation is sampled from the host.
         entity.advanceAppearanceAnimation();
         if(proxy instanceof net.minecraft.world.entity.ambient.Bat bat)bat.setResting(false);
@@ -46,7 +48,7 @@ public final class InfectedHostRenderer extends EntityRenderer<BlacklightInfecte
         proxy.setCustomName(null);
         EntityRenderer renderer=Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(proxy);
         var skin=new InfectedSkinBuffers(buffers);
-        stack.pushPose();stack.scale(1.12F,1.12F,1.12F);
+        stack.pushPose();DevourerFeedingFx.applyVictim(entity,partial,stack);stack.scale(1.12F,1.12F,1.12F);
         try{
             if(renderer instanceof net.minecraft.client.renderer.entity.LivingEntityRenderer living){
                 try(var morphology=new InfectedMorphology(entity,proxy,living.getModel())){
@@ -58,8 +60,11 @@ public final class InfectedHostRenderer extends EntityRenderer<BlacklightInfecte
     }
 
     @Override public boolean shouldRender(BlacklightInfectedHost entity,Frustum camera,double x,double y,double z){
-        var mesh=InfectedSpeciesMesh.get(entity.hostData().getString("Type"));
-        if(mesh==null)return super.shouldRender(entity,camera,x,y,z);
+        if(entity.feedingStarted()>=0&&entity.level().getEntity(entity.feedingTargetId()) instanceof net.minecraft.world.entity.LivingEntity prey
+                &&prey.isAlive()&&prey.distanceToSqr(entity)<=48*48
+                &&camera.isVisible(entity.getBoundingBox().minmax(prey.getBoundingBox()).inflate(3)))return true;
+        var mesh=authoredMesh(entity);
+        if(mesh==null)return entity.shouldRender(x,y,z)&&(entity.noCulling||camera.isVisible(entity.getBoundingBox().inflate(.65)));
         double scale=scale(entity,mesh);
         var bounds=mesh.bounds();
         double radius=Math.hypot(Math.max(Math.abs(bounds.minX),Math.abs(bounds.maxX)),
@@ -68,6 +73,13 @@ public final class InfectedHostRenderer extends EntityRenderer<BlacklightInfecte
         var visualBounds=new net.minecraft.world.phys.AABB(entity.getX()-radius,entity.getY()-motionMargin,entity.getZ()-radius,
                 entity.getX()+radius,entity.getY()+bounds.maxY*scale+motionMargin,entity.getZ()+radius);
         return entity.shouldRender(x,y,z)&&(entity.noCulling||camera.isVisible(visualBounds));
+    }
+
+    private static InfectedSpeciesMesh authoredMesh(BlacklightInfectedHost host){
+        // The zombie was already approved as a dedicated infected design. Other
+        // ordinary species retain their native bodies, variants and local wounds.
+        String species=host.speciesId();
+        return host.hasMultipartBody()||species.equals("minecraft:zombie")?InfectedSpeciesMesh.get(species):null;
     }
 
     private static float scale(BlacklightInfectedHost host,InfectedSpeciesMesh mesh){
@@ -96,6 +108,7 @@ public final class InfectedHostRenderer extends EntityRenderer<BlacklightInfecte
         var receiver=InfectedModelPose.receiverState(entity,partial);
         stack.pushPose();
         try{
+            DevourerFeedingFx.applyVictim(entity,partial,stack);
             net.minecraft.world.phys.Vec3 placement=net.minecraft.world.phys.Vec3.ZERO;
             if(consuming){
                 placement=com.codex.blacklight.client.ClientCarryPlacement.consumeOffset(entity,partial);

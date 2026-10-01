@@ -117,6 +117,7 @@ public final class BlacklightInfectionSystem {
             mob.getNavigation().stop();
             return;
         }
+        if (mob.getPersistentData().getLong("BlacklightConversionRetry") > serverLevel.getGameTime()) return;
         convertHost(mob, serverLevel);
     }
 
@@ -132,6 +133,14 @@ public final class BlacklightInfectionSystem {
         source.getTags().forEach(infected::addTag);
         // The source and its inventory survive if another mod vetoes replacement.
         if (!level.addFreshEntity(infected)) return;
+        // Conversion is not a kill: return stored possessions even with doMobLoot=false.
+        // Never clear them before the replacement joins, and retain the source if an
+        // item-spawn veto prevents returning a slot. Earlier accepted drops stay dropped.
+        if (!releaseStoredItems(source, level)) {
+            infected.discard();
+            source.getPersistentData().putLong("BlacklightConversionRetry", level.getGameTime() + 200);
+            return;
+        }
         for (var slot : net.minecraft.world.entity.EquipmentSlot.values()) {
             infected.setItemSlot(slot, source.getItemBySlot(slot).copyAndClear());
             infected.setDropChance(slot, 1.0F);
@@ -144,6 +153,51 @@ public final class BlacklightInfectionSystem {
         level.playSound(null,infected.blockPosition(),net.minecraft.sounds.SoundEvents.SCULK_CATALYST_BLOOM,
                 net.minecraft.sounds.SoundSource.HOSTILE,.8F,.65F);
         source.discard();
+    }
+
+    /** Public vanilla inventory APIs; no detached visual NBT is used as item storage. */
+    private static boolean releaseStoredItems(Mob source, ServerLevel level) {
+        if (source instanceof net.minecraft.world.entity.animal.horse.AbstractHorse horse) {
+            if (!releaseStoredSlot(source, level, horse.getSlot(400))) return false;
+            for (int index = 1; index < horse.getInventorySize(); index++) {
+                if (!releaseStoredSlot(source, level, horse.getSlot(500 + index - 1))) return false;
+            }
+            // Remove the chest last: clearing slot 499 rebuilds/shrinks the inventory.
+            if (horse instanceof net.minecraft.world.entity.animal.horse.AbstractChestedHorse chested
+                    && chested.hasChest() && !releaseStoredSlot(source, level, horse.getSlot(499))) return false;
+        } else {
+            net.minecraft.world.Container inventory = source instanceof net.minecraft.world.entity.npc.InventoryCarrier carrier
+                    ? carrier.getInventory() : source instanceof net.minecraft.world.Container container ? container : null;
+            if (inventory != null) {
+                for (int index = 0; index < inventory.getContainerSize(); index++) {
+                    if (!releaseStoredSlot(source, level, net.minecraft.world.entity.SlotAccess.forContainer(inventory, index))) return false;
+                }
+            }
+        }
+        // These two vanilla species store only a saddle flag, not an inventory stack.
+        // Keep this last, so accepted insertion is followed immediately by conversion.
+        if ((source instanceof net.minecraft.world.entity.animal.Pig
+                || source instanceof net.minecraft.world.entity.monster.Strider)
+                && source instanceof net.minecraft.world.entity.Saddleable saddled && saddled.isSaddled()) {
+            var drop = new net.minecraft.world.entity.item.ItemEntity(level, source.getX(), source.getY(), source.getZ(),
+                    new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.SADDLE));
+            drop.setDefaultPickUpDelay();
+            if (!level.addFreshEntity(drop)) return false;
+        }
+        return true;
+    }
+
+    private static boolean releaseStoredSlot(Mob source, ServerLevel level, net.minecraft.world.entity.SlotAccess slot) {
+        var stack = slot.get();
+        if (stack.isEmpty()) return true;
+        var stored = stack.copy();
+        // Clear first so synchronous entity-join callbacks never see both copies.
+        if (!slot.set(net.minecraft.world.item.ItemStack.EMPTY)) return false;
+        var drop = new net.minecraft.world.entity.item.ItemEntity(level, source.getX(), source.getY(), source.getZ(), stored.copy());
+        drop.setDefaultPickUpDelay();
+        if (level.addFreshEntity(drop)) return true;
+        slot.set(stored);
+        return false;
     }
 
     private static boolean isValidTarget(Mob attacker, LivingEntity candidate) {

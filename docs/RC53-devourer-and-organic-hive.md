@@ -34,13 +34,15 @@ Minecraft 1.21.1 / NeoForge / Blacklight: Ascension 0.2.0-rc.53。
 
 ## 查看入口与本轮边界
 
+> 以下是 RC53 的原生命令。新的分段定位、放置与进度提示见 [RC54 指令说明](RC54-disguise-and-hive-commands.md)。
+
 ```mcfunction
 /locate structure blacklight:colossal_hive
 /place structure blacklight:colossal_hive
 /blacklight colossus_status
 ```
 
-前两条为 Minecraft 管理员指令。`place structure` 仍受该结构的干地、地势和高度条件限制，普通超平坦世界低于海平面时可能失败；适合在正常世界的开阔平原使用。它会建造大型结构，请在准备放置的位置执行。`colossus_status` 只读查看附近蜂巢的成熟度、成长、生物质和供养条件。
+前两条为 Minecraft 管理员指令。`place structure` 仍受该结构的干地、地势和高度条件限制，RC53 默认超平坦因地下基础超出世界底部会失败（已核实其海平面为 -63，先前“低于海平面”的解释不准确）；适合在正常世界的开阔平原使用。它会建造大型结构，请在准备放置的位置执行。`colossus_status` 只读查看附近蜂巢的成熟度、成长、生物质和供养条件。
 
 预览图由同一份 Java 方块布局导出并渲染；剖面放置的成熟铁傀儡仅作为尺寸参考，新生实际为小体型。这些是结构预览，不是游戏实测截图。
 

@@ -18,6 +18,7 @@ public abstract class ConsumeLayerPoseMixin {
     private static void blacklight$pose(EntityModel<?> parent,EntityModel<?> model,ResourceLocation texture,PoseStack stack,MultiBufferSource buffer,int light,
             LivingEntity entity,float swing,float amount,float age,float yaw,float pitch,float partial,int color,CallbackInfo ci) {
         ConsumeVictimPose.vanilla(model,entity,partial);
+        com.codex.blacklight.client.renderer.InfectedMorphology.copiedSkinLayer(entity,model,texture);
     }
     @Inject(method="coloredCutoutModelCopyLayerRender",at=@At("RETURN"))
     private static void blacklight$restore(EntityModel<?> parent,EntityModel<?> model,ResourceLocation texture,PoseStack stack,MultiBufferSource buffer,int light,

@@ -30,11 +30,13 @@ public final class ConsumedMobVisuals {
         if (mob instanceof BlacklightHunter) return;
         var data = mob.getData(ModAttachments.CONSUME_VISUAL);
         if (!data.active()) {
+            boolean feeding=DevourerFeedingFx.shrinkingVictim(mob,event.getPartialTick());
             var hit=mob.getData(ModAttachments.HIT_REACTION);
-            if(hit.weight(mob.level().getGameTime(),event.getPartialTick())<=0)return;
+            if(!feeding&&hit.weight(mob.level().getGameTime(),event.getPartialTick())<=0)return;
             var patch=yesman.epicfight.world.capabilities.EpicFightCapabilities.getEntityPatch(mob,yesman.epicfight.world.capabilities.entitypatch.LivingEntityPatch.class);
-            if(com.codex.blacklight.client.animation.NativeHitPose.available(patch))return;
+            if(!feeding&&com.codex.blacklight.client.animation.NativeHitPose.available(patch))return;
             var stack=event.getPoseStack();stack.pushPose();
+            if(feeding)DevourerFeedingFx.applyVictim(mob,event.getPartialTick(),stack);
             com.codex.blacklight.client.animation.HitBodyPose.apply(mob,stack,event.getPartialTick());
             var engine=yesman.epicfight.client.events.engine.RenderEngine.getInstance();
             if(patch!=null&&patch.overrideRender()&&engine.hasRendererFor(mob)){
