@@ -65,6 +65,8 @@ public final class ClientClawEvents {
     private static boolean layerHookRegistered;
     private static boolean automaticTunerOpened;
     private static boolean lastGrabLeft,lastGrabRight;
+    private static boolean lastGrabDown;
+    private static net.minecraft.client.player.LocalPlayer inputOwner;
     private static boolean leftAttackHeld;
     private static boolean leftAttackConsumed;
     private static boolean leftAttackTapSent;
@@ -127,6 +129,7 @@ public final class ClientClawEvents {
     @SubscribeEvent
     public static void onKey(InputEvent.Key event) {
         Minecraft minecraft = Minecraft.getInstance();
+        if (event.getAction() == GLFW.GLFW_RELEASE && GRAB.matches(event.getKey(),event.getScanCode())) lastGrabDown=false;
         if (event.getAction() != GLFW.GLFW_PRESS || minecraft.player == null
                 || minecraft.getConnection() == null) return;
 
@@ -145,10 +148,7 @@ public final class ClientClawEvents {
             if(!minecraft.player.getData(ModAttachments.CONSUMING))minecraft.setScreen(new com.codex.blacklight.client.screen.PowerWheelScreen(CYCLE_FORM)); return;
         }
         if (minecraft.screen == null && GRAB.matches(event.getKey(), event.getScanCode())) {
-            if(ClientWeaponCombat.active())deferredGrabTick=minecraft.player.tickCount+2;
-            else PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.GRAB));
-            minecraft.options.keyInventory.setDown(false);
-            while(minecraft.options.keyInventory.consumeClick()) {}
+            pollGrabPress(true);
             return;
         }
 
@@ -175,6 +175,8 @@ public final class ClientClawEvents {
     /** Opens the timeline once for repeatable development screenshots and nothing else. */
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
+        resetInputOwner();
+        pollGrabPress(physicalGrabDown());
         suppressPrototypePlayerList();
         tickGrabButtons();
         ClientWeaponCombat.poll();
@@ -255,15 +257,49 @@ public final class ClientClawEvents {
         if(mc.player!=null&&mc.screen==null&&mc.player.getData(ModAttachments.CONSUMING)) {
             clearLeftAttackHold();
             mc.options.keyAttack.setDown(false);mc.options.keyUse.setDown(false);
-            if(com.codex.blacklight.combat.ConsumeVisual.holding(mc.player.getData(ModAttachments.GRAB_STAGE))) {
-                if(right&&!lastGrabRight)PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.CONSUME));
-                else if(left&&!lastGrabLeft)PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.THROW));
-            }
+            int stage=mc.player.getData(ModAttachments.GRAB_STAGE);
+            boolean holding=com.codex.blacklight.combat.ConsumeVisual.holding(stage);
+            if(right&&!lastGrabRight&&(holding||com.codex.blacklight.combat.ConsumeVisual.acquiring(stage)))
+                PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.CONSUME));
+            else if(left&&!lastGrabLeft&&holding)
+                PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.THROW));
         }
         lastGrabLeft=left;lastGrabRight=right;
     }
 
     private static int deferredGrabTick=-1;
+    private static void resetInputOwner(){
+        var mc=Minecraft.getInstance();
+        if(inputOwner==mc.player)return;
+        if(inputOwner!=null){
+            var patch=EpicFightCapabilities.getEntityPatch(inputOwner,AbstractClientPlayerPatch.class);
+            if(patch!=null)patch.getAnimator().setHardPause(false);
+        }
+        inputOwner=mc.player;
+        clearLeftAttackHold();
+        groundSpikeHeld=groundSpikePosePaused=groundSpikeAutoReleased=groundSpikeReversing=false;
+        groundSpikeEruptionTicks=groundSpikeStartupWaitTicks=0;
+        deferredGrabTick=-1;lastGrabDown=physicalGrabDown();
+        lastPhysicalLeftDown=lastGrabLeft=lastGrabRight=false;
+    }
+    /** Callback preserves short taps; polling covers keys swallowed by other input handlers. */
+    private static void pollGrabPress(boolean down){
+        var mc=Minecraft.getInstance();
+        resetInputOwner();
+        boolean pressed=down&&!lastGrabDown;
+        lastGrabDown=down;
+        if(!pressed||mc.player==null||mc.getConnection()==null||mc.screen!=null||!mc.isWindowActive()
+                ||!mc.player.isAlive()||!com.codex.blacklight.mode.PrototypeModeSystem.isActive(mc.player))return;
+        if(ClientWeaponCombat.active())deferredGrabTick=mc.player.tickCount+2;
+        else sendGrab(mc);
+        mc.options.keyInventory.setDown(false);
+        while(mc.options.keyInventory.consumeClick()){}
+    }
+    private static void sendGrab(Minecraft mc){
+        ClientMovementEvents.sendAttackDirection(mc);
+        ClientTargetLock.sync();
+        PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.GRAB));
+    }
     static boolean physicalGrabDown(){
         var mc=Minecraft.getInstance();if(mc.getWindow()==null)return false;
         var key=GRAB.getKey();long window=mc.getWindow().getWindow();
@@ -274,13 +310,13 @@ public final class ClientClawEvents {
     private static void tickDeferredGrab(){
         if(deferredGrabTick<0)return;
         var mc=Minecraft.getInstance();
-        if(mc.player==null||mc.screen!=null||!mc.isWindowActive()){deferredGrabTick=-1;return;}
+        if(mc.player==null||!mc.player.isAlive()||mc.screen!=null||!mc.isWindowActive()
+                ||!com.codex.blacklight.mode.PrototypeModeSystem.isActive(mc.player)){deferredGrabTick=-1;return;}
         long window=mc.getWindow().getWindow();
         if(GLFW.glfwGetMouseButton(window,0)==GLFW.GLFW_PRESS||GLFW.glfwGetMouseButton(window,1)==GLFW.GLFW_PRESS){deferredGrabTick=-1;return;}
         if(mc.player.tickCount>=deferredGrabTick){
             deferredGrabTick=-1;
-            ClientTargetLock.sync();
-            PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.GRAB));
+            sendGrab(mc);
         }
     }
 
@@ -570,6 +606,11 @@ public final class ClientClawEvents {
     private static void registerEpicFightLayerHook() {
         if (layerHookRegistered) return;
         layerHookRegistered = true;
+        yesman.epicfight.api.client.event.EpicFightClientEventHooks.Render.VALIDATE_PLAYER_MODEL_TO_RENDER.registerEvent(
+                event -> {
+                    if (!com.codex.blacklight.mode.PrototypeModeSystem.isActive(event.getPlayerPatch().getOriginal()))
+                        event.setShouldRender(false);
+                }, "blacklight:player_model_mode", -1000);
         BlacklightNeoMod.LOGGER.info("Registering Blacklight Epic Fight player renderer");
         EpicFightClientEventHooks.Registry.ADD_PATCHED_ENTITY.registerEvent(event -> {
             event.addPatchedEntityRenderer(EntityType.PLAYER,

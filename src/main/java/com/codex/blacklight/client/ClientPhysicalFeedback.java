@@ -35,6 +35,9 @@ public final class ClientPhysicalFeedback {
     }
 
     public static void accept(PhysicalFeedbackPayload payload) {
+        if(com.codex.blacklight.client.camera.PrototypeChaseCamera.ownsView()) {
+            com.codex.blacklight.client.camera.PrototypeChaseCamera.impact(payload);return;
+        }
         float effectScale = switch (payload.effect()) {
             case LIGHT_LANDING -> 0.22F;
             case JUMP_LAUNCH, CLAW_HIT -> 0.38F;
@@ -90,7 +93,9 @@ public final class ClientPhysicalFeedback {
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null || minecraft.level == null) {
+        if (minecraft.player == null || minecraft.level == null
+                ||!com.codex.blacklight.mode.PrototypeModeSystem.isActive(minecraft.player)
+                ||com.codex.blacklight.client.camera.PrototypeChaseCamera.ownsView()) {
             reset();
             return;
         }
@@ -132,6 +137,8 @@ public final class ClientPhysicalFeedback {
     public static void onCameraAngles(ViewportEvent.ComputeCameraAngles event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || event.getCamera().getEntity() != minecraft.player) return;
+        if (!com.codex.blacklight.mode.PrototypeModeSystem.isActive(minecraft.player)) return;
+        if(com.codex.blacklight.client.camera.PrototypeChaseCamera.ownsView())return;
         float partial = (float)event.getPartialTick();
         float amplitude = Mth.lerp(partial, previousStrength, strength);
         float kick = Mth.lerp(partial, previousVerticalKick, verticalKick);
@@ -156,8 +163,10 @@ public final class ClientPhysicalFeedback {
     public static void onFov(ViewportEvent.ComputeFov event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || event.getCamera().getEntity() != minecraft.player
+                ||!com.codex.blacklight.mode.PrototypeModeSystem.isActive(minecraft.player)
                 || (fovImpulse < 0.001F && runStrength < 0.001F
                 && wallStrength < 0.001F)) return;
+        if(com.codex.blacklight.client.camera.PrototypeChaseCamera.ownsView())return;
         float partial = (float)event.getPartialTick();
         float running = Mth.lerp(partial, previousRunStrength, runStrength);
         float wall = Mth.lerp(partial, previousWallStrength, wallStrength);

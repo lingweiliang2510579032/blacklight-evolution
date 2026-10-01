@@ -32,6 +32,7 @@ public final class UpgradeScreen extends Screen {
     private static final int ROW_HOVER = 0x2EE23A3A;
 
     private enum Category {
+        ATTRIBUTES("screen.blacklight.section.attributes"),
         MOVEMENT("screen.blacklight.section.movement"),
         CLAW("screen.blacklight.section.claw"),
         FORMS("screen.blacklight.section.forms"),
@@ -42,7 +43,7 @@ public final class UpgradeScreen extends Screen {
         Category(String langKey) { this.langKey = langKey; }
     }
 
-    private Category category = Category.MOVEMENT;
+    private Category category = Category.ATTRIBUTES;
     private final List<Row> rows = new ArrayList<>();
     private int railWidth;
     private int contentX;
@@ -71,7 +72,9 @@ public final class UpgradeScreen extends Screen {
         rows.clear();
         clearWidgets();
         int y = 0;
-        if(category==Category.BIOLOGY){
+        if(category==Category.ATTRIBUTES){
+            y=attributeHeight();
+        } else if(category==Category.BIOLOGY){
             for(var growth:com.codex.blacklight.power.GrowthUpgrade.values())y=addRow(y,growth.id,growth.cost,growth.requires()==null?null:growth.requires().id);
         } else if(category==Category.UTILITY){
             for(var form:new com.codex.blacklight.power.PowerForm[]{com.codex.blacklight.power.PowerForm.SHIELD,com.codex.blacklight.power.PowerForm.ARMOR,com.codex.blacklight.power.PowerForm.THERMAL_VISION,com.codex.blacklight.power.PowerForm.INFECTED_VISION})y=addRow(y,form.id(),form.epCost(),null);
@@ -155,6 +158,7 @@ public final class UpgradeScreen extends Screen {
 
         layoutRows();
         graphics.enableScissor(contentX,LIST_TOP,width-10,listBottom);
+        if(category==Category.ATTRIBUTES)renderAttributes(graphics);
         for (Row row : rows) {
             refreshRow(row, state);
             int y=LIST_TOP+row.y-scrollOffset;
@@ -175,6 +179,28 @@ public final class UpgradeScreen extends Screen {
             graphics.fill(width-8,LIST_TOP,width-5,listBottom,0xFF303744);
             graphics.fill(width-8,thumbY,width-5,thumbY+thumb,0xFFCF6A70);
             graphics.drawString(font,Component.translatable("screen.blacklight.scroll_hint"),contentX,height-15,TEXT_DIM,false);
+        }
+    }
+
+    private int attributeHeight(){
+        int height=0;
+        for(var entry:PlayerAttributesView.entries())
+            height+=27+11*font.split(entry.value(),Math.max(40,contentWidth-20)).size();
+        return height;
+    }
+
+    private void renderAttributes(GuiGraphics graphics){
+        totalHeight=attributeHeight();scrollOffset=Math.clamp(scrollOffset,0,maxScroll());
+        int y=LIST_TOP-scrollOffset;
+        for(var entry:PlayerAttributesView.entries()){
+            var lines=font.split(entry.value(),Math.max(40,contentWidth-20));
+            int height=21+11*lines.size();
+            graphics.fill(contentX,y,contentX+contentWidth,y+height,0xFF1B202B);
+            graphics.fill(contentX,y,contentX+2,y+height,RED_SOFT);
+            graphics.drawString(font,entry.label(),contentX+10,y+5,TEXT_DIM,false);
+            int textY=y+17;
+            for(var line:lines){graphics.drawString(font,line,contentX+10,textY,TEXT,false);textY+=11;}
+            y+=height+6;
         }
     }
 

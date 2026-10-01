@@ -19,6 +19,9 @@ public final class ImpactControl {
         if(!entity.isAlive()){
             publish(entity,new HitReaction(entity.level().getGameTime(),20,HitReaction.DEATH,yaw,ImpactProfile.FALL));return;
         }
+        // Colossal bodies retain basic AI and gravity under ordinary player hits.
+        // Their authored stagger/knockdown windows belong to the later boss moveset.
+        if(entity instanceof com.codex.blacklight.entity.BlacklightInfectedHost host&&host.giantBoss())return;
         if(entity instanceof Mob mob){
             ACTIVE.put(mob,new Control(profile.knockdown(),entity.level().getGameTime(),!entity.onGround()));
             mob.getNavigation().stop();mob.setXxa(0);mob.setZza(0);

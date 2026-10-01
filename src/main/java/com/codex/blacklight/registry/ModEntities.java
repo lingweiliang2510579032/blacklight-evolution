@@ -17,7 +17,7 @@ public final class ModEntities {
     public static final DeferredHolder<EntityType<?>, EntityType<com.codex.blacklight.entity.BlacklightInfectedHost>> INFECTED_HOST =
             ENTITIES.register("infected_host", () -> EntityType.Builder
                     .<com.codex.blacklight.entity.BlacklightInfectedHost>of(com.codex.blacklight.entity.BlacklightInfectedHost::new, MobCategory.MONSTER)
-                    .sized(.9F, 1.2F).clientTrackingRange(10).updateInterval(2).build("infected_host"));
+                    .sized(.9F, 1.2F).clientTrackingRange(16).updateInterval(2).build("infected_host"));
 
     public static final DeferredHolder<EntityType<?>, EntityType<GroundSpikeEntity>> GROUND_SPIKE =
             ENTITIES.register("ground_spike", () -> EntityType.Builder

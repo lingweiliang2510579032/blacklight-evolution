@@ -61,10 +61,12 @@ public final class ClientMovementEvents {
     private static final WallTraversal CLIENT_WALL = new WallTraversal();
     private static int lastForwardInput, lastSidewaysInput;
     private static boolean lastDetach, lastSprintKey;
+    private static float lastCameraYaw;
     private static net.minecraft.world.entity.player.Player weaponMovementOwner;
     private static com.codex.blacklight.combat.WeaponVisual ownedWeaponVisual;
     private static net.minecraft.world.entity.player.Player pendingWeaponOwner;
     private static int pendingWeaponUntil;
+    private static net.minecraft.client.player.LocalPlayer inputOwner;
 
 
     static {
@@ -107,7 +109,7 @@ public final class ClientMovementEvents {
         int sideways=(mappingDown(minecraft,minecraft.options.keyRight)?1:0)-(mappingDown(minecraft,minecraft.options.keyLeft)?1:0);
         // Deliver the direction before the attack packet, even when both keys
         // were pressed between ticks. Preserve traversal's own jump/sprint edges.
-        PacketDistributor.sendToServer(new MovementInputPayload(lastJumpHeld,false,forward,sideways,lastSprinting,lastDetach));
+        PacketDistributor.sendToServer(new MovementInputPayload(lastJumpHeld,false,forward,sideways,lastSprinting,lastDetach,cameraYaw(minecraft)));
     }
 
     /** Camera-relative intent survives Epic Fight consuming vanilla movement mappings. */
@@ -115,7 +117,14 @@ public final class ClientMovementEvents {
         if(minecraft.player==null||minecraft.screen!=null)return null;
         int forward=(mappingDown(minecraft,minecraft.options.keyUp)?1:0)-(mappingDown(minecraft,minecraft.options.keyDown)?1:0);
         int right=(mappingDown(minecraft,minecraft.options.keyRight)?1:0)-(mappingDown(minecraft,minecraft.options.keyLeft)?1:0);
-        return forward==0&&right==0?null:minecraft.player.getYRot()+(float)Math.toDegrees(Math.atan2(right,forward));
+        return forward==0&&right==0?null:cameraYaw(minecraft)+(float)Math.toDegrees(Math.atan2(right,forward));
+    }
+
+    private static float cameraYaw(Minecraft mc) {
+        if(com.codex.blacklight.client.camera.PrototypeChaseCamera.ownsView())
+            return com.codex.blacklight.client.camera.PrototypeChaseCamera.controlYaw();
+        var api=yesman.epicfight.api.client.camera.EpicFightCameraAPI.getInstance();
+        return api.isTPSMode()?api.getCameraYRot():mc.player.getYRot();
     }
 
     static boolean prepareGroundedWeaponMovement(Minecraft minecraft) {
@@ -221,13 +230,20 @@ public final class ClientMovementEvents {
                 || weaponOwnsMovement(minecraft)) return;
         PacketDistributor.sendToServer(new MovementInputPayload(
                 mappingDown(minecraft, minecraft.options.keyJump), true,
-                lastForwardInput, lastSidewaysInput, lastSprinting, lastDetach));
+                lastForwardInput, lastSidewaysInput, lastSprinting, lastDetach,cameraYaw(minecraft)));
     }
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null || minecraft.getConnection() == null) {
+        // Respawn can replace LocalPlayer without a tick in which player is null.
+        // Charge/wall latches belong to the old entity, never the next life.
+        if (inputOwner != minecraft.player || minecraft.player == null || minecraft.getConnection() == null) {
+            if(inputOwner!=null){
+                var oldPatch=EpicFightCapabilities.getEntityPatch(inputOwner,AbstractClientPlayerPatch.class);
+                if(oldPatch!=null)oldPatch.getAnimator().setHardPause(false);
+            }
+            inputOwner=minecraft.player;
             weaponMovementOwner=null;ownedWeaponVisual=null;pendingWeaponOwner=null;
             lastJumpHeld = false;
             lastForwardHeld = false;
@@ -241,8 +257,11 @@ public final class ClientMovementEvents {
             lastForcedMotion = null;
             wasPrototype = false;
             wasHoldingFinalChargePose = false;
+            chargeDriverEngaged = false;
+            runningCharge = false;
+            lastCameraYaw = Float.NaN;
             resetClientWallRun();
-            return;
+            if (minecraft.player == null || minecraft.getConnection() == null) return;
         }
         // Read the hardware state rather than KeyMapping.isDown(). Epic Fight's control
         // engine is allowed to consume/reset mappings before NeoForge's post tick.
@@ -286,6 +305,16 @@ public final class ClientMovementEvents {
             lastForcedMotion = null;
             wasPrototype = false;
             resetClientWallRun();
+            var movement=minecraft.player.getData(ModAttachments.MOVEMENT_STATE);
+            movement.clearSprintDrive();
+            if(prototype&&minecraft.player.isInWater()&&!minecraft.player.isInLava()) {
+                float yaw=cameraYaw(minecraft);
+                movement.setCameraYaw(yaw);
+                movement.acceptInput(false,false,forwardInput,sidewaysInput,sprinting,detach);
+                PacketDistributor.sendToServer(new MovementInputPayload(false,false,
+                        forwardInput,sidewaysInput,sprinting,detach,yaw));
+                WaterRunning.riseToSurface(minecraft.player);
+            }
             return;
         }
         if (minecraft.player.onGround()) clientOffGroundTicks = 0;
@@ -330,17 +359,23 @@ public final class ClientMovementEvents {
                         clientChargeTicks + 1);
             }
         }
+        float viewYaw=cameraYaw(minecraft);
+        minecraft.player.getData(ModAttachments.MOVEMENT_STATE).setCameraYaw(viewYaw);
+        minecraft.player.getData(ModAttachments.MOVEMENT_STATE).acceptInput(jumpHeld,false,
+                forwardInput,sidewaysInput,sprinting,detach);
         boolean inputChanged = jumpHeld != lastJumpHeld || forwardInput != lastForwardInput
                 || sidewaysInput != lastSidewaysInput || detach != lastDetach || sprinting != lastSprinting;
+        boolean keysChanged=inputChanged;
+        inputChanged|=Math.abs(net.minecraft.util.Mth.wrapDegrees(viewYaw-lastCameraYaw))>.1F||minecraft.player.tickCount%10==0;
         if (!wasPrototype || inputChanged) {
             PacketDistributor.sendToServer(new MovementInputPayload(
-                    jumpHeld, false, forwardInput, sidewaysInput, sprinting, detach));
-            BlacklightNeoMod.LOGGER.debug(
+                    jumpHeld, false, forwardInput, sidewaysInput, sprinting, detach,viewYaw));
+            if(keysChanged||!wasPrototype)BlacklightNeoMod.LOGGER.debug(
                     "Movement input sent jump={} forward={} sprint={}",
                     jumpHeld, forwardHeld, sprinting);
         }
 
-        lastForwardInput=forwardInput;lastSidewaysInput=sidewaysInput;lastDetach=detach;lastSprintKey=sprintKey;
+        lastCameraYaw=viewYaw;lastForwardInput=forwardInput;lastSidewaysInput=sidewaysInput;lastDetach=detach;lastSprintKey=sprintKey;
         lastJumpHeld = jumpHeld;
         lastForwardHeld = forwardHeld;
         lastMovingHeld = movingHeld;
@@ -378,19 +413,17 @@ public final class ClientMovementEvents {
         if (!wallHandled && (minecraft.player.onGround() || WaterRunning.onSurface(minecraft.player)) && forwardHeld && sprinting
                 && !ClientClawEvents.isGroundSpikeActionActive()) {
             minecraft.player.setSprinting(true);
-            var forward = minecraft.player.getLookAngle().multiply(1.0D, 0.0D, 1.0D);
+            var forward = com.codex.blacklight.movement.TraversalSteering.forward(minecraft.player);
             if (forward.lengthSqr() > 1.0E-5D) {
                 forward = forward.normalize();
                 var velocity = minecraft.player.getDeltaMovement();
-                var horizontal = new net.minecraft.world.phys.Vec3(velocity.x, 0.0D, velocity.z)
-                        .add(forward.scale(MovementTuningSettings.sprintAcceleration()));
                 double max = MovementTuningSettings.sprintMaxSpeed()
                         * MovementUpgrade.sprintMultiplier(minecraft.player
                         .getData(ModAttachments.PLAYER_STATE).getMovementUpgradeMask());
                 if (com.codex.blacklight.power.UtilityPowerSystem.active(minecraft.player,
                         com.codex.blacklight.power.PowerForm.ARMOR)) max *= .75;
-                if (horizontal.length() > max) horizontal = horizontal.normalize().scale(max);
-                minecraft.player.setDeltaMovement(horizontal.x, velocity.y, horizontal.z);
+                minecraft.player.setDeltaMovement(com.codex.blacklight.movement.TraversalSteering.sprint(minecraft.player,velocity,max,
+                        MovementTuningSettings.sprintAcceleration(),forwardInput,sidewaysInput));
             }
         }
     }
@@ -497,6 +530,7 @@ public final class ClientMovementEvents {
         // back to RUN/WALK and the client never sees the authored plant pose.
         if (ClientClawEvents.isGroundSpikeActionActive()) return;
         var original = event.getPlayerPatch().getOriginal();
+        if (!com.codex.blacklight.mode.PrototypeModeSystem.isActive(original)) return;
         // Do not replace Epic Fight's swimming motion with stale land/wall/glide poses.
         if (original.isInWater() && !WaterRunning.onSurface(original) || original.isInLava()) return;
         if (original.getData(ModAttachments.WEAPON_VISUAL).spec() != null) return;
@@ -552,6 +586,10 @@ public final class ClientMovementEvents {
     public static void onFov(ComputeFovModifierEvent event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || event.getPlayer() != minecraft.player || !isPrototype(minecraft)) return;
+        if(com.codex.blacklight.client.camera.PrototypeChaseCamera.ownsView()) {
+            // Source camera owns optical zoom. MC movement attributes must not add a second speed FOV.
+            event.setNewFovModifier(1);return;
+        }
         double horizontalSpeed = minecraft.player.getDeltaMovement().horizontalDistance();
         double ratio = PrototypeLocomotion.cinematicSpeedRatio(horizontalSpeed,
                 MovementTuningSettings.sprintMaxSpeed()

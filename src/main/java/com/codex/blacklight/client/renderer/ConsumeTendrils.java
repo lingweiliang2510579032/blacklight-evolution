@@ -12,7 +12,8 @@ public final class ConsumeTendrils {
     private ConsumeTendrils(){}
     public static void draw(PoseStack stack,VertexConsumer out,int light,List<Attachment> body,Vec3 chest,ConsumeFracture.Phase phase,int seed){
         float age=phase.progress()-phase.contact();
-        double reach=smooth((age+.08)/.115),pull=smooth((age-.10)/Math.max(.12,.86-phase.contact()-.10));
+        boolean source=phase.nativeEvents();
+        double reach=smooth((age+(source?0:.08))/.115),pull=smooth((age-.10)/Math.max(.12,.86-phase.contact()-.10));
         double fade=1-smooth((phase.returnFlow()-.72)/.28);
         if(reach<=.001||fade<=.001)return;
         for(int i=0;i<body.size();i++){

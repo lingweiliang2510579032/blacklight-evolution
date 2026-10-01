@@ -44,10 +44,11 @@ public final class BlacklightHive extends Monster implements GeoEntity {
         int spawned=0;
         for(int i=0;i<Math.min(2,6-alive);i++){
             var type=waves==2?ModEntities.BLACKLIGHT_BRUTE: i==0?ModEntities.BLACKLIGHT_STALKER:ModEntities.BLACKLIGHT_SPITTER;
-            var mob=type.get().create(level());double a=random.nextDouble()*Math.PI*2;double x=getX()+Math.cos(a)*8,z=getZ()+Math.sin(a)*8;
-            var at=net.minecraft.core.BlockPos.containing(x,getY()-1,z);
+            var mob=type.get().create(level());if(mob==null)continue;
+            double a=random.nextDouble()*Math.PI*2;double x=getX()+Math.cos(a)*8,z=getZ()+Math.sin(a)*8;
+            var at=net.minecraft.core.BlockPos.containing(x,getY(),z);
             if(!level().hasChunkAt(at)||!level().getBlockState(at.below()).isSolid())continue;
-            mob.moveTo(x,getY()-1,z,random.nextFloat()*360,0);if(!level().noCollision(mob))continue;
+            mob.moveTo(x,getY(),z,random.nextFloat()*360,0);if(!level().noCollision(mob))continue;
             mob.restrictTo(blockPosition(),20);level().addFreshEntity(mob);spawned++;
         }
         if(spawned>0)waves++;cooldown=240;

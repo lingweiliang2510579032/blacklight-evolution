@@ -26,6 +26,7 @@ public abstract class EpicConsumePoseMixin {
         }
         if(!com.codex.blacklight.client.animation.NativeConsumePose.actor(patch.getOriginal(),pose,partial))
             com.codex.blacklight.client.animation.GrabHoldPose.apply(patch.getOriginal(),armature,pose,partial);
+        com.codex.blacklight.client.animation.ConsumeGripPose.apply(patch.getOriginal(),armature,pose,partial);
         com.codex.blacklight.client.animation.WallContactPose.apply(patch,armature,pose,partial);
         original.call(armature,pose);
     }

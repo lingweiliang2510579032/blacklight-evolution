@@ -28,6 +28,8 @@ public final class BlacklightPlayerRenderer extends PPlayerRenderer {
         int stage=player.getData(ModAttachments.GRAB_STAGE);
         var weapon=player.getData(ModAttachments.WEAPON_VISUAL);
         Float movementFacing=com.codex.blacklight.client.PrototypeAnimationController.movementFacing(player,partial);
+        var morph=player.getData(ModAttachments.POWER_MORPH);
+        if(morph.visible(player,partial))movementFacing=morph.facing();
         boolean bladeContact=player.getData(ModAttachments.PLAYER_STATE).getActivePower()==PowerForm.BLADE && stage!=com.codex.blacklight.combat.ConsumeVisual.NONE;
         if(stage==com.codex.blacklight.combat.ConsumeVisual.NONE && !bladeContact && weapon.spec()==null && movementFacing==null) {
             super.mulPoseStack(stack,armature,player,patch,partial);

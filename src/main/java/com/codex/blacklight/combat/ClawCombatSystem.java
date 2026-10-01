@@ -117,6 +117,7 @@ public final class ClawCombatSystem {
 
     private static void setClawsActive(ServerPlayer player, BlacklightState state,
                                        boolean activate) {
+        if(activate)com.codex.blacklight.disguise.DisguiseSystem.reveal(player);
         state.activate(activate ? PowerForm.CLAWS : PowerForm.NONE);
         player.setData(ModAttachments.PLAYER_STATE, state);
         player.syncData(ModAttachments.PLAYER_STATE);
@@ -285,14 +286,13 @@ public final class ClawCombatSystem {
             Set<LivingEntity> alreadyHit = DASH_HITS.computeIfAbsent(combat,
                     ignored -> new HashSet<>());
             AABB sweep = player.getBoundingBox().inflate(1.25D, 0.6D, 1.25D);
-            for (LivingEntity target : player.serverLevel().getEntitiesOfClass(
-                     LivingEntity.class, sweep,
-                     target -> CombatTargeting.damageable(player,target) && CombatTargeting.visible(player,target)
+            for (LivingEntity target : CombatTargeting.candidates(player, sweep,
+                     target -> CombatTargeting.damageable(player,target) && CombatTargeting.visibleContact(player,target,sweep)
                              && !alreadyHit.contains(target))) {
                 alreadyHit.add(target);
                 if (target.hurt(player.damageSources().playerAttack(player),
                         clawDamage(state, 16.0F))) {
-                    target.push(combat.dashX() * 0.9D, 0.3D, combat.dashZ() * 0.9D);
+                    if(!CombatTargeting.multipart(target))target.push(combat.dashX() * 0.9D, 0.3D, combat.dashZ() * 0.9D);
                     ClawPhysicalEffects.onComboTargetHit(player, target, true);
                 }
             }
@@ -322,14 +322,13 @@ public final class ClawCombatSystem {
                 AABB sweep = player.getBoundingBox().inflate(0.95D, 0.55D, 0.95D)
                         .expandTowards(forward.scale(1.8D));
                 int hitCount = 0;
-                for (LivingEntity target : player.serverLevel().getEntitiesOfClass(
-                        LivingEntity.class, sweep,
-                        target -> CombatTargeting.damageable(player,target) && CombatTargeting.visible(player,target)).stream()
+                for (LivingEntity target : CombatTargeting.candidates(player, sweep,
+                        target -> CombatTargeting.damageable(player,target) && CombatTargeting.visibleContact(player,target,sweep)).stream()
                         .sorted(CombatTargeting.contactPriority(player))
                         .limit(3).toList()) {
                     if (target.hurt(player.damageSources().playerAttack(player),
                             clawDamage(state, 9.0F))) {
-                        target.push(forward.x * 0.48D, 0.14D, forward.z * 0.48D);
+                        if(!CombatTargeting.multipart(target))target.push(forward.x * 0.48D, 0.14D, forward.z * 0.48D);
                         hitCount++;
                         ClawPhysicalEffects.onComboTargetHit(player, target, false);
                     }
@@ -377,11 +376,11 @@ public final class ClawCombatSystem {
         float damage = clawDamage(state, ClawDamageRules.comboBaseDamage(action));
         int maxTargets = ClawDamageRules.comboMaxTargets(action);
 
-        var targets = player.serverLevel().getEntitiesOfClass(LivingEntity.class, sweep,
-                        target -> CombatTargeting.damageable(player,target) && CombatTargeting.visible(player,target))
+        var targets = CombatTargeting.candidates(player, sweep,
+                        target -> CombatTargeting.damageable(player,target) && CombatTargeting.visibleContact(player,target,sweep))
                 .stream()
                 .filter(target -> {
-                    Vec3 direction = target.getBoundingBox().getCenter().subtract(attackOrigin)
+                    Vec3 direction = CombatTargeting.closestPoint(attackOrigin,target).subtract(attackOrigin)
                             .multiply(1.0D, 0.0D, 1.0D);
                     return direction.lengthSqr() < 1.0E-5D
                             || attackForward.dot(direction.normalize()) >= 0.15D;
@@ -394,7 +393,7 @@ public final class ClawCombatSystem {
         int hitCount = 0;
         for (LivingEntity target : targets) {
             if (target.hurt(player.damageSources().playerAttack(player), damage)) {
-                target.push(forward.x * knockback,
+                if(!CombatTargeting.multipart(target))target.push(forward.x * knockback,
                         action == ClawCombatState.Action.AUTO_3 ? 0.28D : 0.08D,
                         forward.z * knockback);
                 hitCount++;
@@ -420,7 +419,7 @@ public final class ClawCombatSystem {
         Vec3 requested = lockedTarget == null
                 ? player.position().add(forward.scale(
                 GroundSpikeRules.BASE_CAST_DISTANCE * rangeMultiplier))
-                : lockedTarget.position();
+                : CombatTargeting.positionNear(player.position(),lockedTarget);
         BlockPos surface = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                 BlockPos.containing(requested));
         double x = surface.getX() + 0.5D;
@@ -433,7 +432,7 @@ public final class ClawCombatSystem {
         double radius = GroundSpikeRules.BASE_DAMAGE_RADIUS * rangeMultiplier;
         AABB hitBox = new AABB(x - radius, y - 0.5D, z - radius,
                 x + radius, y + 6.5D, z + radius);
-        for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, hitBox,
+        for (LivingEntity target : CombatTargeting.candidates(player, hitBox,
                 target -> CombatTargeting.damageable(player,target))) {
             if (target.hurt(player.damageSources().playerAttack(player),
                     clawDamage(state, 14.0F))) {

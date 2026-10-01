@@ -17,14 +17,46 @@ public final class WaterRunning {
         if (!state.isInfected() || !state.isPrototypeMode() || !player.isAlive()
                 || player.isSpectator() || player.isPassenger() || player.isFallFlying()
                 || player.getAbilities().flying || player.isShiftKeyDown() || player.isInLava()
-                || !player.isSprinting() || player.getDeltaMovement().horizontalDistanceSqr() < .12 * .12
+                || !(player.isSprinting() || player.getData(ModAttachments.MOVEMENT_STATE).sprinting()
+                    && player.getData(ModAttachments.MOVEMENT_STATE).forwardHeld())
                 || player.getData(ModAttachments.WEAPON_VISUAL).spec() != null
                 || player.getData(ModAttachments.CONSUMING)) return false;
         BlockPos pos = player.blockPosition();
         FluidState fluid = player.level().getFluidState(pos);
-        // A player already submerged must swim up normally; no snapping to the surface.
+        // Surface support starts only after swimming/riseToSurface clears the water.
         return !fluid.is(FluidTags.WATER) || surface(player.level(), pos, fluid)
                 && player.getY() >= pos.getY() + fluid.getHeight(player.level(), pos) - .025;
+    }
+
+    /** Sprint + forward swims upward, then the normal surface collision takes over.
+     * No teleport, forged ground flag or collision bypass; sneak always releases it. */
+    public static boolean riseToSurface(Player player) {
+        var state=player.getData(ModAttachments.PLAYER_STATE);
+        var movement=player.getData(ModAttachments.MOVEMENT_STATE);
+        if(!state.isInfected() || !state.isPrototypeMode() || !player.isAlive()
+                || !player.isInWater() || player.isInLava() || player.isSpectator()
+                || player.isPassenger() || player.getAbilities().flying || player.isFallFlying()
+                || player.isShiftKeyDown() || movement.wallInput().detach()
+                || !movement.sprinting() || !movement.forwardHeld()
+                || player.getData(ModAttachments.WEAPON_VISUAL).spec()!=null
+                || player.getData(ModAttachments.CONSUMING))return false;
+        player.setSprinting(true);
+        player.setSwimming(false);
+        double up=.28;
+        BlockPos feet=player.blockPosition();
+        FluidState fluid=player.level().getFluidState(feet);
+        if(surface(player.level(),feet,fluid))
+            up=Math.min(up,Math.max(.035,feet.getY()+fluid.getHeight(player.level(),feet)+.035-player.getY()));
+        var velocity=player.getDeltaMovement();
+        var direction=net.minecraft.world.phys.Vec3.directionFromRotation(0,TraversalSteering.cameraYaw(player)
+                +(float)Math.toDegrees(Math.atan2(movement.wallInput().sideways(),movement.wallInput().forward())));
+        double speed=Math.min(.38,Math.max(.12,velocity.horizontalDistance()+.045));
+        // Solid ceilings remain solid. Steer normally while waiting for an opening.
+        if(!player.level().noCollision(player,player.getBoundingBox().move(0,up,0)))up=0;
+        player.setDeltaMovement(direction.x*speed,up,direction.z*speed);
+        player.resetFallDistance();
+        if(!player.level().isClientSide)player.hurtMarked=true;
+        return true;
     }
 
     public static boolean surface(BlockGetter level, BlockPos pos, FluidState fluid) {

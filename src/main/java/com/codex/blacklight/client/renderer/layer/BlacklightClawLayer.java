@@ -148,7 +148,10 @@ public final class BlacklightClawLayer extends UniqueLayer<
         var bodyMotion=bodyPlayer==null?null:bodyPlayer.getRealAnimation();
         boolean traversal=bodyMotion!=null&&(bodyMotion.get() instanceof com.codex.blacklight.integration.epicfight.NativeTraversalMovement
                 ||bodyMotion.get() instanceof com.codex.blacklight.integration.epicfight.NativeTraversalAction);
-        if(claw&&traversal){
+        boolean paired=entityPatch.getOriginal().getData(com.codex.blacklight.registry.ModAttachments.GRAB_STAGE)
+                !=com.codex.blacklight.combat.ConsumeVisual.NONE
+                ||entityPatch.getOriginal().getData(com.codex.blacklight.registry.ModAttachments.CONSUME_RECOVERY).active();
+        if(claw&&(traversal||paired)){
             Joint wrist=armature.searchJointByName(mirror?"Tool_L":"Tool_R");
             var relative=OpenMatrix4f.mul(OpenMatrix4f.invert(poses[handJoint.getId()],null),poses[wrist.getId()],null);
             wristDelta=OpenMatrix4f.mul(relative,OpenMatrix4f.invert(wrist.getLocalTransform(),null),null);

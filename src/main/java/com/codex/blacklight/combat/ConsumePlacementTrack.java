@@ -49,7 +49,13 @@ public final class ConsumePlacementTrack {
                 .translate(0,pivot,0).rotate(quaternion(frame,3)).rotate(chest)
                 .rotateX(ConsumeSequence.quadruped(victim)?(float)Math.PI/2:0).translate(0,-pivot,0);
     }
-    public static boolean rigidReceiver(LivingEntity victim){return ConsumeSequence.quadruped(victim)||victim instanceof net.minecraft.world.entity.npc.AbstractVillager||victim instanceof net.minecraft.world.entity.monster.Creeper;}
+    public static boolean rigidReceiver(LivingEntity victim){
+        if(ConsumeSequence.quadruped(victim)||victim instanceof net.minecraft.world.entity.npc.AbstractVillager
+                ||victim instanceof net.minecraft.world.entity.monster.Creeper)return true;
+        if(victim instanceof com.codex.blacklight.entity.BlacklightInfectedHost host)
+            return host.creeper()||host.speciesId().equals("minecraft:villager")||host.speciesId().equals("minecraft:wandering_trader");
+        return false;
+    }
     private static Vec3 rigidCenter(LivingEntity victim,PowerForm form,float t){
         var p=quadrupedBody(victim,form,t).transformPosition(new org.joml.Vector3f(0,victim.getBbHeight()*.5F,0));return new Vec3(p.x,p.y,-p.z);
     }
@@ -75,8 +81,13 @@ public final class ConsumePlacementTrack {
     public static Optional<Vec3> anchor(Vec3 origin,float yaw,LivingEntity victim,PowerForm form,float t) {
         // Establish the scene once. Sampling the animated hand every frame enslaved
         // the receiver's root path to the actor and destroyed the paired choreography.
-        return heldAnchor(origin,yaw,victim,form,0).map(base->{
-            double[] from=sample(data().motion,form,0,false).orElse(new double[3]);
+        // A compressed head stays in the animated palm until release. Baking its
+        // first-frame offset and then only adding root travel loses that contact.
+        boolean headGrip=form==PowerForm.CLAWS&&ConsumeReceiverScene.profile(form,false)!=null;
+        float contactTime=headGrip?Math.min(t,gripEnd(form)):0;
+        Vec3 contactOrigin=headGrip?actorAnchor(origin,yaw,form,contactTime,false):origin;
+        return heldAnchor(contactOrigin,yaw,victim,form,contactTime).map(base->{
+            double[] from=sample(data().motion,form,contactTime,false).orElse(new double[3]);
             double[] to=sample(data().motion,form,t,false).orElse(from);
             double scale=ConsumeSequence.humanoid(victim)?(victim.isBaby()?.5:1):Math.clamp(victim.getBbHeight()/1.8,.3,1.5);
             Vec3 forward=Vec3.directionFromRotation(0,yaw),right=new Vec3(-forward.z,0,forward.x);
@@ -92,6 +103,7 @@ public final class ConsumePlacementTrack {
             return goal;
         });
     }
+    public static float gripEnd(PowerForm form){return form==PowerForm.CLAWS?.72F:ConsumeSequence.release(form);}
     /** The posed torso has volume. A horizontal receiver cannot use standing width
      * and a fixed vertical threshold: its long axis then passes through the actor. */
     private static Vec3 separateTorso(Vec3 goal,Vec3 origin,float yaw,LivingEntity victim,PowerForm form,float t,double[] pose,double scale){

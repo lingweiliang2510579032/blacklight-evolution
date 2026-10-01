@@ -92,7 +92,7 @@ public final class BlacklightState {
     public boolean activate(PowerForm form) {
         if (form != PowerForm.NONE && (!prototypeMode || !hasUnlocked(form))) return false;
         activePower = form;
-        disguised = false;
+        if(form!=PowerForm.NONE)disguised = false;
         return true;
     }
 
@@ -143,14 +143,18 @@ public final class BlacklightState {
     }
 
     public boolean toggleDisguise() {
-        if (!infected || !prototypeMode || disguiseIdentity.isBlank() || alert > 25) return false;
+        if (!infected || !prototypeMode || disguiseIdentity.isBlank() || !disguised && alert > 25) return false;
         disguised = !disguised;
         return true;
     }
 
+    public void setDisguised(boolean enabled) {
+        disguised=enabled && infected && prototypeMode && !disguiseIdentity.isBlank();
+    }
+
     public void raiseAlert(int amount) {
         alert = clamp(alert + amount, 0, 100);
-        if (alert > 25) disguised = false;
+        if (alert >= 100) disguised = false;
     }
 
     public boolean hasUnlocked(PowerForm form) {

@@ -15,6 +15,13 @@ public final class PrototypeModeSystem {
     private PrototypeModeSystem() {
     }
 
+    public static void registerEpicFightModeGuard() {
+        yesman.epicfight.api.event.EpicFightEventHooks.Player.TOGGLE_MODE.registerEvent(event -> {
+            if (event.getPlayerMode() == yesman.epicfight.world.capabilities.entitypatch.player.PlayerPatch.PlayerMode.EPICFIGHT
+                    && !isActive(event.getPlayerPatch().getOriginal())) event.cancel();
+        }, "blacklight:survival_mode", -1000);
+    }
+
     public static void handle(ServerPlayer player, boolean enabled) {
         BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
         if (!state.isInfected()) {
@@ -56,8 +63,7 @@ public final class PrototypeModeSystem {
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
-        if (!state.isInfected()) return;
-        synchronizeEpicFightMode(player, state.isPrototypeMode());
+        synchronizeEpicFightMode(player, state.isInfected() && state.isPrototypeMode());
     }
 
     private static void synchronizeEpicFightMode(ServerPlayer player, boolean prototypeMode) {

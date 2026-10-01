@@ -15,6 +15,7 @@ public final class ClientWeaponCombat {
     private static boolean requireLeftRelease,requireRightRelease;
     private static int sentAt;
     private static com.codex.blacklight.power.PowerForm inputForm;
+    private static net.minecraft.client.player.LocalPlayer inputOwner;
     private ClientWeaponCombat(){}
     public static boolean active(){
         var mc=Minecraft.getInstance();if(mc.player==null||mc.screen!=null)return false;
@@ -26,6 +27,10 @@ public final class ClientWeaponCombat {
         long window=mc.getWindow().getWindow();
         boolean l=GLFW.glfwGetMouseButton(window,0)==GLFW.GLFW_PRESS,r=GLFW.glfwGetMouseButton(window,1)==GLFW.GLFW_PRESS;
         boolean a=ClientClawEvents.physicalGrabDown(),j=mc.options.keyJump.isDown();
+        if(inputOwner!=mc.player){
+            inputOwner=mc.player;controlling=false;inputForm=null;sentAt=0;
+            left=l;right=r;action=a;jump=j;requireLeftRelease=l;requireRightRelease=r;
+        }
         // Match vanilla's controlled-camera input boundary; background/cinematic views
         // must not turn unrelated mouse clicks into attacks on the player entity.
         if(!mc.isWindowActive()||mc.getCameraEntity()!=mc.player||!active()){

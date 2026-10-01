@@ -52,6 +52,37 @@ public final class BlacklightCommands {
 
                     return 1;
                 }))
+                .then(Commands.literal("infect_mob").requires(source -> source.hasPermission(2))
+                        .then(Commands.argument("targets",net.minecraft.commands.arguments.EntityArgument.entities()).executes(context->{
+                            int infected=0;
+                            for(var target:net.minecraft.commands.arguments.EntityArgument.getEntities(context,"targets"))
+                                if(target instanceof net.minecraft.world.entity.LivingEntity living
+                                        &&com.codex.blacklight.infection.BlacklightInfectionSystem.infect(living,context.getSource().getEntity()))infected++;
+                            int count=infected;
+                            context.getSource().sendSuccess(()->Component.translatable("command.blacklight.infect_mob",count),false);
+                            return count;
+                        })))
+                .then(Commands.literal("spawn_infected").requires(source -> source.hasPermission(2))
+                        .then(Commands.argument("species",StringArgumentType.word())
+                                .suggests((context,builder)->net.minecraft.commands.SharedSuggestionProvider.suggest(
+                                        new String[]{"zombie","skeleton","creeper","cow","pig","sheep","wolf","spider","warden","iron_golem","wither","ender_dragon"},builder))
+                                .executes(context->spawnInfected(context.getSource(),StringArgumentType.getString(context,"species"),null,false))
+                                .then(Commands.argument("position",net.minecraft.commands.arguments.coordinates.Vec3Argument.vec3())
+                                        .executes(context->spawnInfected(context.getSource(),StringArgumentType.getString(context,"species"),
+                                                net.minecraft.commands.arguments.coordinates.Vec3Argument.getVec3(context,"position"),false)))))
+                .then(Commands.literal("spawn_colossus").requires(source -> source.hasPermission(2))
+                        .then(Commands.argument("species",StringArgumentType.word())
+                                .suggests((context,builder)->net.minecraft.commands.SharedSuggestionProvider.suggest(
+                                        new String[]{"warden","iron_golem","wither","ender_dragon"},builder))
+                                .executes(context->spawnInfected(context.getSource(),StringArgumentType.getString(context,"species"),null,true))
+                                .then(Commands.argument("position",net.minecraft.commands.arguments.coordinates.Vec3Argument.vec3())
+                                        .executes(context->spawnInfected(context.getSource(),StringArgumentType.getString(context,"species"),
+                                                net.minecraft.commands.arguments.coordinates.Vec3Argument.getVec3(context,"position"),true)))))
+                .then(Commands.literal("colossus_status").requires(source -> source.hasPermission(2)).executes(context->{
+                    var player=context.getSource().getPlayerOrException();
+                    context.getSource().sendSuccess(()->com.codex.blacklight.infection.ColossusEvolutionSystem.describe(player),false);
+                    return 1;
+                }))
                 .then(Commands.literal("form").then(Commands.argument("id", StringArgumentType.word())
                         .suggests((context, builder) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
                                 new String[]{"none", "claws", "hammerfists", "blade", "whipfist"}, builder))
@@ -110,5 +141,39 @@ public final class BlacklightCommands {
     private static void sync(ServerPlayer player, BlacklightState state) {
         player.setData(ModAttachments.PLAYER_STATE, state);
         player.syncData(ModAttachments.PLAYER_STATE);
+    }
+
+    private static int spawnInfected(CommandSourceStack source,String species,net.minecraft.world.phys.Vec3 requested,boolean colossal){
+        var id=net.minecraft.resources.ResourceLocation.tryParse(species);
+        var registry=net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE;
+        if(id==null||!id.getNamespace().equals("minecraft")||!registry.containsKey(id)){
+            source.sendFailure(Component.translatable("command.blacklight.infected_unknown",species));return 0;
+        }
+        if(colossal&&com.codex.blacklight.entity.InfectedBossProfile.forSpecies(id.toString())==null){
+            source.sendFailure(Component.translatable("command.blacklight.colossus_unknown",species));return 0;
+        }
+        var original=registry.get(id).create(source.getLevel());
+        if(!(original instanceof net.minecraft.world.entity.Mob mob)){
+            source.sendFailure(Component.translatable("command.blacklight.infected_unknown",species));return 0;
+        }
+        var infected=com.codex.blacklight.registry.ModEntities.INFECTED_HOST.get().create(source.getLevel());
+        if(infected==null)return 0;
+        infected.inherit(mob,colossal);
+        var facing=net.minecraft.world.phys.Vec3.directionFromRotation(0,source.getRotation().y);
+        var pos=requested!=null?requested:source.getPosition().add(facing.scale(infected.giantBoss()?48:4));
+        infected.moveTo(pos.x,pos.y,pos.z,source.getRotation().y+180,0);
+        infected.yBodyRot=infected.getYRot();infected.yHeadRot=infected.getYRot();
+        var bounds=infected.evolutionVisualBounds(0);
+        var areaMin=net.minecraft.core.BlockPos.containing(bounds.minX,bounds.minY,bounds.minZ);
+        var areaMax=net.minecraft.core.BlockPos.containing(bounds.maxX,bounds.maxY,bounds.maxZ);
+        if(bounds.minY<source.getLevel().getMinBuildHeight()||bounds.maxY>source.getLevel().getMaxBuildHeight()
+                ||!source.getLevel().getWorldBorder().isWithinBounds(bounds)
+                ||!source.getLevel().hasChunksAt(areaMin,areaMax)
+                ||infected.evolutionCollisionBoxes(0).stream().anyMatch(box->!source.getLevel().noCollision(infected,box))){
+            source.sendFailure(Component.translatable("command.blacklight.infected_blocked"));return 0;
+        }
+        if(!source.getLevel().addFreshEntity(infected))return 0;
+        source.sendSuccess(()->Component.translatable("command.blacklight.infected_spawned",mob.getType().getDescription()),false);
+        return 1;
     }
 }

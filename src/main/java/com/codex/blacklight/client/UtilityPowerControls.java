@@ -20,18 +20,34 @@ public final class UtilityPowerControls {
     private static final KeyMapping DEFENSE = new KeyMapping("key.blacklight.defense", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, "key.categories.blacklight");
     private static final KeyMapping SENSE = new KeyMapping("key.blacklight.senses", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, "key.categories.blacklight");
     private static PowerForm lastDefense = PowerForm.SHIELD, lastSense = PowerForm.INFECTED_VISION;
+    private static int senseHeld;
+    private static boolean senseConsumed;
     @SubscribeEvent public static void keys(RegisterKeyMappingsEvent e) { e.register(DEFENSE); e.register(SENSE); }
     @SubscribeEvent public static void tick(ClientTickEvent.Post e) {
         var mc = Minecraft.getInstance();
         if (mc.player == null || mc.screen != null || !mc.player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()) {
-            while (DEFENSE.consumeClick()) { } while (SENSE.consumeClick()) { } return;
+            while (DEFENSE.consumeClick()) { } while (SENSE.consumeClick()) { }
+            senseHeld=0;senseConsumed=false;return;
         }
         if (UtilityPowerSystem.active(mc.player, PowerForm.SHIELD)) lastDefense = PowerForm.SHIELD;
         if (UtilityPowerSystem.active(mc.player, PowerForm.ARMOR)) lastDefense = PowerForm.ARMOR;
         if (UtilityPowerSystem.active(mc.player, PowerForm.THERMAL_VISION)) lastSense = PowerForm.THERMAL_VISION;
         if (UtilityPowerSystem.active(mc.player, PowerForm.INFECTED_VISION)) lastSense = PowerForm.INFECTED_VISION;
         while (DEFENSE.consumeClick()) toggle(mc, lastDefense, lastDefense == PowerForm.SHIELD ? PowerForm.ARMOR : PowerForm.SHIELD);
-        while (SENSE.consumeClick()) toggle(mc, lastSense, lastSense == PowerForm.INFECTED_VISION ? PowerForm.THERMAL_VISION : PowerForm.INFECTED_VISION);
+        boolean sensePressed=false;
+        while(SENSE.consumeClick())sensePressed=true;
+        if(SENSE.isDown()) {
+            if(!senseConsumed&&++senseHeld>=10){toggleSense(mc,true);senseConsumed=true;}
+        }else {
+            if((senseHeld>0||sensePressed)&&!senseConsumed)toggleSense(mc,false);
+            senseHeld=0;senseConsumed=false;
+        }
+    }
+    private static void toggleSense(Minecraft mc,boolean longTransform) {
+        var state=mc.player.getData(ModAttachments.PLAYER_STATE);
+        var fallback=lastSense==PowerForm.INFECTED_VISION?PowerForm.THERMAL_VISION:PowerForm.INFECTED_VISION;
+        var selected=state.hasUnlocked(lastSense)?lastSense:state.hasUnlocked(fallback)?fallback:lastSense;
+        PacketDistributor.sendToServer(new PowerSelectPayload(selected.ordinal(),longTransform));
     }
     private static void toggle(Minecraft mc, PowerForm wanted, PowerForm fallback) {
         var state = mc.player.getData(ModAttachments.PLAYER_STATE);
@@ -41,7 +57,7 @@ public final class UtilityPowerControls {
     @SubscribeEvent public static void hud(RenderGuiEvent.Post e) {
         var mc = Minecraft.getInstance();
         if (mc.player == null || mc.screen != null || mc.options.hideGui || !mc.player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()) return;
-        var g = e.getGuiGraphics(); int y = 10;
+        var g = e.getGuiGraphics(); int y = PrototypeHealthHud.utilityTop();
         if (UtilityPowerSystem.active(mc.player, PowerForm.SHIELD)) {
             var s = mc.player.getData(ModAttachments.UTILITY_STATE);
             int ticks = (int)Math.max(0, s.recoverAt() - mc.level.getGameTime());

@@ -112,7 +112,8 @@ public final class LocalWeaponAnimation extends ActionAnimation {
 
     @Override public float getPlaySpeed(LivingEntityPatch<?> patch,DynamicAnimation animation){
         var visual=patch.getOriginal().getData(ModAttachments.WEAPON_VISUAL);
-        return (visual.traveling()||visual.attackPose()>=0||definition.landing().isPresent())&&!animation.isLinkAnimation()?0:super.getPlaySpeed(patch,animation);
+        return visual.spec()==move&&(visual.traveling()||visual.attackPose()>=0||definition.landing().isPresent())
+                &&!animation.isLinkAnimation()?0:super.getPlaySpeed(patch,animation);
     }
 
     @Override public Pose getPoseByTime(LivingEntityPatch<?> patch,float time,float partial){

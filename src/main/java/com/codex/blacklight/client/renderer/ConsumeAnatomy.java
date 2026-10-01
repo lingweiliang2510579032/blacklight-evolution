@@ -31,7 +31,8 @@ public final class ConsumeAnatomy {
         if(model instanceof HumanoidModel<?> h){
             tree(parts,h.body,BODY);tree(parts,h.head,HEAD);tree(parts,h.hat,HEAD);
             tree(parts,h.rightArm,RIGHT_ARM);tree(parts,h.leftArm,LEFT_ARM);tree(parts,h.rightLeg,RIGHT_LEG);tree(parts,h.leftLeg,LEFT_LEG);
-        }else if(model instanceof HierarchicalModel<?> h)tree(parts,h.root(),BODY);
+        }else if(com.codex.blacklight.client.animation.ReceiverModelPose.root(model)!=null)
+            tree(parts,com.codex.blacklight.client.animation.ReceiverModelPose.root(model),BODY);
         else if(model instanceof AgeableModelAccessor a){
             for(var head:a.blacklight$heads())tree(parts,head,HEAD);
             int[] ids={BODY,RIGHT_LEG,LEFT_LEG,RIGHT_ARM,LEFT_ARM,TAIL};int i=0;

@@ -8,6 +8,13 @@ import net.minecraft.world.entity.player.Player;
 import com.codex.blacklight.registry.ModAttachments;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.function.Predicate;
+import net.minecraft.world.entity.Entity;
+import com.codex.blacklight.entity.BlacklightInfectedHost;
+import net.neoforged.neoforge.entity.PartEntity;
 
 /** Selection is independent of camera pitch when the player explicitly locks a target. */
 public final class CombatTargeting {
@@ -31,10 +38,10 @@ public final class CombatTargeting {
     /** Explicit camera lock only. EF's ordinary crosshair focus is never authoritative. */
     public static void requestLock(ServerPlayer player, int entityId) {
         if(entityId<0){LOCKS.remove(player);return;}
-        var entity=player.serverLevel().getEntity(entityId);
+        var entity=resolveTarget(player.serverLevel().getEntity(entityId));
         if(com.codex.blacklight.power.PrototypeMetabolism.active(player)
-                && entity instanceof LivingEntity target && selectable(player,target)
-                && inReach(player,target,viewRange(player)) && visible(player,target)) LOCKS.put(player,target);
+                && entity != null && selectable(player,entity)
+                && inReach(player,entity,viewRange(player)) && visible(player,entity)) LOCKS.put(player,entity);
         else LOCKS.remove(player);
     }
     public static boolean damageable(Player player, LivingEntity target) {
@@ -50,21 +57,83 @@ public final class CombatTargeting {
     public static java.util.Comparator<LivingEntity> contactPriority(ServerPlayer player) {
         var target=locked(player);
         return java.util.Comparator.comparingInt((LivingEntity v)->v==target?0:1)
-                .thenComparingDouble(player::distanceToSqr).thenComparingInt(LivingEntity::getId);
+                .thenComparingDouble(v->distanceSquared(player.getEyePosition(),v)).thenComparingInt(LivingEntity::getId);
+    }
+    public static LivingEntity resolveTarget(Entity entity) {
+        if(entity instanceof PartEntity<?> part)entity=part.getParent();
+        return entity instanceof LivingEntity living?living:null;
+    }
+    public static boolean multipart(LivingEntity target) {
+        return target instanceof BlacklightInfectedHost host&&host.hasMultipartBody();
+    }
+    public static List<AABB> hitboxes(LivingEntity target) {
+        return target instanceof BlacklightInfectedHost host&&host.hasMultipartBody()
+                ?host.combatHitboxes():List.of(target.getBoundingBox());
+    }
+    /** Broad phase finds loaded parent entities; the original query must still
+     * intersect a real limb. The large search margin never becomes weapon reach. */
+    public static List<LivingEntity> candidates(Player player,AABB query,Predicate<LivingEntity> predicate) {
+        var result=new LinkedHashSet<LivingEntity>();
+        for(var target:player.level().getEntitiesOfClass(LivingEntity.class,query,predicate))
+            if(!multipart(target)||hitboxes(target).stream().anyMatch(query::intersects))result.add(target);
+        for(var target:player.level().getEntitiesOfClass(BlacklightInfectedHost.class,query.inflate(80),
+                host->host.hasMultipartBody()&&predicate.test(host)))
+            if(hitboxes(target).stream().anyMatch(query::intersects))result.add(target);
+        return new ArrayList<>(result);
+    }
+    public static Vec3 closestPoint(Vec3 point,AABB box) {
+        return new Vec3(Math.clamp(point.x,box.minX,box.maxX),Math.clamp(point.y,box.minY,box.maxY),
+                Math.clamp(point.z,box.minZ,box.maxZ));
+    }
+    public static Vec3 closestPoint(Vec3 point,LivingEntity target) {
+        Vec3 result=target.getBoundingBox().getCenter();double best=Double.POSITIVE_INFINITY;
+        for(var box:hitboxes(target)) {
+            var candidate=closestPoint(point,box);double distance=point.distanceToSqr(candidate);
+            if(distance<best){best=distance;result=candidate;}
+        }
+        return result;
+    }
+    /** Pursuit retains ordinary foot destinations, but approaches a boss's local
+     * surface instead of dragging the attacker through it toward the root. */
+    public static Vec3 positionNear(Vec3 point,LivingEntity target) {
+        return multipart(target)?closestPoint(point,target):target.position();
+    }
+    public static double distanceSquared(Vec3 point,LivingEntity target) {
+        double distance=Double.POSITIVE_INFINITY;
+        for(var box:hitboxes(target))distance=Math.min(distance,distanceSquared(point,box));
+        return distance;
     }
     public static double distanceSquared(Vec3 point,AABB box) {
         double x=Math.clamp(point.x,box.minX,box.maxX),y=Math.clamp(point.y,box.minY,box.maxY),z=Math.clamp(point.z,box.minZ,box.maxZ);
         return point.distanceToSqr(new Vec3(x,y,z));
     }
     public static boolean inReach(ServerPlayer player,LivingEntity target,double range) {
-        return player.level()==target.level()&&distanceSquared(player.getEyePosition(),target.getBoundingBox())<=range*range+1e-6;
+        return target!=null&&player.level()==target.level()&&distanceSquared(player.getEyePosition(),target)<=range*range+1e-6;
+    }
+    public static boolean visible(Player player,Vec3 from,AABB box) {
+        return clearRay(player,from,closestPoint(from,box));
+    }
+    public static boolean visibleContact(Player player,LivingEntity target,AABB contact) {
+        if(!multipart(target))return visible(player,target);
+        for(var box:hitboxes(target))if(box.intersects(contact)&&visible(player,player.getEyePosition(),box))return true;
+        return false;
+    }
+    private static boolean clearRay(Player player,Vec3 from,Vec3 to) {
+        return player.level().clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,player)).getType()==HitResult.Type.MISS;
     }
     public static boolean visible(Player player,LivingEntity target) {
-        return target!=null && target.level()==player.level() && player.level().clip(new ClipContext(player.getEyePosition(),target.getBoundingBox().getCenter(),
-                ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,player)).getType()==HitResult.Type.MISS;
+        if(target==null||target.level()!=player.level())return false;
+        if(!multipart(target))return clearRay(player,player.getEyePosition(),target.getBoundingBox().getCenter());
+        for(var box:hitboxes(target))if(visible(player,player.getEyePosition(),box))return true;
+        return false;
     }
     public static double aimScore(ServerPlayer player,LivingEntity target) {
-        var delta=target.getBoundingBox().getCenter().subtract(player.getEyePosition());
-        return player.getLookAngle().dot(delta.normalize());
+        if(!multipart(target))return player.getLookAngle().dot(target.getBoundingBox().getCenter().subtract(player.getEyePosition()).normalize());
+        double best=-1;var eye=player.getEyePosition();
+        for(var box:hitboxes(target))if(visible(player,eye,box)) {
+            var delta=closestPoint(eye,box).subtract(eye);
+            best=Math.max(best,delta.lengthSqr()<1e-6?1:player.getLookAngle().dot(delta.normalize()));
+        }
+        return best;
     }
 }

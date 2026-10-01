@@ -57,7 +57,11 @@ public final class CombatMotion {
     public static boolean freeFlight(WeaponMove move){return move==WeaponMove.AIR_KICK||move==WeaponMove.AIR_PAIN;}
     /** Only actual aerial pursuit moves may bridge a distant target gap.
      * A grounded combo finisher's small hop is not a travel attack. */
-    public static boolean canApproach(WeaponMove move){return move.aerial()&&move.uncharged()!=WeaponMove.HAMMER_COMBO_SPECIAL;}
+    public static boolean stationaryWhip(WeaponMove move){return move!=null&&move.uncharged()==WeaponMove.WHIP_AIR;}
+    public static boolean canApproach(WeaponMove move){
+        return move.aerial()&&!move.airCombo()&&!stationaryWhip(move)
+                &&move!=WeaponMove.AIR_CLAP&&move.uncharged()!=WeaponMove.HAMMER_COMBO_SPECIAL;
+    }
     public static int flightTicks(WeaponMove move,float charge){
         if(!freeFlight(move))return 0;
         var f=fields(move,"flight");

@@ -61,7 +61,7 @@ public final class PrototypeAnimationController {
                     local && localMovingIntent,
                     local && localSprintIntent,
                     wallMode);
-            LocomotionVisualState.set(player.getId(), runtime.direction, runtime.phase,runtime.sprintGait);
+            LocomotionVisualState.set(player.getId(), runtime.direction, runtime.phase,runtime.sprintGait,runtime.visualSpeed);
             // At full jump charge ClientMovementEvents owns the exact final frame.
             // Re-evaluating KNEEL here would construct/restart the living animation
             // underneath that pause and make a long hold visibly loop.
@@ -69,7 +69,9 @@ public final class PrototypeAnimationController {
                     && ClientMovementEvents.isHoldingFinalChargePose();
             AbstractClientPlayerPatch<?> patch = EpicFightCapabilities.getEntityPatch(
                     player, AbstractClientPlayerPatch.class);
-            if (motionChanged) runtime.motionRefreshPending = true;
+            boolean weaponOwned=player.getData(ModAttachments.WEAPON_VISUAL).spec()!=null;
+            if (motionChanged || runtime.weaponOwned&&!weaponOwned) runtime.motionRefreshPending = true;
+            runtime.weaponOwned=weaponOwned;
             // Native attacks own the full body. Defer locomotion refresh until their
             // recovery, and never restart the paused charge or an absorption pose.
             if (runtime.motionRefreshPending && !finalChargeLatched && patch != null
@@ -123,6 +125,9 @@ public final class PrototypeAnimationController {
         Entity entity = minecraft.level.getEntity(entityId);
         if (!(entity instanceof AbstractClientPlayer player)) return;
         RuntimeState runtime = STATES.computeIfAbsent(player, ignored -> new RuntimeState());
+        // A small running landing must not replace a continuing stride with a
+        // standing recovery slot. The server's moving landing still supplies impact.
+        if(strength==LandingImpact.Strength.LIGHT&&(runtime.moving||player.getDeltaMovement().horizontalDistance()>.04))return;
         runtime.landing = strength;
         runtime.landingTicks = switch (strength) {
             case LIGHT -> 4;
@@ -159,7 +164,9 @@ public final class PrototypeAnimationController {
         private LocomotionPhase transitionPhase = LocomotionPhase.IDLE;
         private boolean moving;
         private boolean sprintGait;
+        private double visualSpeed;
         private boolean motionRefreshPending;
+        private boolean weaponOwned;
         private boolean freeFacing, facingInitialized;
         private float facing, previousFacing;
         private int terrainAirTicks;
@@ -188,7 +195,13 @@ public final class PrototypeAnimationController {
                                WallTraversal.Mode wallMode) {
             LocomotionPhase previousPhase = phase;
             Vec3 velocity = player.getDeltaMovement();
+            Vec3 step=player.position().subtract(new Vec3(player.xo,player.yo,player.zo));
+            // Post-travel velocity can already be damped or zeroed by a step.
+            // Use actual travelled distance, rejecting teleport/correction jumps.
+            if(step.horizontalDistanceSqr()>1e-8&&step.horizontalDistance()<Math.max(4,velocity.horizontalDistance()*3+1))
+                velocity=new Vec3(step.x,velocity.y,step.z);
             double horizontalSqr = velocity.x * velocity.x + velocity.z * velocity.z;
+            visualSpeed=Math.sqrt(horizontalSqr);
             boolean nowMoving = movingIntent || horizontalSqr >= MOVING_SPEED_SQR;
             boolean grounded = visualGrounded(player, velocity, nowMoving);
             boolean ontoPlatform = previousWallMode != WallTraversal.Mode.NONE
@@ -212,18 +225,21 @@ public final class PrototypeAnimationController {
             else {
                 Float intent=local?ClientMovementEvents.movementHeading(minecraft):null;
                 // Remote players don't reliably expose travel velocity; use their interpolated step.
-                double dx=local?velocity.x:player.getX()-player.xo;
-                double dz=local?velocity.z:player.getZ()-player.zo;
+                double dx=velocity.x;
+                double dz=velocity.z;
                 if(intent!=null||dx*dx+dz*dz>=MOVING_SPEED_SQR) {
-                    float desired=intent!=null?intent:(float)Math.toDegrees(Math.atan2(-dx,dz));
-                    facing+=Math.clamp(net.minecraft.util.Mth.wrapDegrees(desired-facing),-24F,24F);
+                    // Face real travel while momentum is still resolving a turn
+                    // (especially ice). Input supplies the first near-zero step.
+                    float desired=dx*dx+dz*dz>=.0016?(float)Math.toDegrees(Math.atan2(-dx,dz))
+                            :intent!=null?intent:(float)Math.toDegrees(Math.atan2(-dx,dz));
+                    facing+=Math.clamp(net.minecraft.util.Mth.wrapDegrees(desired-facing),-45F,45F);
                 }
             }
             double yaw = Math.toRadians(freeFacing?facing:player.yBodyRot);
             double forwardX = -Math.sin(yaw);
             double forwardZ = Math.cos(yaw);
-            double rightX = Math.cos(yaw);
-            double rightZ = Math.sin(yaw);
+            double rightX = -Math.cos(yaw);
+            double rightZ = -Math.sin(yaw);
             double localForward = velocity.x * forwardX + velocity.z * forwardZ;
             double localRight = velocity.x * rightX + velocity.z * rightZ;
             LocomotionDirection previousDirection = direction;
@@ -234,7 +250,13 @@ public final class PrototypeAnimationController {
                     && LocomotionDirection.angularDistance(
                     previousDirection.degrees(), direction.degrees()) >= 90.0D;
             if(freeFacing&&transitionPhase==LocomotionPhase.TURN)transitionTicks=0;
+            if(landingTicks>0&&nowMoving) {
+                int tail=landing==LandingImpact.Strength.DEVASTATING?6:landing==LandingImpact.Strength.HEAVY?4:0;
+                if(landingTicks<=tail||landing==LandingImpact.Strength.LIGHT){landingTicks=0;landing=LandingImpact.Strength.NONE;}
+            }
 
+            // Jumping or walking off the edge cancels a previously received landing.
+            if(!grounded&&landingTicks>0){landingTicks=0;landing=LandingImpact.Strength.NONE;}
             if (wallMode!=WallTraversal.Mode.NONE) {
                 landingTicks = 0;
                 landing = LandingImpact.Strength.NONE;
@@ -293,7 +315,7 @@ public final class PrototypeAnimationController {
                 phase = switch (gait) {
                     case RUN -> LocomotionPhase.RUN;
                     case WALK -> LocomotionPhase.WALK;
-                    default -> LocomotionPhase.IDLE;
+                    default -> nowMoving?(sprintIntent||player.isSprinting()?LocomotionPhase.RUN:LocomotionPhase.WALK):LocomotionPhase.IDLE;
                 };
             }
             moving = nowMoving;

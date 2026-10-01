@@ -40,15 +40,20 @@ public final class GrowthSystem {
         var advancement=p.server.getAdvancements().get(ResourceLocation.fromNamespaceAndPath("blacklight",id));
         if(advancement!=null)p.getAdvancements().award(advancement,"done");
     }
-    private static void updateHealth(ServerPlayer p){
+    public static void updateHealth(ServerPlayer p){
         var attribute=p.getAttribute(Attributes.MAX_HEALTH);if(attribute==null)return;
-        boolean active=p.getData(ModAttachments.PLAYER_STATE).isInfected()&&p.getData(ModAttachments.GROWTH).owns(GrowthUpgrade.VITALITY);
-        if(active&&!attribute.hasModifier(HEALTH))attribute.addPermanentModifier(new AttributeModifier(HEALTH,4,AttributeModifier.Operation.ADD_VALUE));
-        else if(!active&&attribute.hasModifier(HEALTH))attribute.removeModifier(HEALTH);
-        if(p.getHealth()>p.getMaxHealth())p.setHealth(p.getMaxHealth());
+        float before=p.getMaxHealth(),health=p.getHealth();
+        boolean infected=p.getData(ModAttachments.PLAYER_STATE).isInfected();
+        var growth=p.getData(ModAttachments.GROWTH);
+        double bonus=growth.owns(GrowthUpgrade.VITALITY_IV)?70:growth.owns(GrowthUpgrade.VITALITY_III)?45:
+                growth.owns(GrowthUpgrade.VITALITY_II)?25:growth.owns(GrowthUpgrade.VITALITY)?10:0;
+        CombatScale.modifier(attribute,HEALTH,infected?bonus:0,AttributeModifier.Operation.ADD_VALUE);
+        CombatScale.attributes(p,infected);
+        CombatScale.preserveHealthFraction(p,before,health);
     }
     @SubscribeEvent public static void tick(PlayerTickEvent.Post event){
-        if(!(event.getEntity() instanceof ServerPlayer p)||p.tickCount%20!=0)return;updateHealth(p);
+        if(!(event.getEntity() instanceof ServerPlayer p))return;updateHealth(p);
+        if(p.tickCount%20!=0)return;
         if(!p.getData(ModAttachments.PLAYER_STATE).isInfected())return;
         award(p,"awakening");
         if(p.isAlive()&&p.tickCount%100==0&&p.tickCount-LAST_HURT.getOrDefault(p,p.tickCount-200)>=160&&p.getData(ModAttachments.GROWTH).owns(GrowthUpgrade.REGENERATION))p.heal(1);

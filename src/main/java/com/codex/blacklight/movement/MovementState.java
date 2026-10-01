@@ -9,6 +9,9 @@ public final class MovementState {
 
     private final WallTraversal wallTraversal = new WallTraversal();
     private int forwardInput, sidewaysInput;
+    private float cameraYaw=Float.NaN;
+    public void setCameraYaw(float yaw){cameraYaw=Float.isFinite(yaw)?net.minecraft.util.Mth.wrapDegrees(yaw):Float.NaN;}
+    public float cameraYaw(float fallback){return Float.isFinite(cameraYaw)?cameraYaw:fallback;}
     private boolean detachHeld;
     public WallTraversal wallTraversal() { return wallTraversal; }
     public WallTraversal.Input wallInput() { return new WallTraversal.Input(forwardInput, sidewaysInput, sprinting, jumpHeld, detachHeld); }
@@ -22,6 +25,16 @@ public final class MovementState {
     private boolean dashRequested;
     private boolean forwardHeld;
     private boolean sprinting;
+    private net.minecraft.world.phys.Vec3 sprintDrive = net.minecraft.world.phys.Vec3.ZERO;
+    private int sprintDriveTick = Integer.MIN_VALUE;
+    public net.minecraft.world.phys.Vec3 sprintDrive(int tick) {
+        return tick > sprintDriveTick && tick - (long)sprintDriveTick == 1 ? sprintDrive : net.minecraft.world.phys.Vec3.ZERO;
+    }
+    public void rememberSprintDrive(int tick, net.minecraft.world.phys.Vec3 drive) {
+        sprintDriveTick=tick; sprintDrive=drive;
+    }
+    public void clearSprintDrive() { sprintDriveTick=Integer.MIN_VALUE;sprintDrive=net.minecraft.world.phys.Vec3.ZERO; }
+
     private int chargeTicks;
     private boolean runningCharge;
     public boolean runningCharge(){return chargeTicks>0&&runningCharge;}
@@ -231,5 +244,5 @@ public final class MovementState {
     }
     public Mode mode() { return mode; }
     public void setMode(Mode mode) { if (dashTicks == 0 && chargeTicks == 0) this.mode = mode; }
-    public void reset() { jumpInput.reset(); wallTraversal.reset();forwardInput=sidewaysInput=0;detachHeld=false; jumpHeld = false; previousJumpHeld = false; dashRequested = false; forwardHeld = false; sprinting = false; chargeTicks = 0; chargeOffGroundTicks = 0; dashTicks = 0; airDashes = maxAirDashes; dashDirectionX = 0.0D; dashDirectionZ = 0.0D; runningAnimation = false; sprintColliding = false; wallNormalX = 0.0D; wallNormalZ = 0.0D; airborne = false; peakFallSpeed = 0.0D; airborneApexY = Double.NaN; landingRecoveryTicks = 0; landingStrength = LandingImpact.Strength.NONE; wallStallTicks = 0; lastWallY = Double.NaN; wallJumpCooldownTicks = 0; wallChargeTicks = 0; wallVaultTicks = 0; mode = Mode.NORMAL; }
+    public void reset() { clearSprintDrive(); cameraYaw=Float.NaN; jumpInput.reset(); wallTraversal.reset();forwardInput=sidewaysInput=0;detachHeld=false; jumpHeld = false; previousJumpHeld = false; dashRequested = false; forwardHeld = false; sprinting = false; chargeTicks = 0; chargeOffGroundTicks = 0; dashTicks = 0; airDashes = maxAirDashes; dashDirectionX = 0.0D; dashDirectionZ = 0.0D; runningAnimation = false; sprintColliding = false; wallNormalX = 0.0D; wallNormalZ = 0.0D; airborne = false; peakFallSpeed = 0.0D; airborneApexY = Double.NaN; landingRecoveryTicks = 0; landingStrength = LandingImpact.Strength.NONE; wallStallTicks = 0; lastWallY = Double.NaN; wallJumpCooldownTicks = 0; wallChargeTicks = 0; wallVaultTicks = 0; mode = Mode.NORMAL; }
 }

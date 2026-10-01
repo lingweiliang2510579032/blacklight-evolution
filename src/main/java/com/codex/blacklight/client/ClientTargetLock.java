@@ -21,13 +21,40 @@ public final class ClientTargetLock {
         var p=Minecraft.getInstance().player;
         return p!=null && CombatTargeting.selectable(p,target);
     }
+    /** A stale EF lock flag must never reserve the camera without a live target. */
+    public static boolean hasValidLock(){
+        var camera=EpicFightCameraAPI.getInstance();
+        return active()&&camera.isLockingOnTarget()&&valid(camera.getFocusingEntity());
+    }
+    /** EF stores LivingEntity focus, while Minecraft's ray can hit a giant limb.
+     * Promote that one hit to its parent without replacing an explicit lock. */
+    public static void focusHitPart(){
+        var minecraft=Minecraft.getInstance();var camera=EpicFightCameraAPI.getInstance();
+        if(!active()||camera.isLockingOnTarget()&&valid(camera.getFocusingEntity()))return;
+        if(minecraft.hitResult instanceof net.minecraft.world.phys.EntityHitResult hit
+                &&hit.getEntity() instanceof net.neoforged.neoforge.entity.PartEntity<?>){
+            var parent=CombatTargeting.resolveTarget(hit.getEntity());
+            if(valid(parent)&&camera.getFocusingEntity()!=parent)((TargetFocusAccess)(Object)camera).blacklight$focusEntity(parent);
+        }
+    }
     public static void sync(){
         var p=Minecraft.getInstance().player;
-        if(p==null){previousPlayer=null;previousId=-1;return;}
-        if(p!=previousPlayer){previousPlayer=p;previousId=-2;}
-        var camera=EpicFightCameraAPI.getInstance();var target=camera.getFocusingEntity();
+        var camera=EpicFightCameraAPI.getInstance();
+        if(p==null){
+            previousPlayer=null;previousId=-1;
+            if(camera.isLockingOnTarget())camera.setLockOn(false);
+            return;
+        }
+        boolean replaced=p!=previousPlayer;
+        if(replaced){previousPlayer=p;previousId=-2;}
+        var target=camera.getFocusingEntity();
+        if(camera.isLockingOnTarget()&&(replaced||!active()||!valid(target))){
+            // setLockOn invokes sync through our mixin. The flag is already cleared
+            // for that nested call, and previousId deduplicates its packet.
+            camera.setLockOn(false);
+        }
         int id=active()&&camera.isLockingOnTarget()&&valid(target)?target.getId():-1;
         if(id!=previousId){previousId=id;PacketDistributor.sendToServer(new TargetLockPayload(id));}
     }
-    @SubscribeEvent public static void tick(ClientTickEvent.Post event){sync();}
+    @SubscribeEvent public static void tick(ClientTickEvent.Post event){focusHitPart();sync();}
 }

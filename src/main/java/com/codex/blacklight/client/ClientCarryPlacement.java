@@ -46,6 +46,9 @@ public final class ClientCarryPlacement {
         var form=PowerForm.values()[Math.clamp(visual.form(),0,PowerForm.values().length-1)];
         Vec3 current=victim.getPosition(partial);
         Vec3 goal=ConsumePlacementTrack.anchor(visual.origin(),visual.facing(),victim,form,visual.motionProgress(victim.level().getGameTime(),partial)).orElse(current);
+        float motion=visual.motionProgress(victim.level().getGameTime(),partial);
+        if(form==PowerForm.CLAWS&&motion<ConsumePlacementTrack.gripEnd(form))
+            goal=goal.add(owner.getPosition(partial).subtract(ConsumePlacementTrack.actorAnchor(visual.origin(),visual.facing(),form,motion,false)));
         Vec3 delta=goal.subtract(current);if(delta.lengthSqr()>4)return Vec3.ZERO;
         var hit=victim.level().clip(new net.minecraft.world.level.ClipContext(current.add(0,victim.getBbHeight()*.5,0),goal.add(0,victim.getBbHeight()*.5,0),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,victim));
         if(hit.getType()!=net.minecraft.world.phys.HitResult.Type.MISS)return Vec3.ZERO;

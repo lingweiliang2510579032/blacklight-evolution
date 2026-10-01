@@ -68,6 +68,7 @@ public final class ModAttachments {
     public static final Supplier<AttachmentType<com.codex.blacklight.combat.HitReaction>> HIT_REACTION=ATTACHMENTS.register("hit_reaction",
             ()->AttachmentType.builder(()->com.codex.blacklight.combat.HitReaction.EMPTY).sync(com.codex.blacklight.combat.HitReaction.CODEC).build());
     public static final Supplier<AttachmentType<Integer>> UTILITY_POWERS=ATTACHMENTS.register("utility_powers",()->AttachmentType.builder(()->0).sync(net.minecraft.network.codec.ByteBufCodecs.VAR_INT).build());
+    public static final Supplier<AttachmentType<com.codex.blacklight.power.PowerMorph>> POWER_MORPH=ATTACHMENTS.register("power_morph",()->AttachmentType.builder(()->com.codex.blacklight.power.PowerMorph.NONE).sync(com.codex.blacklight.power.PowerMorph.CODEC).build());
 
     public static final Supplier<AttachmentType<com.codex.blacklight.combat.ConsumeVisual>> CONSUME_RECOVERY = ATTACHMENTS.register(
             "consume_recovery", () -> AttachmentType.builder(() -> com.codex.blacklight.combat.ConsumeVisual.EMPTY)
@@ -76,6 +77,14 @@ public final class ModAttachments {
     public static final Supplier<AttachmentType<com.codex.blacklight.combat.ConsumeVisual>> CONSUME_VISUAL = ATTACHMENTS.register(
             "consume_visual", () -> AttachmentType.builder(() -> com.codex.blacklight.combat.ConsumeVisual.EMPTY)
                     .sync(com.codex.blacklight.combat.ConsumeVisual.CODEC).build());
+
+    public static final Supplier<AttachmentType<com.codex.blacklight.disguise.DisguiseIdentity>> DISGUISE_IDENTITY=ATTACHMENTS.register(
+            "disguise_identity",()->AttachmentType.builder(()->com.codex.blacklight.disguise.DisguiseIdentity.EMPTY)
+                    .serialize(com.codex.blacklight.disguise.DisguiseIdentity.CODEC).copyOnDeath()
+                    .sync(com.codex.blacklight.disguise.DisguiseIdentity.STREAM_CODEC).build());
+    public static final Supplier<AttachmentType<com.codex.blacklight.disguise.DisguiseMorph>> DISGUISE_MORPH=ATTACHMENTS.register(
+            "disguise_morph",()->AttachmentType.builder(()->com.codex.blacklight.disguise.DisguiseMorph.EMPTY)
+                    .sync(com.codex.blacklight.disguise.DisguiseMorph.CODEC).build());
 
     public static void register(IEventBus bus) {
         ATTACHMENTS.register(bus);

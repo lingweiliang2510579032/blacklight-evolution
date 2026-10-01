@@ -30,6 +30,29 @@ not claimed as original Blacklight animation assets.
 Temporary runtime pose dumps used for local geometry checks are under ignored
 `tmp/` directories and are not release assets.
 
+## Private Prototype profiles (not publicly distributed)
+
+Local development can read profiles decoded from the user's local Prototype
+files. These include the original HUD textures and layout in `health-hud.data`,
+camera parameters and timelines in `camera-profile.data`, `camera-events.data`
+and `camera-film.data`, and consume receiver choreography in
+`consume-placement.data`, `receiver-poses.data` and
+`consume-receiver-events.data`. These profiles and the decoded motion files are
+not original GPL assets of this project.
+
+Original game archives, extracted assets and generated private profiles are
+excluded from public commits and public releases. The extraction tools and
+runtime readers are source code; including those tools does not include their
+private inputs or outputs. The authored infected models and hive textures are
+separate project assets.
+
+A normal `assemble` build and the default CI do not bundle the private profiles.
+Only an explicitly requested local build with
+`-PbundleMotionDirectory=<private profile directory>` stages them from outside
+versioned resources. Such local candidate packages remain in ignored
+`release/local-*/` directories and are not uploaded with public pull requests or
+releases. See `docs/RC17-bundled-motions.md` for the local build workflow.
+
 ## Kenney Particle Pack 1.1
 
 - Creator: Kenney Vleugels (Kenney.nl)

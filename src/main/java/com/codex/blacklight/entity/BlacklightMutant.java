@@ -62,7 +62,7 @@ public final class BlacklightMutant extends Monster implements GeoEntity {
             double range=kind==Kind.SPITTER?12:kind==Kind.STALKER?4:2.8;
             if(distanceToSqr(target)>range*range||!hasLineOfSight(target))getNavigation().moveTo(target,1.1);else getNavigation().stop();
             if(cooldown==0&&distanceToSqr(target)<=range*range&&hasLineOfSight(target)){
-                aim=target.getBoundingBox().getCenter();entityData.set(ATTACK,24);cooldown=kind==Kind.SPITTER?65:kind==Kind.BRUTE?45:34;
+                aim=target.getBoundingBox().getCenter();entityData.set(ATTACK,24);cooldown=kind==Kind.SPITTER?58:kind==Kind.BRUTE?40:30;
                 playSound(net.minecraft.sounds.SoundEvents.SCULK_SHRIEKER_SHRIEK,.3F,kind==Kind.SPITTER?1.6F:.9F);
             }
         }

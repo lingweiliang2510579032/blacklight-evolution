@@ -41,6 +41,20 @@ public final class ClientClawMotionEvents {
             if (patch == null) continue;
             var state = player.getData(ModAttachments.PLAYER_STATE);
             boolean prototype = state.isInfected() && state.isPrototypeMode();
+            // Epic Fight can retain its default mode even before infection. Restore
+            // gameplay mode as well as the animation map, without changing F5 choice.
+            if (prototype != patch.isEpicFightMode()) {
+                var perspective = minecraft.options.getCameraType();
+                // Mode packets can arrive before the infection attachment on join or
+                // respawn. Reconcile both directions after the authoritative data arrives.
+                if (prototype) patch.toEpicFightMode(false);
+                else patch.toVanillaMode(false);
+                minecraft.options.setCameraType(perspective);
+            }
+            if (!prototype && player == minecraft.player) {
+                var camera = yesman.epicfight.api.client.camera.EpicFightCameraAPI.getInstance();
+                if (camera.isLockingOnTarget()) camera.setLockOn(false);
+            }
             if (prototype) install(player, patch);
             else restore(player, patch);
         }

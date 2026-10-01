@@ -17,6 +17,8 @@ public final class PowerWheelScreen extends Screen {
     private final KeyMapping binding;
     private int selected=-1;
     private boolean submitted,utility;
+    private PowerForm heldForm;
+    private int heldTicks;
     public PowerWheelScreen(KeyMapping binding){super(Component.translatable("screen.blacklight.wheel"));this.binding=binding;}
     @Override protected void init() {
         int buttonWidth=Math.min(140,(width-28)/2);
@@ -28,7 +30,9 @@ public final class PowerWheelScreen extends Screen {
     @Override public void renderBackground(GuiGraphics g,int x,int y,float partial) { }
     @Override public boolean isPauseScreen(){return false;}
     @Override public void tick(){
-        if(minecraft.player==null||!minecraft.player.isAlive()||!minecraft.player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()||minecraft.player.getData(ModAttachments.CONSUMING))onClose();
+        if(minecraft.player==null||!minecraft.player.isAlive()||!minecraft.player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()||minecraft.player.getData(ModAttachments.CONSUMING)){onClose();return;}
+        var form=selected<0?null:PowerWheel.form(utility,selected);
+        if(form!=heldForm){heldForm=form;heldTicks=0;}else if(form!=null)heldTicks++;
     }
     @Override public void render(GuiGraphics g,int mouseX,int mouseY,float partial){
         if(minecraft.player==null)return;
@@ -66,13 +70,15 @@ public final class PowerWheelScreen extends Screen {
         Component hint=selected<0?Component.translatable("screen.blacklight.wheel.hint",binding.getTranslatedKeyMessage()):Component.translatable("screen.blacklight.wheel."+PowerWheel.form(utility,selected).id());
         int lineY=cy+(int)outer+12;
         for(var line:font.split(hint,width-24)){g.drawCenteredString(font,line,cx,lineY,0xFFCCD1D8);lineY+=11;}
+        if(selected>=0&&!com.codex.blacklight.power.PowerMorph.key(PowerWheel.form(utility,selected)).isEmpty())
+            g.drawCenteredString(font,Component.translatable(heldTicks>=10?"screen.blacklight.wheel.morph_ready":"screen.blacklight.wheel.morph_hold"),cx,lineY+2,0xFFFFB090);
         super.render(g,mouseX,mouseY,partial);
     }
     private static void vertex(BufferBuilder b,org.joml.Matrix4f m,float x,float y,int color){b.addVertex(m,x,y,0).setColor(color);}
     private void confirm(){
         if(!submitted&&selected>=0&&minecraft.player!=null){
             var form=PowerWheel.form(utility,selected);var state=minecraft.player.getData(ModAttachments.PLAYER_STATE);
-            if(form==PowerForm.NONE||state.hasUnlocked(form)){submitted=true;PacketDistributor.sendToServer(new PowerSelectPayload(form.ordinal()));}
+            if(form==PowerForm.NONE||state.hasUnlocked(form)){submitted=true;PacketDistributor.sendToServer(new PowerSelectPayload(form.ordinal(),form==heldForm&&heldTicks>=10));}
         }
         onClose();
     }

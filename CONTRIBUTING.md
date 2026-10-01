@@ -8,9 +8,11 @@
 
 - Java 21，使用仓库内的 Gradle Wrapper。
 - Minecraft 1.21.1、NeoForge 21.1.244；GeckoLib 和 Epic Fight 由 Gradle 获取。
-- Windows：`./gradlew.bat test build`；Linux/macOS：`bash ./gradlew test build`。
-- 启动开发客户端：`./gradlew.bat runClient`；Linux/macOS 替换为 `bash ./gradlew`。
+- 默认只编译打包：Windows 使用 `./gradlew.bat assemble --no-daemon`；Linux/macOS 使用 `bash ./gradlew assemble --no-daemon`。
+- 用户明确要求启动试玩时，使用 `./gradlew.bat runClient`；Linux/macOS 替换为 `bash ./gradlew`。
 - 第一轮构建需要网络下载依赖。不要提交 `.gradle/`、`build/`、`run/`、存档或个人账户配置。
+
+默认构建与 CI 不运行单元测试、碰撞测试、GameTest 或游戏内验收；这些检查仅在用户明确要求时运行。编译打包成功不代表真人试玩已通过。
 
 ## 目前适合参与的工作
 
@@ -31,9 +33,9 @@
 ## 提交改动
 
 1. 从主分支建立自己的功能分支；一个改动集中解决一个问题。
-2. 描述修改前后的行为，附复现步骤。动作和模型改动附正面、侧面及运动中的视频，并提供可编辑源文件和导出结果。
-3. 运行 `test build`。改动墙面物理时，额外运行 `runGameTestServer -PwallTraversalTest`；测试使用独立的 `run-wall-gametest/` 世界。
+2. 描述修改前后的行为，附复现步骤。动作和模型改动提供可编辑源文件和导出结果；已有正面、侧面或运动视频可附在 PR 中，没有游戏内验收材料时如实说明。
+3. 运行 `assemble` 编译打包。只有用户明确要求时才运行相应测试；如要求墙面碰撞测试，可执行 `runGameTestServer -PwallTraversalTest`，使用独立的 `run-wall-gametest/` 世界。
 4. 在 PR 中填写验证结果、未验证项和素材来源。服务端裁定伤害与移动规则，不能只改客户端表现而遗漏同步。
 5. 不上传从商业游戏提取的模型、纹理、音频或完整参考视频。原创或第三方资产应注明作者、来源和许可证，保留要求的声明。
 
-当前基线：R7 有 82 项单元测试和 3 项方块碰撞测试通过；这不等于所有动作、联网场景与真实手感均已验收。
+历史记录：R7 有 82 项单元测试和 3 项方块碰撞测试通过；该记录不代表当前版本的测试结果，也不等于所有动作、联网场景与真实手感均已验收。

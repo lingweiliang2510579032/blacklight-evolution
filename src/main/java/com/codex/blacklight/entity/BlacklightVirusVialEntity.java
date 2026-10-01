@@ -1,6 +1,7 @@
 package com.codex.blacklight.entity;
 
 import com.codex.blacklight.infection.BlacklightInfectionSystem;
+import com.codex.blacklight.infection.InfectionRules;
 import com.codex.blacklight.registry.ModEntities;
 import com.codex.blacklight.registry.ModItems;
 import net.minecraft.core.particles.ItemParticleOption;
@@ -14,10 +15,15 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public final class BlacklightVirusVialEntity extends ThrowableItemProjectile {
-    public static final double INFECTION_RADIUS = 8.0D;
+    public static final double INFECTION_RADIUS = InfectionRules.VIAL_RADIUS;
 
     public BlacklightVirusVialEntity(EntityType<? extends BlacklightVirusVialEntity> type, Level level) {
         super(type, level);
@@ -43,22 +49,35 @@ public final class BlacklightVirusVialEntity extends ThrowableItemProjectile {
 
         Entity owner = getOwner();
         int infected = 0;
-        if (owner instanceof LivingEntity livingOwner
-                && BlacklightInfectionSystem.infect(livingOwner, this)) {
-            infected++;
-        }
-
+        Entity hitEntity = result instanceof EntityHitResult hit ? hit.getEntity() : null;
+        if (hitEntity instanceof net.neoforged.neoforge.entity.PartEntity<?> part) hitEntity = part.getParent();
+        LivingEntity directTarget = hitEntity instanceof LivingEntity living ? living : null;
+        if (directTarget != null && BlacklightInfectionSystem.infect(directTarget, this)) infected++;
+        // A direct creature hit is intentional and guaranteed when eligible.
+        // Splash is local, probabilistic and cannot pass through solid walls.
+        Vec3 burst = result.getLocation();
+        if (result instanceof BlockHitResult block)
+            burst = burst.add(Vec3.atLowerCornerOf(block.getDirection().getNormal()).scale(.02));
+        setPos(burst);
         for (LivingEntity target : serverLevel.getEntitiesOfClass(
-                LivingEntity.class,
-                getBoundingBox().inflate(INFECTION_RADIUS),
-                target -> target.isAlive() && target.distanceToSqr(this) <= INFECTION_RADIUS * INFECTION_RADIUS)) {
-            if (target != owner && BlacklightInfectionSystem.infect(target, this)) infected++;
+                LivingEntity.class, new AABB(burst, burst).inflate(INFECTION_RADIUS),
+                BlacklightInfectionSystem::canInfect)) {
+            if (target == directTarget) continue;
+            AABB box = target.getBoundingBox();
+            Vec3 point = new Vec3(Math.clamp(burst.x, box.minX, box.maxX),
+                    Math.clamp(burst.y, box.minY, box.maxY), Math.clamp(burst.z, box.minZ, box.maxZ));
+            double distance = burst.distanceTo(point);
+            if (distance > INFECTION_RADIUS) continue;
+            if (serverLevel.clip(new ClipContext(burst, point, ClipContext.Block.COLLIDER,
+                    ClipContext.Fluid.NONE, this)).getType() != HitResult.Type.MISS) continue;
+            if (random.nextFloat() < InfectionRules.splashChance(distance)
+                    && BlacklightInfectionSystem.infect(target, this)) infected++;
         }
 
         serverLevel.sendParticles(ParticleTypes.LARGE_SMOKE,
-                getX(), getY() + 0.15D, getZ(), 42, 2.2D, 1.25D, 2.2D, 0.045D);
+                getX(), getY() + 0.15D, getZ(), 30, 1.0D, 0.65D, 1.0D, 0.025D);
         serverLevel.sendParticles(ParticleTypes.CRIMSON_SPORE,
-                getX(), getY() + 0.3D, getZ(), 120, 3.8D, 1.8D, 3.8D, 0.025D);
+                getX(), getY() + 0.3D, getZ(), 70, 1.25D, 0.75D, 1.25D, 0.015D);
         serverLevel.playSound(null, blockPosition(), SoundEvents.GLASS_BREAK,
                 SoundSource.PLAYERS, 1.35F, 0.72F);
         serverLevel.playSound(null, blockPosition(), SoundEvents.SCULK_CATALYST_BLOOM,

@@ -15,7 +15,7 @@ public final class MovementTuningSettings {
     private static final String FILE_NAME = "blacklight-movement-engine.properties";
     public static final MovementTuningSnapshot MVP_DEFAULTS = new MovementTuningSnapshot(
             0.23968446601941748D, 2.0645631067961165D,
-            1.2407766990291262D, 3.0D, 40.95388349514563D,
+            0.55D, 1.25D, 24.0D,
             0.48D, 0.36D, 0.085D, 0.82D, 1.45D, 7.0D, 0.16D);
 
     private static double sprintAcceleration = MVP_DEFAULTS.sprintAcceleration();
@@ -34,7 +34,7 @@ public final class MovementTuningSettings {
 
     private MovementTuningSettings() { }
 
-    public static void load() {
+    public static synchronized void load() {
         if (loaded) return;
         loaded = true;
         Path path = path();
@@ -59,7 +59,7 @@ public final class MovementTuningSettings {
         }
     }
 
-    public static void save() {
+    public static synchronized boolean save() {
         load();
         Properties values = new Properties();
         put(values, "sprint_acceleration", sprintAcceleration);
@@ -76,28 +76,35 @@ public final class MovementTuningSettings {
         put(values, "fov_boost", fovBoost);
         try {
             Files.createDirectories(path().getParent());
-            try (Writer writer = Files.newBufferedWriter(path())) {
+            Path pending=Files.createTempFile(path().getParent(), "blacklight-movement-", ".tmp");
+            try {
+            try (Writer writer = Files.newBufferedWriter(pending)) {
                 values.store(writer, "Blacklight: Ascension movement engine tuner");
             }
+            try { Files.move(pending,path(),java.nio.file.StandardCopyOption.ATOMIC_MOVE,java.nio.file.StandardCopyOption.REPLACE_EXISTING); }
+            catch(java.nio.file.AtomicMoveNotSupportedException ex){Files.move(pending,path(),java.nio.file.StandardCopyOption.REPLACE_EXISTING);}
+            } finally { Files.deleteIfExists(pending); }
+            return true;
         } catch (IOException exception) {
             BlacklightNeoMod.LOGGER.error("Unable to save movement engine tuning", exception);
+            return false;
         }
     }
 
-    public static double sprintAcceleration() { load(); return sprintAcceleration; }
-    public static double sprintMaxSpeed() { load(); return sprintMaxSpeed; }
-    public static double jumpMinVelocity() { load(); return jumpMinVelocity; }
-    public static double jumpMaxVelocity() { load(); return jumpMaxVelocity; }
-    public static int jumpChargeTicks() { load(); return Math.max(1, (int)Math.round(jumpChargeTicks)); }
-    public static double wallDetectDistance() { load(); return wallDetectDistance; }
-    public static double wallClimbVelocity() { load(); return wallClimbVelocity; }
-    public static double glideFallSpeed() { load(); return glideFallSpeed; }
-    public static double glideMaxSpeed() { load(); return glideMaxSpeed; }
-    public static double airDashSpeed() { load(); return airDashSpeed; }
-    public static int airDashTicks() { load(); return Math.max(1, (int)Math.round(airDashTicks)); }
-    public static double fovBoost() { load(); return fovBoost; }
+    public static synchronized double sprintAcceleration() { load(); return sprintAcceleration; }
+    public static synchronized double sprintMaxSpeed() { load(); return sprintMaxSpeed; }
+    public static synchronized double jumpMinVelocity() { load(); return jumpMinVelocity; }
+    public static synchronized double jumpMaxVelocity() { load(); return jumpMaxVelocity; }
+    public static synchronized int jumpChargeTicks() { load(); return Math.max(1, (int)Math.round(jumpChargeTicks)); }
+    public static synchronized double wallDetectDistance() { load(); return wallDetectDistance; }
+    public static synchronized double wallClimbVelocity() { load(); return wallClimbVelocity; }
+    public static synchronized double glideFallSpeed() { load(); return glideFallSpeed; }
+    public static synchronized double glideMaxSpeed() { load(); return glideMaxSpeed; }
+    public static synchronized double airDashSpeed() { load(); return airDashSpeed; }
+    public static synchronized int airDashTicks() { load(); return Math.max(1, (int)Math.round(airDashTicks)); }
+    public static synchronized double fovBoost() { load(); return fovBoost; }
 
-    public static MovementTuningSnapshot snapshot() {
+    public static synchronized MovementTuningSnapshot snapshot() {
         load();
         return new MovementTuningSnapshot(
                 sprintAcceleration, sprintMaxSpeed, jumpMinVelocity, jumpMaxVelocity,
@@ -106,7 +113,7 @@ public final class MovementTuningSettings {
     }
 
     /** Applies the authoritative values received from a multiplayer server. */
-    public static void applyServerSnapshot(MovementTuningSnapshot snapshot) {
+    public static synchronized void applyServerSnapshot(MovementTuningSnapshot snapshot) {
         setSprintAcceleration(snapshot.sprintAcceleration());
         setSprintMaxSpeed(snapshot.sprintMaxSpeed());
         setJumpMinVelocity(snapshot.jumpMinVelocity());
@@ -122,25 +129,37 @@ public final class MovementTuningSettings {
         loaded = true;
     }
 
-    public static void setSprintAcceleration(double value) { sprintAcceleration = clamp(value, 0.0D, 0.25D); }
-    public static void setSprintMaxSpeed(double value) { sprintMaxSpeed = clamp(value, 0.2D, 2.5D); }
-    public static void setJumpMinVelocity(double value) { jumpMinVelocity = clamp(value, 0.3D, 2.0D); }
-    public static void setJumpMaxVelocity(double value) { jumpMaxVelocity = clamp(value, 0.5D, 3.0D); }
-    public static void setJumpChargeTicks(double value) { jumpChargeTicks = clamp(value, 1.0D, 60.0D); }
-    public static void setWallDetectDistance(double value) { wallDetectDistance = clamp(value, 0.1D, 1.2D); }
-    public static void setWallClimbVelocity(double value) { wallClimbVelocity = clamp(value, 0.05D, 1.2D); }
-    public static void setGlideFallSpeed(double value) { glideFallSpeed = clamp(value, 0.01D, 0.5D); }
-    public static void setGlideMaxSpeed(double value) { glideMaxSpeed = clamp(value, 0.1D, 2.0D); }
-    public static void setAirDashSpeed(double value) { airDashSpeed = clamp(value, 0.2D, 3.0D); }
-    public static void setAirDashTicks(double value) { airDashTicks = clamp(value, 1.0D, 20.0D); }
-    public static void setFovBoost(double value) { fovBoost = clamp(value, 0.0D, 0.5D); }
+    public static synchronized void setSprintAcceleration(double value) { sprintAcceleration = clamp(value, 0.0D, 0.25D); }
+    public static synchronized void setSprintMaxSpeed(double value) { sprintMaxSpeed = clamp(value, 0.2D, 2.5D); }
+    public static synchronized void setJumpMinVelocity(double value) { jumpMinVelocity = clamp(value, 0.3D, 0.8D); jumpMaxVelocity=Math.max(jumpMinVelocity,jumpMaxVelocity); }
+    public static synchronized void setJumpMaxVelocity(double value) { jumpMaxVelocity = clamp(value, 0.8D, 1.65D); jumpMinVelocity=Math.min(jumpMinVelocity,jumpMaxVelocity); }
+    /** One final launch limit shared by gameplay and the tuning preview. */
+    public static double jumpLaunchVelocity(double charge,int upgradeMask){
+        double t=Math.clamp(charge,0,1),eased=t*t*(3-2*t);
+        return Math.min(2.2,(jumpMinVelocity()+(jumpMaxVelocity()-jumpMinVelocity())*eased)
+                *com.codex.blacklight.power.MovementUpgrade.jumpMultiplier(upgradeMask));
+    }
+    /** Flat-ground estimate with vanilla gravity/drag, excluding effects and collisions. */
+    public static double estimatedJumpHeight(double charge,int upgradeMask){
+        double vy=jumpLaunchVelocity(charge,upgradeMask),height=0;
+        for(int tick=0;tick<200&&vy>0;tick++){height+=vy;vy=(vy-.08)*.98;}
+        return height;
+    }
+    public static synchronized void setJumpChargeTicks(double value) { jumpChargeTicks = clamp(value, 1.0D, 60.0D); }
+    public static synchronized void setWallDetectDistance(double value) { wallDetectDistance = clamp(value, 0.1D, 1.2D); }
+    public static synchronized void setWallClimbVelocity(double value) { wallClimbVelocity = clamp(value, 0.05D, 1.2D); }
+    public static synchronized void setGlideFallSpeed(double value) { glideFallSpeed = clamp(value, 0.01D, 0.5D); }
+    public static synchronized void setGlideMaxSpeed(double value) { glideMaxSpeed = clamp(value, 0.1D, 2.0D); }
+    public static synchronized void setAirDashSpeed(double value) { airDashSpeed = clamp(value, 0.2D, 3.0D); }
+    public static synchronized void setAirDashTicks(double value) { airDashTicks = clamp(value, 1.0D, 20.0D); }
+    public static synchronized void setFovBoost(double value) { fovBoost = clamp(value, 0.0D, 0.5D); }
 
     private static Path path() { return FMLPaths.CONFIGDIR.get().resolve(FILE_NAME); }
     private static double read(Properties values, String key, double fallback) {
         String value = values.getProperty(key);
         if (value == null) return fallback;
-        double parsed = Double.parseDouble(value);
-        return Double.isFinite(parsed) ? parsed : fallback;
+        try { double parsed=Double.parseDouble(value);return Double.isFinite(parsed)?parsed:fallback; }
+        catch(NumberFormatException ex){BlacklightNeoMod.LOGGER.warn("Invalid movement setting {}; using its previous value",key);return fallback;}
     }
     private static void put(Properties values, String key, double value) {
         values.setProperty(key, Double.toString(value));

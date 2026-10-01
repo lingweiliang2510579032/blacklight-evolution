@@ -15,14 +15,17 @@ public final class LocomotionVisualState {
     }
 
     public static void set(int entityId,LocomotionDirection direction,LocomotionPhase phase,boolean sprint) {
-        SNAPSHOTS.put(entityId,new Snapshot(direction,phase,sprint));
+        set(entityId,direction,phase,sprint,-1);
+    }
+    public static void set(int entityId,LocomotionDirection direction,LocomotionPhase phase,boolean sprint,double speed) {
+        SNAPSHOTS.put(entityId,new Snapshot(direction,phase,sprint,speed));
     }
 
     public static Snapshot get(int entityId) {
         // computeIfAbsent inserts lazily instead of allocating a throwaway snapshot
         // on every render-frame miss for unknown entities.
         return SNAPSHOTS.computeIfAbsent(entityId,
-                ignored -> new Snapshot(LocomotionDirection.FRONT, LocomotionPhase.IDLE,false));
+                ignored -> new Snapshot(LocomotionDirection.FRONT, LocomotionPhase.IDLE,false,-1));
     }
 
     public static void remove(int entityId) {
@@ -33,6 +36,7 @@ public final class LocomotionVisualState {
         SNAPSHOTS.clear();
     }
 
-    public record Snapshot(LocomotionDirection direction, LocomotionPhase phase,boolean sprint) {
+    public record Snapshot(LocomotionDirection direction, LocomotionPhase phase,boolean sprint,double speed) {
+        public Snapshot(LocomotionDirection direction,LocomotionPhase phase,boolean sprint){this(direction,phase,sprint,-1);}
     }
 }

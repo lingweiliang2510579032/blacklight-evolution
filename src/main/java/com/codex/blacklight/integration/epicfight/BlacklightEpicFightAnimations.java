@@ -87,6 +87,11 @@ public final class BlacklightEpicFightAnimations {
     private static void build(AnimationManager.AnimationBuilder builder) {
         NativeTraversalLibrary.requireInstalled();
         UTILITY_POSES.clear();
+        for(var form:com.codex.blacklight.power.PowerForm.values()) {
+            String key=com.codex.blacklight.power.PowerMorph.key(form);
+            if(!key.isEmpty()&&com.codex.blacklight.combat.LocalVisualMotion.find(key).isPresent())
+                UTILITY_POSES.put(key,builder.nextAccessor("biped/utility/"+key,a->new NativeHitAnimation(a,key)));
+        }
         for (String key : new String[]{"shield_deploy", "shield_hit", "shield_run", "shield_sprint", "armor_transform", "armor_idle"}) {
             UTILITY_POSES.put(key, builder.nextAccessor("biped/utility/" + key, a -> new NativeHitAnimation(a, "utility_" + key)));
         }

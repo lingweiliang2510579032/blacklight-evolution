@@ -34,6 +34,10 @@ public final class BlacklightNeoMod {
         com.codex.blacklight.registry.ModWorldgen.register(modBus);
         ModParticles.register(modBus);
         modBus.addListener(ModNetwork::register);
+        modBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event)->event.enqueueWork(()->{
+            var health=(net.minecraft.world.entity.ai.attributes.RangedAttribute)net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH.value();
+            ((com.codex.blacklight.mixin.HealthAttributeLimitAccessor)health).blacklight$setMaximum(Math.max(health.getMaxValue(),1000000));
+        }));
         NeoForge.EVENT_BUS.register(BlacklightCommands.class);
         NeoForge.EVENT_BUS.register(ClawCombatSystem.class);
         NeoForge.EVENT_BUS.register(com.codex.blacklight.power.GrowthSystem.class);
@@ -43,11 +47,13 @@ public final class BlacklightNeoMod {
         NeoForge.EVENT_BUS.register(LandingDebrisSystem.class);
         NeoForge.EVENT_BUS.register(PrototypeSurvivalLock.class);
         NeoForge.EVENT_BUS.register(PrototypeModeSystem.class);
+        PrototypeModeSystem.registerEpicFightModeGuard();
         NeoForge.EVENT_BUS.register(BlacklightInfectionSystem.class);
         NeoForge.EVENT_BUS.register(com.codex.blacklight.world.ResearchStationTrades.class);
         NeoForge.EVENT_BUS.register(com.codex.blacklight.world.SurvivalGuide.class);
         NeoForge.EVENT_BUS.register(com.codex.blacklight.combat.ConsumeSystem.class);
         NeoForge.EVENT_BUS.register(ModNetwork.class);
+        NeoForge.EVENT_BUS.register(com.codex.blacklight.disguise.DisguiseSystem.class);
         if (net.neoforged.fml.ModList.get().isLoaded("parcool")) {
             NeoForge.EVENT_BUS.register(com.codex.blacklight.integration.parcool.ParCoolCompatibility.class);
         }

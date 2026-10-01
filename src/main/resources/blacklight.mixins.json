@@ -4,6 +4,9 @@
   "package": "com.codex.blacklight.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "HealthAttributeLimitAccessor",
+    "ScaledAbsorptionMixin",
+    "InfectedDragonFightMixin",
     "PrototypeFoodMixin",
     "MobImpactMixin",
     "ConsumePairPushMixin",
@@ -15,6 +18,11 @@
     "client.KeyboardInputMixin",
     "client.LocalPlayerMixin",
     "client.PrototypeTargetLockMixin",
+    "client.PrototypePlayerModeMixin",
+    "client.PrototypeCameraAccess",
+    "client.PrototypeChaseCameraMixin",
+    "client.PrototypeCameraBobMixin",
+    "client.PrototypeCameraProjectionMixin",
     "client.AgeableModelAccessor",
     "client.LivingConsumePoseMixin",
     "client.EpicConsumePoseMixin",
@@ -23,7 +31,8 @@
     "client.ConsumeTargetOutlineMixin",
     "client.ConsumeLayerPoseMixin",
     "client.ModelPartChildrenAccessor",
-    "client.DragonConsumePoseMixin"
+    "client.DragonConsumePoseMixin",
+    "client.VictimModelRootMixin"
   ],
   "injectors": {
     "defaultRequire": 1

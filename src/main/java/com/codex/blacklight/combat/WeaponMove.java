@@ -234,10 +234,20 @@ public enum WeaponMove {
         WeaponMove next=nextAttack()!=null?nextAttack():nextSpecial();
         if(next==null)return duration;
         int sourceTick=SourceComboTiming.linkTick(id,localMotion);
-        if(sourceTick>=0)return Math.min(duration,sourceTick);
+        if(sourceTick>=0){
+            // Trim only recovery between grounded ordinary combo hits. Source poses,
+            // damage windows, charge holds, dives and receiver scenes keep their clock.
+            if(!aerial()&&!landingAttack()&&!rush()&&!frenzy()&&!groundSpike()){
+                int safe=Math.max(end+1,end-1+10-next.start);
+                int recovery=Math.max(0,sourceTick-safe);
+                sourceTick-=Math.min(recovery,(int)Math.ceil(recovery*.15));
+            }
+            return Math.min(duration,sourceTick);
+        }
         // Until the source event sentinel is fully resolved, retain every active
         // contact and a short follow-through. Do not cancel into the next attack.
-        int followThrough=end+Math.clamp((duration-end)/3,2,4);
+        boolean quick=!aerial()&&!landingAttack()&&!rush()&&!frenzy()&&!groundSpike();
+        int followThrough=end+Math.clamp((duration-end)/3,quick?1:2,quick?3:4);
         int hurtResistance=end-1+10-next.start;
         return Math.min(duration,Math.max(followThrough,hurtResistance));
     }

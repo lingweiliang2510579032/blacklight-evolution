@@ -118,8 +118,7 @@ public final class ConsumeVictimPose {
         var p=reaction(entity,partial);
         var saved=new IdentityHashMap<ModelPart,PartPose>();SAVED.put(model,saved);
         restrain(model,saved);
-        Pose nativePose=NativeConsumePose.sample(entity,entity.getData(ModAttachments.CONSUME_VISUAL),"victim",partial);
-        if(nativePose!=null && applyNative(model,saved,entity,partial)) {
+        if(applyNative(model,saved,entity,partial)) {
             return;
         }
         if (model instanceof HumanoidModel<?> humanoid) {
@@ -152,58 +151,27 @@ public final class ConsumeVictimPose {
     }
     private static boolean applyNative(EntityModel<?> model,Map<ModelPart,PartPose> saved,LivingEntity entity,float partial) {
         var visual=entity.getData(ModAttachments.CONSUME_VISUAL);
-        var form=PowerForm.values()[Math.clamp(visual.form(),0,PowerForm.values().length-1)];
+        if(!visual.consuming()&&!GrappleMotion.active(visual))return false;
         boolean large=com.codex.blacklight.combat.ConsumeSequence.mountedStage(visual.stage());
         var projection=com.codex.blacklight.combat.ConsumePlacementTrack.projection(GrappleMotion.sceneKey(entity,visual),GrappleMotion.sceneProgress(entity,visual,partial));
         if(projection.isEmpty())return false;
         var frame=projection.get();
         var contact=large?null:com.codex.blacklight.combat.ConsumePlacementTrack.contactFrame(GrappleMotion.sceneKey(entity,visual),GrappleMotion.sceneProgress(entity,visual,partial)).orElse(null);
-        if(model instanceof QuadrupedModel<?> && model instanceof AgeableModelAccessor a){
-            // The body transform carries the torso. Limbs articulate around their own
-            // species sockets; human shoulder/hip translations would tear a pig apart.
-            for(var head:a.blacklight$heads())quadrupedPart(saved,head,frame,0,.35F);
-            // QuadrupedModel order is body, right/left HIND legs, right/left FRONT legs.
-            int[] joints={1,4,5,2,3};int i=0;
-            for(var part:a.blacklight$body()){
-                if(i>=joints.length)break;
-                int joint=joints[i++];
-                if(joint!=1&&!large)quadrupedPart(saved,part,frame,joint,.45F);
-            }
-            return true;
-        }
         if(model instanceof HumanoidModel<?> h) {
             projectedPart(saved,h.head,frame,contact,0);projectedPart(saved,h.hat,frame,contact,0);
             projectedPart(saved,h.body,frame,contact,1);projectedPart(saved,h.rightArm,frame,contact,2);projectedPart(saved,h.leftArm,frame,contact,3);
-            if(!large){projectedPart(saved,h.rightLeg,frame,contact,4);projectedPart(saved,h.leftLeg,frame,contact,5);}return true;
+            if(!large){projectedPart(saved,h.rightLeg,frame,contact,4);projectedPart(saved,h.leftLeg,frame,contact,5);}
+            ReceiverPoseDiagnostics.record(entity,model,GrappleMotion.sceneKey(entity,visual),large?5:7);return true;
         }
-        if(model instanceof HierarchicalModel<?> h){
-            if(entity instanceof net.minecraft.world.entity.monster.Creeper){
-                var joints=Map.of("head",0,"right_hind_leg",4,"left_hind_leg",5,"right_front_leg",2,"left_front_leg",3);
-                joints.forEach((name,index)->{if(h.root().hasChild(name))quadrupedPart(saved,h.root().getChild(name),frame,index,.5F);});
-                return true;
-            }
-            if(entity instanceof net.minecraft.world.entity.npc.AbstractVillager){
-                var joints=Map.of("head",0,"arms",2,"right_leg",4,"left_leg",5);
-                joints.forEach((name,index)->{if(h.root().hasChild(name))quadrupedPart(saved,h.root().getChild(name),frame,index,.65F);});
-                return true;
-            }
-            var names=Map.of("head",0,"body",1,"right_arm",2,"left_arm",3,"right_leg",4,"left_leg",5,"arms",2);
-            names.forEach((name,index)->{if((!large||index<4)&&h.root().hasChild(name))projectedPart(saved,h.root().getChild(name),frame,contact,index,1,large?.55F:1);});return true;
-        }
-        return false;
-    }
-    private static void quadrupedPart(Map<ModelPart,PartPose> saved,ModelPart part,double[] frame,int joint,float weight){
-        var base=part.getInitialPose();saved.putIfAbsent(part,part.storePose());
-        var chest=com.codex.blacklight.combat.ConsumePlacementTrack.quaternion(frame,11);
-        var local=chest.conjugate().mul(com.codex.blacklight.combat.ConsumePlacementTrack.quaternion(frame,7+joint*4));
-        var q=new org.joml.Quaternionf().slerp(local,weight).mul(new org.joml.Quaternionf().rotationZYX(base.zRot,base.yRot,base.xRot));
-        var angles=q.getEulerAnglesZYX(new org.joml.Vector3f());
-        part.xRot=angles.x;part.yRot=angles.y;part.zRot=angles.z;
-        part.x=base.x;part.y=base.y;part.z=base.z;
+        int bound=ReceiverModelPose.apply(model,saved,frame,
+                com.codex.blacklight.combat.ConsumePlacementTrack.rigidReceiver(entity),large);
+        ReceiverPoseDiagnostics.record(entity, model, GrappleMotion.sceneKey(entity,visual), bound);
+        return bound>0;
     }
     private static void restrain(EntityModel<?> model,Map<ModelPart,PartPose> saved){
         var parts=new java.util.HashSet<ModelPart>();
-        if(model instanceof HierarchicalModel<?> h)h.root().getAllParts().forEach(parts::add);
+        var root=ReceiverModelPose.root(model);
+        if(root!=null)root.getAllParts().forEach(parts::add);
         else if(model instanceof AgeableModelAccessor a){
             for(var p:a.blacklight$heads())p.getAllParts().forEach(parts::add);
             for(var p:a.blacklight$body())p.getAllParts().forEach(parts::add);

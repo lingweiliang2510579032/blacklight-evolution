@@ -11,9 +11,7 @@ import net.minecraft.world.phys.Vec3;
 public final class WallContacts {
     private WallContacts() { }
     public static WallTraversal.Surface sample(Player player, WallTraversal wall) {
-        Vec3 look=player.getLookAngle().multiply(1,0,1);
-        if (look.lengthSqr()<1e-5) look=new Vec3(-Math.sin(Math.toRadians(player.getYRot())),0,Math.cos(Math.toRadians(player.getYRot())));
-        look=look.normalize();
+        Vec3 look=TraversalSteering.forward(player);
         Vec3 into=wall.attached() ? new Vec3(-wall.normalX(),0,-wall.normalZ()) : look;
         BlockHitResult torso=hit(player,into,.78),lower=hit(player,into,.16);
         // Let vanilla step over a ledge before treating it as a wall. Both sides

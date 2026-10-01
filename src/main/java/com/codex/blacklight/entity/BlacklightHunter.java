@@ -132,7 +132,7 @@ public final class BlacklightHunter extends Monster implements GeoEntity {
             if (entityData.get(ATTACK) > 0) return;
             getNavigation().moveTo(target, 1.15);
             if (attackCooldown == 0 && distanceToSqr(target) < 5.3 && hasLineOfSight(target)) {
-                swipeTarget = target; entityData.set(ATTACK, 24); attackCooldown = 36;
+                swipeTarget = target; entityData.set(ATTACK, 24); attackCooldown = 32;
                 playSound(SoundEvents.RAVAGER_ATTACK, .7F, 1.3F);
             }
         }

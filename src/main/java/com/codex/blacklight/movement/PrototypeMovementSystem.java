@@ -71,15 +71,20 @@ public final class PrototypeMovementSystem {
                                    int forward, int sideways, boolean sprinting, boolean detach) {
         if (!PrototypeModeSystem.isActive(player) || !player.isAlive()
                 || player.isSpectator() || player.isDeadOrDying()
-                || player.isInWater() && !WaterRunning.onSurface(player) || player.isInLava()) {
-            // A jump-key packet arriving on the riverbed must not start/release a
-            // land charge before onPlayerTick clears traversal for swimming.
+                || player.isInLava()) {
+            // Inactive/dead/lava movement never arms traversal.
             return;
         }
         if (player.getData(ModAttachments.CONSUMING)&&com.codex.blacklight.combat.ConsumeVisual.blocksInput(player.getData(ModAttachments.GRAB_STAGE))) return;
         if(player.getData(ModAttachments.GRAB_STAGE)==com.codex.blacklight.combat.ConsumeVisual.THROW){jumpHeld=false;dashPressed=false;}
         MovementState movement = player.getData(ModAttachments.MOVEMENT_STATE);
         boolean wasJumpHeld = movement.jumpHeld();
+        if(player.isInWater()&&!WaterRunning.onSurface(player)) {
+            if(movement.chargeTicks()>0)unpauseServerAnimator(player);
+            movement.acceptInput(false,false,forward,sideways,sprinting,detach);
+            movement.jumpInput().reset();movement.cancelCharge();movement.consumeDashRequest();
+            return;
+        }
         movement.acceptInput(jumpHeld, dashPressed, forward, sideways, sprinting, detach);
         movement.jumpInput().acceptInput(jumpHeld, player, movement.wallTraversal().attached());
         if (WeaponCombatSystem.busy(player)) {
@@ -138,7 +143,16 @@ public final class PrototypeMovementSystem {
                     stepHeight.setBaseValue(0.6D);
                 }
             }
+            var waterInput=movement.wallInput();
+            float waterYaw=movement.cameraYaw(player.getYRot());
+            boolean swimming=blacklight.isInfected()&&blacklight.isPrototypeMode()&&player.isInWater()
+                    &&player.isAlive()&&!player.isSpectator()&&!player.isPassenger()&&!player.getAbilities().flying;
             movement.reset();
+            if(swimming) {
+                movement.acceptInput(false,false,waterInput.forward(),waterInput.sideways(),waterInput.sprint(),waterInput.detach());
+                movement.setCameraYaw(waterYaw);
+                WaterRunning.riseToSurface(player);
+            }
             clearGlideTrail(player);
             syncCharge(player,0);
             syncWallMotion(player, movement.wallTraversal());
@@ -362,10 +376,7 @@ public final class PrototypeMovementSystem {
         int held = movement.releaseCharge();
         syncCharge(player,0);
         double charge = Math.min(1.0D, held / (double) MovementTuningSettings.jumpChargeTicks());
-        double eased = charge * charge * (3.0D - 2.0D * charge);
-        double jumpVelocity = MovementTuningSettings.jumpMinVelocity()
-                + (MovementTuningSettings.jumpMaxVelocity() - MovementTuningSettings.jumpMinVelocity()) * eased;
-        jumpVelocity *= MovementUpgrade.jumpMultiplier(
+        double jumpVelocity = MovementTuningSettings.jumpLaunchVelocity(charge,
                 player.getData(ModAttachments.PLAYER_STATE).getMovementUpgradeMask());
         Vec3 forward = horizontalForward(player);
         double launch = 0.20D + charge * 0.42D;
@@ -510,6 +521,7 @@ public final class PrototypeMovementSystem {
         boolean shouldSprint = (player.onGround() || WaterRunning.onSurface(player))
                 && movement.sprinting() && movement.forwardHeld();
         if (!shouldSprint) {
+            movement.clearSprintDrive();
             movement.updateSprintCollision(false);
             boolean shortStep = movement.sprinting() && movement.forwardHeld()
                     && player.getDeltaMovement().y <= .035 && player.getDeltaMovement().y >= -.5
@@ -528,13 +540,12 @@ public final class PrototypeMovementSystem {
             PrototypeMovementEffects.onSprintStarted(player, forward);
         }
         Vec3 velocity = player.getDeltaMovement();
-        Vec3 horizontal = new Vec3(velocity.x, 0.0D, velocity.z)
-                .add(forward.scale(MovementTuningSettings.sprintAcceleration()));
           double max = MovementTuningSettings.sprintMaxSpeed()
                   * MovementUpgrade.sprintMultiplier(upgradeMask);
           if(com.codex.blacklight.power.UtilityPowerSystem.active(player,com.codex.blacklight.power.PowerForm.ARMOR))max*=.75;
-        if (horizontal.length() > max) horizontal = horizontal.normalize().scale(max);
-        double impactSpeed = horizontal.length();
+        var input=movement.wallInput();
+        Vec3 horizontal=TraversalSteering.sprint(player,velocity,max,MovementTuningSettings.sprintAcceleration(),input.forward(),input.sideways());
+        double impactSpeed = horizontal.horizontalDistance();
         Vec3 collisionStart = player.position().add(0.0D, 0.82D, 0.0D);
         boolean colliding = player.level().clip(new ClipContext(
                 collisionStart, collisionStart.add(forward.scale(0.72D)),
@@ -561,8 +572,7 @@ public final class PrototypeMovementSystem {
     }
 
     private static Vec3 horizontalForward(ServerPlayer player) {
-        Vec3 look = player.getLookAngle().multiply(1.0D, 0.0D, 1.0D);
-        return look.lengthSqr() < 1.0E-5D ? new Vec3(0.0D, 0.0D, 1.0D) : look.normalize();
+        return TraversalSteering.forward(player);
     }
 
     /** Horizontal part of a (possibly vertical) homing direction, for trail effects. */

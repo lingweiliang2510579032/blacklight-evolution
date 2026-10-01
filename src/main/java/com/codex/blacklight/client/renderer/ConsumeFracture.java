@@ -21,8 +21,12 @@ import java.util.function.ToDoubleFunction;
 /** Anatomical separation of the posed mesh; source receiver animation continues underneath.
  * Timing markers are Minecraft choreography cues, not recovered original dismemberment events. */
 public final class ConsumeFracture implements MultiBufferSource {
-    public enum Style { HEAD_CRUSH, RIP, SEVER, CRUSH, COIL }
-    public record Phase(PowerForm form,float progress,float opening,float returnFlow,float contact,Style style) {}
+    public enum Style { HEAD_CRUSH, RIP, SEVER, CRUSH, COIL, HEAD_IMPACT, LASH, ARM_RIP, CHEST_ABSORB }
+    public record Phase(PowerForm form,float progress,float opening,float returnFlow,float contact,Style style,boolean nativeEvents) {
+        public Phase(PowerForm form,float progress,float opening,float returnFlow,float contact,Style style){
+            this(form,progress,opening,returnFlow,contact,style,false);
+        }
+    }
     private final MultiBufferSource target;
     private final Matrix4f frame,inverse;
     private final Vector3f sink;
@@ -31,6 +35,10 @@ public final class ConsumeFracture implements MultiBufferSource {
     private final int divisions;
     private final int seed,light;
     private final boolean headOnly;
+    private final boolean bisect;
+    private final boolean sourcedReceiver;
+    private final Vector3f cutNormal;
+    private final Vector3f cutCenter=new Vector3f();
     private final Map<RenderType,Collector> streams=new LinkedHashMap<>();
     private Map<ModelPart,Integer> modelParts=Map.of();
     private final Vector3f[] centers=new Vector3f[ConsumeAnatomy.COUNT];
@@ -42,7 +50,7 @@ public final class ConsumeFracture implements MultiBufferSource {
         var v=mob.getData(ModAttachments.CONSUME_VISUAL);
         var form=PowerForm.values()[Math.clamp(v.form(),0,PowerForm.values().length-1)];
         boolean large=ConsumeSequence.mountedStage(v.stage());
-        Style style=switch(form){case CLAWS,MUSCLE_MASS->Style.RIP;case BLADE->Style.SEVER;case HAMMERFISTS->Style.CRUSH;case WHIPFIST->Style.COIL;default->large?Style.RIP:Style.HEAD_CRUSH;};
+        Style style=switch(form){case CLAWS->Style.HEAD_CRUSH;case MUSCLE_MASS->Style.RIP;case BLADE->Style.SEVER;case HAMMERFISTS->Style.CRUSH;case WHIPFIST->Style.COIL;default->large?Style.RIP:Style.HEAD_CRUSH;};
         if(!v.consuming())return new Phase(form,0,0,0,1,style);
         if(v.stage()==ConsumeVisual.HUNTER_CONSUME) {
             float seconds=HunterConsume.seconds(v,mob.level().getGameTime(),partial);
@@ -51,22 +59,42 @@ public final class ConsumeFracture implements MultiBufferSource {
             return new Phase(form,seconds/end,smooth((seconds-begin)/(reverse-begin)),
                     smooth((seconds-reverse)/(end-reverse)),begin/end,Style.HEAD_CRUSH);
         }
+        var scene=com.codex.blacklight.combat.ConsumeReceiverScene.profile(form,large);
+        if(scene!=null){
+            float seconds=(mob.level().getGameTime()-v.started()+partial)/20F;
+            float flowStart=scene.effectSeconds()+scene.settleSeconds();
+            return new Phase(form,Math.clamp(seconds/scene.finishSeconds(),0,1),
+                    smooth((seconds-scene.deformSeconds())/scene.settleSeconds()),
+                    smooth((seconds-flowStart)/(scene.finishSeconds()-flowStart)),
+                    scene.effectSeconds()/scene.finishSeconds(),Style.valueOf(scene.style()),true);
+        }
         float t=v.motionProgress(mob.level().getGameTime(),partial),hit=ConsumeSequence.contact(form,large);
+        // prototype_consume / blades / receiver: two spawnGib records and
+        // visibility switch at 0.833333s. Geometry/trajectory below adapt this to MC.
+        if(form==PowerForm.BLADE&&!large)hit=.833333F/Math.max(.05F,(v.duration()-1)/20F);
         return new Phase(form,t,smooth((t-hit)/.08F),smooth((t-(ConsumeSequence.completion(form,large)-.125F))/.125F),hit,style);
     }
     private static float smooth(float t){t=Math.clamp(t,0,1);return t*t*(3-2*t);}
     public static float cutHeight(PowerForm form){return form==PowerForm.NONE?.8F:.6F;}
-    public static boolean visible(LivingEntity mob,float partial){var p=phase(mob,partial);return mob.getData(ModAttachments.CONSUME_VISUAL).consuming()&&p.progress()>=Math.max(0,p.contact()-.08F);}
+    public static boolean visible(LivingEntity mob,float partial){
+        var v=mob.getData(ModAttachments.CONSUME_VISUAL);if(!v.consuming())return false;
+        var p=phase(mob,partial);
+        var scene=com.codex.blacklight.combat.ConsumeReceiverScene.profile(p.form(),ConsumeSequence.mountedStage(v.stage()));
+        return scene!=null?(mob.level().getGameTime()-v.started()+partial)/20F>=Math.min(scene.deformSeconds(),scene.effectSeconds()):p.progress()>=Math.max(0,p.contact()-.08F);
+    }
     public void bindModel(EntityModel<?> model){modelParts=ConsumeAnatomy.model(model);}
     public ConsumeFracture(LivingEntity mob,float partial,PoseStack stack,MultiBufferSource target,Vec3 destination) {
         this.target=target;phase=phase(mob,partial);seed=mob.getId();
         headOnly=mob.getData(ModAttachments.CONSUME_VISUAL).stage()==ConsumeVisual.HUNTER_CONSUME;
+        sourcedReceiver=phase.nativeEvents();
+        bisect=phase.style()==Style.SEVER&&!ConsumeSequence.mountedStage(mob.getData(ModAttachments.CONSUME_VISUAL).stage());
+        cutNormal=ConsumeSequence.quadruped(mob)?new Vector3f(0,0,1):new Vector3f(0,1,0);
         light=net.minecraft.client.Minecraft.getInstance().getEntityRenderDispatcher().getPackedLightCoords(mob,partial);
         frame=new Matrix4f(stack.last().pose()).mul(ConsumeVictimPose.effectTransform(mob,partial));
         inverse=new Matrix4f(frame).invert();
         sink=inverse.transformPosition(stack.last().pose().transformPosition(new Vector3f((float)destination.x,(float)destination.y,(float)destination.z)));
         spread=Math.clamp(mob.getBbWidth()*.3F,.18F,.65F);
-        divisions=phase.style()==Style.CRUSH?4:1;
+        divisions=bisect?2:phase.style()==Style.CRUSH?4:1;
         for(int i=0;i<centers.length;i++)centers[i]=new Vector3f(0,mob.getBbHeight()*.5F,0);
     }
     @Override public VertexConsumer getBuffer(RenderType type) {
@@ -82,6 +110,7 @@ public final class ConsumeFracture implements MultiBufferSource {
             c.flush();for(var v:c.vertices)for(int a=0;a<centers.length;a++)if(v.weights[a]>.15F){lo[a].min(v.p);hi[a].max(v.p);present[a]=true;}
         }
         for(int a=0;a<centers.length;a++)if(present[a]){centers[a].set(lo[a]).add(hi[a]).mul(.5F);radii[a]=Math.clamp(lo[a].distance(hi[a])*.25F,.05F,.55F);}
+        cutCenter.set(centers[ConsumeAnatomy.BODY]);
         for(var entry:streams.entrySet()){
             Collector c=entry.getValue();VertexConsumer out=target.getBuffer(entry.getKey());int count=c.quads?4:3;
             List<List<Edge>> caps=new ArrayList<>();for(int i=0;i<centers.length*divisions;i++)caps.add(new ArrayList<>());
@@ -95,11 +124,13 @@ public final class ConsumeFracture implements MultiBufferSource {
                     for(int d=0;d<divisions;d++){
                         int piece=a*divisions+d;List<V> cut=anatomical;
                         int sx=(d&1)==0?-1:1,sz=(d&2)==0?-1:1;
-                        if(divisions>1){cut=clip(cut,v->(v.p.x-centers[anatomy].x)*sx);cut=clip(cut,v->(v.p.z-centers[anatomy].z)*sz);}
+                        if(bisect)cut=clip(cut,v->new Vector3f(v.p).sub(cutCenter).dot(cutNormal)*sx);
+                        else if(divisions>1){cut=clip(cut,v->(v.p.x-centers[anatomy].x)*sx);cut=clip(cut,v->(v.p.z-centers[anatomy].z)*sz);}
                         if(cut.size()<3)continue;
                         for(int e=0;e<cut.size();e++){
                             V va=cut.get(e),vb=cut.get((e+1)%cut.size());if(va.p.distanceSquared(vb.p)<1e-8F)continue;
-                            boolean seam=divisions>1&&((Math.abs(va.p.x-centers[a].x)<.0001F&&Math.abs(vb.p.x-centers[a].x)<.0001F)||(Math.abs(va.p.z-centers[a].z)<.0001F&&Math.abs(vb.p.z-centers[a].z)<.0001F));
+                            boolean seam=bisect?Math.abs(new Vector3f(va.p).sub(cutCenter).dot(cutNormal))<.0001F&&Math.abs(new Vector3f(vb.p).sub(cutCenter).dot(cutNormal))<.0001F:
+                                    divisions>1&&((Math.abs(va.p.x-centers[a].x)<.0001F&&Math.abs(vb.p.x-centers[a].x)<.0001F)||(Math.abs(va.p.z-centers[a].z)<.0001F&&Math.abs(vb.p.z-centers[a].z)<.0001F));
                             for(int rival=0;rival<centers.length&&!seam;rival++)if(rival!=a&&va.weights[a]>.001F&&vb.weights[a]>.001F)
                                 seam=Math.abs(va.weights[a]-va.weights[rival])<.0001F&&Math.abs(vb.weights[a]-vb.weights[rival])<.0001F;
                             if(seam)caps.get(piece).add(new Edge(va.p,vb.p));
@@ -125,24 +156,59 @@ public final class ConsumeFracture implements MultiBufferSource {
         if(headOnly)return part==ConsumeAnatomy.HEAD?phase.contact():Float.POSITIVE_INFINITY;
         float hit=phase.contact();
         return switch(phase.style()){
-            case HEAD_CRUSH->part==ConsumeAnatomy.HEAD?hit:.85F;
+            case HEAD_CRUSH,HEAD_IMPACT->part==ConsumeAnatomy.HEAD?hit:.85F;
             case RIP->part==ConsumeAnatomy.RIGHT_ARM?hit:part==ConsumeAnatomy.LEFT_ARM?Math.min(.79F,hit+.07F):.85F;
             case SEVER->part>=2&&part<=5?Math.min(.81F,hit+(part-2)*.085F):part==1?Math.min(.83F,hit+.34F):.86F;
             case CRUSH->Math.min(.83F,hit+part*.008F);
-            case COIL->hit;
+            case COIL,LASH,ARM_RIP,CHEST_ABSORB->hit;
         };
     }
     private float opening(int part){return smooth((phase.progress()-start(part))/.08F);}
     private Vector3f displaced(Vector3f p,int piece){
         int part=piece/divisions,d=piece%divisions;Vector3f pivot=centers[part];
+        if(bisect){
+            // Two coherent halves: attached head/limbs share their half's transform.
+            float side=d==0?-1:1,open=phase.opening(),flow=phase.returnFlow();
+            float shrink=smooth(flow/.6F),travel=smooth((flow-.4F)/.6F);
+            Vector3f offset=new Vector3f(cutNormal).mul(side*spread*1.5F*open);
+            offset.y-=spread*.6F*open*open;
+            Vector3f result=new Vector3f(p).sub(cutCenter).rotateZ(side*open*.35F)
+                    .mul(1-shrink*.997F).add(cutCenter).fma(1-travel,offset);
+            return frame.transformPosition(result.add(new Vector3f(sink).sub(cutCenter).mul(travel)));
+        }
         if(headOnly) {
             if(part!=ConsumeAnatomy.HEAD)return frame.transformPosition(new Vector3f(p));
             float flow=phase.returnFlow();
             return frame.transformPosition(new Vector3f(p).sub(pivot).mul(1-flow*.999F)
                     .add(pivot).add(new Vector3f(sink).sub(pivot).mul(flow)));
         }
-        float open=opening(part),flow=phase.returnFlow();
+        float open=sourcedReceiver?phase.opening():opening(part),flow=phase.returnFlow();
+        if(sourcedReceiver&&(phase.style()==Style.HEAD_CRUSH||phase.style()==Style.HEAD_IMPACT))
+            flow=part==ConsumeAnatomy.HEAD?smooth(flow/.7F):smooth((flow-.16F)/.84F);
         float shrink=smooth(flow/.6F),travel=smooth((flow-.4F)/.6F);
+        if(phase.style()==Style.LASH||phase.style()==Style.CHEST_ABSORB){
+            // Lash has no spawnGib event. Keep the receiver connected as it
+            // contracts into the absorption stream; do not spin every limb apart.
+            Vector3f anchor=phase.style()==Style.LASH&&present[ConsumeAnatomy.HEAD]?centers[ConsumeAnatomy.HEAD]:centers[ConsumeAnatomy.BODY];
+            Vector3f local=new Vector3f(p).sub(anchor);
+            if(phase.style()==Style.CHEST_ABSORB&&part==ConsumeAnatomy.BODY)local.z*=1-.20F*open;
+            return frame.transformPosition(local.mul(1-shrink*.997F)
+                    .add(anchor).add(new Vector3f(sink).sub(anchor).mul(travel)));
+        }
+        if(phase.style()==Style.ARM_RIP){
+            // Source creates a right-arm gib and a remainder gib. The other arm,
+            // legs and head stay attached to that remainder instead of exploding.
+            boolean arm=part==ConsumeAnatomy.RIGHT_ARM;
+            Vector3f anchor=arm?centers[ConsumeAnatomy.RIGHT_ARM]:centers[ConsumeAnatomy.BODY];
+            Vector3f local=new Vector3f(p).sub(anchor),offset=new Vector3f();
+            if(arm){
+                offset.set(centers[ConsumeAnatomy.RIGHT_ARM]).sub(centers[ConsumeAnatomy.BODY]);
+                if(offset.lengthSquared()<.001F)offset.set(-1,0,0);else offset.normalize();
+                offset.mul(spread*1.8F*open);local.rotateZ(open*.45F);
+            }
+            return frame.transformPosition(local.mul(1-shrink*.997F).add(anchor).fma(1-travel,offset)
+                    .add(new Vector3f(sink).sub(anchor).mul(travel)));
+        }
         Vector3f radial=new Vector3f(pivot).sub(centers[0]);
         if(radial.lengthSquared()<.001F)radial.set(0,1,0);else radial.normalize();
         Vector3f offset=new Vector3f(),local=new Vector3f(p).sub(pivot);
@@ -150,8 +216,10 @@ public final class ConsumeFracture implements MultiBufferSource {
             case RIP->{if(part==2||part==3){offset.set(radial).mul(spread*open*1.8F);local.rotateZ((part==2?1:-1)*open*.3F);}else offset.set(radial).mul(spread*.25F*open);}
             case SEVER->{if(part!=0){offset.set(radial).mul(spread*open);offset.y-=spread*.65F*open*open;local.rotateZ((part%2==0?1:-1)*open*.65F);} }
             case HEAD_CRUSH->{if(part==1){local.mul(1-open*.72F,1-open*.48F,1-open*.72F);offset.y-=spread*.25F*open;} }
+            case HEAD_IMPACT->{if(part==ConsumeAnatomy.HEAD){local.mul(1+open*.12F,1-open*.82F,1+open*.12F);offset.y-=spread*.18F*open;} }
             case CRUSH->{offset.set((d&1)==0?-1:1,.2F,(d&2)==0?-1:1).mul(spread*.65F*open);local.y*=1-open*.7F;local.rotateY((d-1.5F)*open*.5F);offset.y-=spread*.45F*open;}
             case COIL->{float angle=open*(part%2==0?1:-1)*1.6F;local.rotateY(angle).mul(1-open*.55F,1-open*.22F,1-open*.55F);offset.set(radial).rotateY(angle).mul(spread*.4F*open);}
+            case LASH,ARM_RIP,CHEST_ABSORB->{}
         }
         Vector3f result=local.mul(1-shrink*.997F).add(pivot).fma(1-travel,offset);
         result.add(new Vector3f(sink).sub(pivot).mul(travel));
@@ -162,11 +230,12 @@ public final class ConsumeFracture implements MultiBufferSource {
         out.addVertex(p.x,p.y,p.z).setColor((int)(v.r*(1-dark)+66*dark),(int)(v.g*(1-dark)+12*dark),(int)(v.b*(1-dark)+19*dark),v.a).setUv(v.u,v.v).setOverlay(v.overlay).setLight(v.light).setNormal(v.nx,v.ny,v.nz);
     }
     private void tissueBridges(){
-        if(headOnly)return;
-        if(phase.style()!=Style.RIP&&phase.style()!=Style.SEVER)return;
+        if(headOnly||bisect)return;
+        if(phase.style()!=Style.RIP&&phase.style()!=Style.SEVER&&phase.style()!=Style.ARM_RIP)return;
         var out=target.getBuffer(RenderType.entityCutoutNoCull(ConsumedMobVisuals.WHITE));var stack=new PoseStack();
         for(int a=1;a<centers.length;a++){
-            if(!present[a])continue;float open=opening(a),fade=1-smooth((phase.progress()-start(a)-.13F)/.12F);
+            if(phase.style()==Style.ARM_RIP&&a!=ConsumeAnatomy.RIGHT_ARM)continue;
+            if(!present[a])continue;float open=sourcedReceiver?phase.opening():opening(a),fade=1-smooth((phase.progress()-start(a)-.13F)/.12F);
             if(open<=0||fade<=0)continue;
             Vector3f base=displaced(new Vector3f(centers[0]).lerp(centers[a],.6F),0),end=displaced(new Vector3f(centers[a]),a*divisions);
             for(int strand=0;strand<3;strand++){
@@ -179,7 +248,13 @@ public final class ConsumeFracture implements MultiBufferSource {
     }
     private void absorption(){
         List<ConsumeTendrils.Attachment> roots=new ArrayList<>();
-        for(int a=0;a<centers.length;a++)if(present[a]&&(!headOnly||a==ConsumeAnatomy.HEAD)){
+        if(bisect)for(int d=0;d<2;d++){
+            var p=displaced(new Vector3f(cutCenter).fma(d==0?-.12F:.12F,cutNormal),d);
+            roots.add(new ConsumeTendrils.Attachment(new Vec3(p.x,p.y,p.z),Math.max(.1F,radii[0])*(1-phase.returnFlow())));
+        }
+        else for(int a=0;a<centers.length;a++)if(present[a]&&(!headOnly||a==ConsumeAnatomy.HEAD)){
+            if(phase.style()==Style.ARM_RIP&&a!=ConsumeAnatomy.RIGHT_ARM&&a!=ConsumeAnatomy.BODY)continue;
+            if(phase.style()==Style.CHEST_ABSORB&&a!=ConsumeAnatomy.BODY)continue;
             var p=displaced(new Vector3f(centers[a]),a*divisions);roots.add(new ConsumeTendrils.Attachment(new Vec3(p.x,p.y,p.z),radii[a]*(1-smooth(phase.returnFlow()/.6F)*.997F)));
         }
         Vector3f end=frame.transformPosition(new Vector3f(sink));

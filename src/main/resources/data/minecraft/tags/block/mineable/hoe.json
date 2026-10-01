@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "blacklight:tissue_fiber",
+    "blacklight:hive_vein",
+    "blacklight:hive_membrane",
+    "blacklight:hive_flesh",
+    "blacklight:hive_sac",
+    "blacklight:nutrient_node"
+  ]
+}

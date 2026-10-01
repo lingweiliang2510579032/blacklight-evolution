@@ -33,6 +33,9 @@ public final class NativeTraversalMovement extends MovementAnimation {
     // but must never share a clock. Guava weak keys use object identity.
     private final java.util.concurrent.ConcurrentMap<LivingEntity,Clock> clocks=
             new com.google.common.collect.MapMaker().weakKeys().makeMap();
+    // WALK/RUN are different EF slots, but form one continuous stride.
+    private static final java.util.concurrent.ConcurrentMap<LivingEntity,Clock> GROUND_CLOCKS=
+            new com.google.common.collect.MapMaker().weakKeys().makeMap();
     private static final class Clock {String key;double clock,time,changed,speed;Pose last,from;}
     public NativeTraversalMovement(AnimationAccessor<? extends MovementAnimation> accessor,Family family){
         super(.12F,family.loop,accessor,Armatures.BIPED);this.family=family;
@@ -45,6 +48,12 @@ public final class NativeTraversalMovement extends MovementAnimation {
         });
     }
     @Override public void loadAnimation(){animationClip=clip(family.id);}
+    @Override public void begin(LivingEntityPatch<?> patch){
+        super.begin(patch);
+        // A new jump/wall entry must not reuse the preceding one-shot's final frame.
+        // Ground stride deliberately survives WALK/RUN crossfades.
+        clocks.remove(patch.getOriginal());
+    }
     @Override public float getPlaySpeed(LivingEntityPatch<?> patch,DynamicAnimation animation){return 1;}
     @Override public Pose getPoseByTime(LivingEntityPatch<?> patch,float time,float partial){
         var entity=patch.getOriginal();var velocity=entity.getDeltaMovement();double speed=velocity.horizontalDistance();
@@ -54,13 +63,15 @@ public final class NativeTraversalMovement extends MovementAnimation {
                 :velocity.x*wall.normalZ()-velocity.z*wall.normalX();
         double forward=-velocity.x*Math.sin(yaw)+velocity.z*Math.cos(yaw);
         var snapshot=LocomotionVisualState.get(entity.getId());var phase=snapshot.phase();
-        Clock state=clocks.computeIfAbsent(entity,k->new Clock());
+        boolean ground=family==Family.WALK||family==Family.RUN;
+        if(ground&&snapshot.speed()>=0)speed=snapshot.speed();
+        Clock state=(ground?GROUND_CLOCKS:clocks).computeIfAbsent(entity,k->new Clock());
         double now=(entity.level().getGameTime()+partial)/20.0;
-        boolean fresh=state.key==null||now-state.clock>.2||now<state.clock-.25;
+        boolean fresh=state.key==null||!ground&&now-state.clock>2||now<state.clock-.25;
         // Epic Fight may request tick and render samples out of order. An earlier
         // partial tick must not reset the stride clock or restart its blend.
         if(!fresh)now=Math.max(now,state.clock);
-        double elapsed=fresh?0:Math.clamp(now-state.clock,0,.1);
+        double elapsed=fresh?0:Math.clamp(now-state.clock,0,1);
         if(fresh)state.speed=speed;
         else state.speed+=(speed-state.speed)*(1-Math.exp(-elapsed/.10));
         if(family==Family.WALK||family==Family.RUN)speed=state.speed;
@@ -69,9 +80,11 @@ public final class NativeTraversalMovement extends MovementAnimation {
                 case CLAWS -> "basic_idle_claw";case BLADE -> "basic_idle_blade";
                 case HAMMERFISTS -> "basic_idle_hammer";case WHIPFIST -> "basic_idle_whip";default -> family.id;
             };
-            case WALK,RUN -> TraversalMotionSelector.stableGround(phase,family==Family.RUN||snapshot.sprint(),speed,fresh?null:state.key);
+            // Both layers may be sampled during EF's crossfade. Their decision
+            // must agree, or the shared clock would switch clips twice per frame.
+            case WALK,RUN -> TraversalMotionSelector.stableGround(phase,snapshot.sprint()||phase==LocomotionPhase.RUN,speed,fresh?null:state.key);
             case WALL_RUN,WALL_CLIMB -> TraversalMotionSelector.wall(family==Family.WALL_RUN,velocity.y,right);
-            case RISE -> state.key!=null&&now-state.clock<.2?state.key:speed>.3?"basic_jump_running":velocity.y<.8?"basic_jump_tactical":family.id;
+            case RISE -> !fresh?state.key:speed>.3?"basic_jump_running":velocity.y<.8?"basic_jump_tactical":family.id;
             case GLIDE -> TraversalMotionSelector.glide(forward,right);
             default -> family.id;
         };
@@ -82,13 +95,23 @@ public final class NativeTraversalMovement extends MovementAnimation {
             state.from=fresh?null:state.last;state.changed=now;state.time=(phaseTime%1)*selected.getClipTime();state.key=key;
         }
         double nominal=family==Family.WALL_RUN?.55:family==Family.WALL_CLIMB?.14:
-                family==Family.RUN?.7:family==Family.WALK?(key.equals("basic_run")?.28:.12):0;
+                ground?(key.startsWith("basic_sprint")?.7:key.equals("basic_run")?.28:.12):0;
         float cadence=loop(key)?TraversalMotionSelector.cadence(family==Family.WALL_RUN||family==Family.WALL_CLIMB?velocity.length():speed,nominal):1;
         if(!fresh)state.time+=elapsed*cadence;
         state.clock=now;
         float duration=Math.max(.001f,selected.getClipTime());
         float sample=loop(key)?(float)(state.time%duration):(float)Math.min(state.time,duration-.0001);
         Pose pose=selected.getPoseInTime(Math.max(0,sample));
+        if(family==Family.RISE&&state.time>duration){
+            // A running launch is shorter than a charged jump's flight. Continue
+            // with the native airborne cycle instead of clamping for seconds.
+            var airborne=clip("basic_fall");
+            float airDuration=Math.max(.001f,airborne.getClipTime());
+            float airTime=(float)((state.time-duration)%airDuration);
+            Pose airPose=airborne.getPoseInTime(airTime);
+            if(airTime>airDuration-.06f)airPose=Pose.interpolatePose(airPose,airborne.getPoseInTime(0),(airTime-airDuration+.06f)/.06f);
+            pose=Pose.interpolatePose(pose,airPose,(float)Math.clamp((state.time-duration)/.16,0,1));
+        }
         // Smooth the source wrap interval without altering the rest of the native cycle.
         if(loop(key)&&sample>duration-.06f)pose=Pose.interpolatePose(pose,selected.getPoseInTime(0),(sample-duration+.06f)/.06f);
         if(family==Family.WALL_RUN)NativeWallPose.orientRun(pose,Armatures.BIPED.get(),right,velocity.y,entity.getBbWidth()*.5F);

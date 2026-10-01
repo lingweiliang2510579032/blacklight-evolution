@@ -17,6 +17,7 @@ public final class NativeGeckoConsume {
         var worlds=new java.util.IdentityHashMap<software.bernie.geckolib.cache.object.GeoBone,org.joml.Quaternionf>();
         var root=model.getAnimationProcessor().getBone("root");
         if(root!=null){var bind=root.getInitialSnapshot();root.updateRotation(bind.getRotX(),bind.getRotY(),bind.getRotZ());}
+        int bound=0;
         for(int i=0;i<names.length;i++) {
             var bone=model.getAnimationProcessor().getBone(names[i]);if(bone==null)continue;
             int joint=joints[i];
@@ -31,8 +32,10 @@ public final class NativeGeckoConsume {
             var local=new org.joml.Quaternionf(parentWorld).invert().mul(world);
             var angles=local.getEulerAnglesZYX(new org.joml.Vector3f());
             bone.updateRotation(angles.x,angles.y,angles.z);
+            bound++;
         }
-        return true;
+        ReceiverPoseDiagnostics.record(entity,model,com.codex.blacklight.combat.GrappleMotion.sceneKey(entity,visual),bound);
+        return bound>0;
     }
     private static org.joml.Quaternionf bindWorld(software.bernie.geckolib.cache.object.GeoBone bone){
         var bind=bone.getInitialSnapshot();

@@ -11,6 +11,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
@@ -19,20 +20,12 @@ import java.util.Comparator;
 
 public final class BlacklightInfectionSystem {
     private static final double HUNT_RADIUS = 14.0D;
-    private static final float CONTACT_SPREAD_CHANCE = 0.35F;
 
     private BlacklightInfectionSystem() {
     }
 
     public static boolean infect(LivingEntity target, Entity source) {
-        if (target.level().isClientSide || !target.isAlive() || target instanceof com.codex.blacklight.entity.BlacklightInfectedHost || target instanceof com.codex.blacklight.entity.BlacklightHunter || target instanceof com.codex.blacklight.entity.BlacklightMutant || target instanceof com.codex.blacklight.entity.BlacklightHive) return false;
-
-        // Player awakening is voluntary. Contact and splashes only infect creatures.
-        if (target instanceof Player) return false;
-
-        // Encounter bosses require a dedicated infected boss, not replacement with a generic host.
-        if (!(target instanceof Mob) || com.codex.blacklight.combat.ConsumeSequence.boss(target)) return false;
-        if (target.hasEffect(ModEffects.BLACKLIGHT_INFECTION)) return false;
+        if (!canInfect(target)) return false;
         boolean applied = target.addEffect(new MobEffectInstance(
                 ModEffects.BLACKLIGHT_INFECTION,
                 MobEffectInstance.INFINITE_DURATION,
@@ -40,11 +33,21 @@ public final class BlacklightInfectionSystem {
                 false,
                 false,
                 false), source);
-        if (applied) {
+        // Vanilla dragons reject every status effect. Their saved onset marker drives the
+        // same mutation timeline; immunity must not prevent the dedicated boss replacement.
+        boolean dedicatedBoss=com.codex.blacklight.entity.InfectedBossProfile.forSpecies(
+                net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).toString())!=null;
+        if (applied || dedicatedBoss) {
             target.setData(ModAttachments.INFECTION_START, target.level().getGameTime());
             target.syncData(ModAttachments.INFECTION_START);
         }
-        return applied;
+        return applied || dedicatedBoss;
+    }
+
+    /** Eligibility is checked before random exposure/cooldown; players awaken voluntarily. */
+    public static boolean canInfect(LivingEntity target) {
+        return target != null && !target.level().isClientSide && target.isAlive()
+                && target instanceof Mob && !isInfected(target);
     }
 
     public static boolean awaken(Player player) {
@@ -66,7 +69,9 @@ public final class BlacklightInfectionSystem {
         if (entity instanceof Player player) {
             return player.getData(ModAttachments.PLAYER_STATE).isInfected();
         }
-        return entity instanceof com.codex.blacklight.entity.BlacklightInfectedHost || entity instanceof com.codex.blacklight.entity.BlacklightHunter || entity instanceof com.codex.blacklight.entity.BlacklightMutant || entity instanceof com.codex.blacklight.entity.BlacklightHive || entity.hasEffect(ModEffects.BLACKLIGHT_INFECTION);
+        return entity instanceof com.codex.blacklight.entity.BlacklightInfectedHost || entity instanceof com.codex.blacklight.entity.BlacklightHunter || entity instanceof com.codex.blacklight.entity.BlacklightMutant || entity instanceof com.codex.blacklight.entity.BlacklightHive || entity.hasEffect(ModEffects.BLACKLIGHT_INFECTION)
+                || (entity.getData(ModAttachments.INFECTION_START)>=0
+                    && com.codex.blacklight.entity.InfectedBossProfile.forSpecies(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString())!=null);
     }
 
     public static void notifyBurstOwner(Entity owner, int exposedCount) {
@@ -78,12 +83,22 @@ public final class BlacklightInfectionSystem {
 
     @SubscribeEvent
     public static void onContactDamage(LivingDamageEvent.Post event) {
-        if (event.getNewDamage() <= 0.0F || isInfected(event.getEntity())) return;
-        Entity directSource = event.getSource().getEntity();
-        if (!(directSource instanceof LivingEntity attacker) || !isInfected(attacker)) return;
-        if (attacker.getRandom().nextFloat() < CONTACT_SPREAD_CHANCE) {
-            infect(event.getEntity(), attacker);
-        }
+        LivingEntity victim = event.getEntity();
+        if (event.getNewDamage() <= 0.0F || !canInfect(victim)) return;
+        var damage = event.getSource();
+        // Only physical bites/claws by infected creatures can spread infection.
+        // Causing-entity alone also matches arrows, explosions and thorns, and
+        // infected-player weapons must not start an outbreak on every attack.
+        if (!(damage.getEntity() instanceof LivingEntity attacker) || attacker instanceof Player
+                || !isInfected(attacker) || damage.getDirectEntity() != attacker
+                || !(damage.is(DamageTypes.MOB_ATTACK) || damage.is(DamageTypes.MOB_ATTACK_NO_AGGRO))) return;
+        long now = victim.level().getGameTime();
+        var data = victim.getPersistentData();
+        if (data.getLong(InfectionRules.NEXT_CONTACT_EXPOSURE) > now) return;
+        // Failed rolls also consume this victim's exposure window. Multiple
+        // attackers and save/reload cannot reroll every damage event.
+        data.putLong(InfectionRules.NEXT_CONTACT_EXPOSURE, now + InfectionRules.CONTACT_COOLDOWN_TICKS);
+        if (attacker.getRandom().nextFloat() < InfectionRules.CONTACT_CHANCE) infect(victim, attacker);
     }
 
     @SubscribeEvent
@@ -102,7 +117,7 @@ public final class BlacklightInfectionSystem {
             mob.getNavigation().stop();
             return;
         }
-        if (!com.codex.blacklight.combat.ConsumeSequence.boss(mob)) convertHost(mob, serverLevel);
+        convertHost(mob, serverLevel);
     }
 
     private static void convertHost(Mob source, ServerLevel level) {

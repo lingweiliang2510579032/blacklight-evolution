@@ -11,6 +11,7 @@ public record ConsumeVisual(int consumerId, long started, int duration, int form
     public ConsumeVisual(int consumerId,long started,int duration,int form,int stage){this(consumerId,started,duration,form,stage,0);}
     public static final int NONE=0, CAPTURE=1, HOLD=2, CONSUME=3, THROW=4, FLIGHT=5, WHIP_PULL=6,
             MOUNT=7,MOUNT_HOLD=8,MOUNT_CONSUME=9,HUNTER_CONSUME=10;
+    public static boolean acquiring(int stage){return stage==CAPTURE||stage==WHIP_PULL||stage==MOUNT;}
     public static boolean holding(int stage){return stage==HOLD||stage==MOUNT_HOLD;}
     public static boolean blocksTravel(int stage){return stage==CAPTURE||stage==CONSUME||ConsumeSequence.mountedStage(stage);}
     public static boolean blocksInput(int stage){return blocksTravel(stage)||stage==WHIP_PULL;}

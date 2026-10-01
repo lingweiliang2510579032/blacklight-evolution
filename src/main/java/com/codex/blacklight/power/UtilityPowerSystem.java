@@ -96,11 +96,15 @@ public final class UtilityPowerSystem {
                 ? (float)Math.toDegrees(Math.atan2(-velocity.x, velocity.z)) : p.yBodyRot;
         if (Vec3.directionFromRotation(0, facing).dot(toward.normalize()) < .35) return;
         var s = p.getData(ModAttachments.UTILITY_STATE);
-        float hp = Math.max(0, s.shield() - e.getAmount());
+        float units=CombatScale.units(p);
+        float incoming=e.getAmount()*units;
+        float hp = Math.max(0, s.shield() - incoming);
         long now = p.level().getGameTime();
         // Native ShieldPower subtracts absorbed health from the incoming amount; overflow passes through.
         publish(p, new UtilityState(hp, hp <= 0 ? now + UtilityState.REBUILD_TICKS : 0, s.changedAt(), s.previousDefense(), now));
-        float remaining = Math.max(0, e.getAmount() - s.shield());
+        // Shield durability is in displayed health points. Return overflow to the
+        // armor pipeline's original units; CombatScale converts once after armor.
+        float remaining = Math.max(0, incoming - s.shield())/units;
         if (remaining == 0) e.setCanceled(true); else e.setAmount(remaining);
         p.level().playSound(null, p.blockPosition(), hp <= 0 ? SoundEvents.SHIELD_BREAK : SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 1, .7F);
         // Surface debris is emitted once by each client from the posed shield,

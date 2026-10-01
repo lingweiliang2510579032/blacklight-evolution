@@ -43,6 +43,22 @@ public final class NativeUtilityPose {
         return new Selection(key, time, weight, plated, transition, moving);
     }
     public static void apply(LivingEntityPatch<?> patch, Pose pose, float partial) {
+        if(patch.getOriginal() instanceof Player p) {
+            var morph=p.getData(ModAttachments.POWER_MORPH);
+            var animation=BlacklightEpicFightAnimations.utilityPose(morph.key());
+            if(animation!=null&&morph.visible(p,partial)) {
+                float t=morph.seconds(p,partial),duration=animation.get().getTotalTime();
+                float in=morph.key().equals("morph_thermal_vision")?0:.333333F;
+                float out=switch(morph.key()) {
+                    case "morph_claws"->.5F;case "morph_blade","morph_hammerfists"->.1F;
+                    case "morph_whipfist"->.166667F;default->.333333F;
+                };
+                float weight=Math.clamp(Math.min(in==0?1:t/in,(duration-t)/out),0,1);
+                var source=animation.get().getRawPose(Math.clamp(t,0,Math.max(0,duration-.001F)));
+                pose.getJointTransformData().putAll(Pose.interpolatePose(pose,source,weight).getJointTransformData());
+                return;
+            }
+        }
         Selection selection = select(patch, partial);
         if (selection == null) return;
         boolean plated=selection.plated(), transition=selection.transition(), moving=selection.moving();
