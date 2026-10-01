@@ -1,5 +1,17 @@
 # Third-party assets
 
+## 2026-10-01 publication and provenance correction
+
+RC57 was published unchanged at the author's explicit request. See
+[the publication record](docs/RC57-PUBLISHED.md) for the download, checksums,
+dependencies and the author's statement that motions were recreated frame by
+frame and mechanisms were written for this project. The earlier blanket
+private/decoded classification below does not establish the provenance or
+permissions of each individual file. It must not be used to justify replacing
+the project's motions without the author's instruction. The sections below
+retain the packaging history; their not-published status is no longer current.
+Code licensing and individual asset licensing remain separate questions.
+
 ## Package status and license scope
 
 `LICENSE` contains the project's GPL-3.0-only code license. It does not relicense
