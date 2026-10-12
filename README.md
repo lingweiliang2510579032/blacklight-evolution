@@ -1,17 +1,19 @@
 # Blacklight: Ascension
 
-> **独立开发版 `0.3.0-standalone-dev.5`。** 基于现有 RC59 工作区，核心、动作、模型、输入、镜头和服务端同步已改由黑光自身驱动，运行不再要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。无这些模组的客户端和 GameTestServer 已实际启动。当前仍在检查脱离前置后的姿态与移动回归，结果见 [独立化记录](docs/STANDALONE_MIGRATION.md)。
+> **独立开发版 `0.3.0-standalone-dev.6`。** 基于现有 RC59 工作区，核心、动作、模型、输入、镜头和服务端同步已改由黑光自身驱动，运行不再要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。无这些模组的客户端和 GameTestServer 已实际启动。当前仍在检查脱离前置后的姿态与移动回归，结果见 [独立化记录](docs/STANDALONE_MIGRATION.md)。
 
 **黑光：进化 · 作者：末者**
 Minecraft 1.21.1 / NeoForge 的黑光病毒同人 Mod，包含生物武器、抓取吸收、伪装、强化移动、感染生物与组织蜂巢。
 
 ## 当前版本与发布状态
 
-当前为 **0.3.0-standalone-dev.5，本地独立开发版**，尚未公开发行，也未将完整人工验收标记为通过。项目按现有黑光能力与感染生存玩法收尾，不宣称完整复刻原游戏。
+当前为 **0.3.0-standalone-dev.6，本地独立开发版**，尚未公开发行，也未将完整人工验收标记为通过。项目按现有黑光能力与感染生存玩法收尾，不宣称完整复刻原游戏。
 
 **公开资源方案仍是发布阻塞。** 普通源码构建不含本地解包动作；当前动画初始化又要求完整动作资料，缺失时会报错。因此 source-only 构建只用于源码编译，不能当作可直接游玩的公开成品。含私有资料的 local-preview 包仅供本地预览，授权尚未明确，不公开上传。
 
 - [安装、依赖与故障排除](docs/INSTALL_ZH.md)
+- [液态武器变形的源依据与适配范围](docs/LIQUID_WEAPON_MORPH_SOURCE.md)
+- [dev.6 液态变形实机检查](docs/LIQUID_WEAPON_MORPH_QA.md)
 - [当前已知问题与发布阻塞](docs/KNOWN_ISSUES_AND_SLOTS_ZH.md)
 - [0.2.0 人工验收表](docs/ACCEPTANCE_0.2.0.md)
 - [发布准备](docs/RELEASE_PREPARATION_ZH.md) · [平台计划](docs/PLATFORM_PLAN_ZH.md)
@@ -84,6 +86,8 @@ Blacklight JAR 不内置前置 Mod。请使用上表的明确版本，不以“�
 
 已接入利爪、刀锋、拳套、鞭拳、肌肉增强及空手战斗，抓取吸收与受害者表现，护盾、装甲、两种感知，强化移动，最近吸收身份切换，研究站开局、感染传播、巨型组织蜂巢与实际吞噬成长。完整私有资料可提供当前接入的原作派生动作、镜头与 HUD；这些实现不代表原游戏全部机制已移植。
 
+dev.6 为五种攻击武器加入液态变形，以第三人称为主要展示：组织沿手臂推进，波形几何鼓动并逐渐塑形，附着四股组织流，湿材质随光照和观察角度产生细微反光。第一人称沿用现有原版手部位置。这是依据本地原作资料重建的效果，尚未一比一还原原版全部碎片、蓄势和爆发特效，详见 [源依据与适配范围](docs/LIQUID_WEAPON_MORPH_SOURCE.md)。
+
 感染僵尸保留专属模型；其他普通感染体主要是在原生物外形上叠加破损、啃食和组织变化。四类巨构及其成长形态使用专属模型、基础动作与分段判定，**完整破茧演出和巨构专属战斗连招尚未完成**。
 
 军事科技、可建实验室、黑色守望与超级士兵、城市与载具、记忆网和剧情任务尚未完成。伪装只保存最近的可用身份，使用玩家碰撞体与视点，不获得目标技能。攻击裂纹和碎块主要是视觉反馈，不代表通用地形破坏。多人、性能和完整生存平衡仍待验收。
@@ -98,8 +102,8 @@ gradlew.bat clean assemble --no-daemon
 
 文件保留 Minecraft 和 Mod 两个版本号：
 
-- 源码编译产物：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.5-source-only.jar` / `.zip`。
-- 私有本地预览：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.5-local-preview.jar` / `.zip`。
-- 原始源码快照：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.5-sources.zip`。
+- 源码编译产物：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.6-source-only.jar` / `.zip`。
+- 私有本地预览：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.6-local-preview.jar` / `.zip`。
+- 原始源码快照：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.6-sources.zip`。
 
 这些名称区分用途，不表示已经发布。原创代码与原创资源的许可见 [LICENSE](LICENSE)；私有派生资源不随该声明取得分发授权，见 [资源来源说明](THIRD_PARTY_ASSETS.md)。[公开仓库](https://github.com/mengyuyuan/blacklight-evolution) · [贡献说明](CONTRIBUTING.md)。

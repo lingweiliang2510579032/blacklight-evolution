@@ -1,6 +1,7 @@
 package com.codex.blacklight.client.model;
 
 import com.codex.blacklight.BlacklightNeoMod;
+import com.codex.blacklight.client.animation.BiomassSurface;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -8,6 +9,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
 import net.minecraft.client.model.Model;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
@@ -21,8 +23,13 @@ import org.joml.Matrix4f;
 public final class ClawArmModel extends Model {
     public static final ModelLayerLocation LAYER = new ModelLayerLocation(
             ResourceLocation.fromNamespaceAndPath(BlacklightNeoMod.MOD_ID, "claw_arm"), "main");
-    private record Triangle(float[][] points, float[][] normals, int color) { }
+    private record Triangle(float[][] points, float[][] normals, int color, int[] vertices) { }
+    private record Position(int x, int y, int z) {
+        Position(float[] p) { this(Float.floatToIntBits(p[0]), Float.floatToIntBits(p[1]), Float.floatToIntBits(p[2])); }
+    }
+    private record Surface(BiomassSurface.Vertex[] vertices, float[] posed,float[] opacity) { }
     private final Map<String, Triangle[]> joints = new HashMap<>();
+    private final Map<String, Surface> surfaces = new HashMap<>();
 
     public ClawArmModel(ModelPart unused) {
         this("claw_blender");
@@ -36,6 +43,8 @@ public final class ClawArmModel extends Model {
             for (var entry : root.getAsJsonObject("joints").entrySet()) {
                 var source = entry.getValue().getAsJsonArray();
                 Triangle[] triangles = new Triangle[source.size()];
+                var indices = new HashMap<Position, Integer>();
+                var unique = new ArrayList<float[]>();
                 for (int i = 0; i < triangles.length; i++) {
                     var face = source.get(i).getAsJsonObject();
                     float[][] p = new float[3][3];
@@ -62,13 +71,51 @@ public final class ClawArmModel extends Model {
                         float size=(float)Math.sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
                         for(int axis=0;axis<3;axis++)n[axis]/=size;
                     }
-                    triangles[i] = new Triangle(p,normals,color);
+                    int[] vertices = new int[3];
+                    for (int v = 0; v < 3; v++) {
+                        Position position = new Position(p[v]);
+                        Integer index = indices.get(position);
+                        if (index == null) { index = unique.size(); indices.put(position, index); unique.add(p[v]); }
+                        vertices[v] = index;
+                    }
+                    triangles[i] = new Triangle(p,normals,color,vertices);
                 }
                 joints.put(entry.getKey(), triangles);
+                float length = .08F;
+                for (float[] point : unique) length = Math.max(length, Math.abs(point[1]));
+                boolean lower = entry.getKey().startsWith("Hand") || entry.getKey().startsWith("Tip");
+                var descriptors = new BiomassSurface.Vertex[unique.size()];
+                for (int v = 0; v < descriptors.length; v++) {
+                    float[] point = unique.get(v);
+                    descriptors[v] = BiomassSurface.vertex(point[0], point[1], point[2], length, lower);
+                }
+                surfaces.put(entry.getKey(), new Surface(descriptors, new float[descriptors.length * 6],new float[descriptors.length]));
+            }
+            // The whip hook is a separate draw group in the forearm's coordinate
+            // system, not another anatomical segment. Both groups must sample
+            // the same liquid field at their overlapping attachment surface.
+            for (var entry : surfaces.entrySet()) if (entry.getKey().startsWith("Tip_")) {
+                String handName = "Hand_" + entry.getKey().substring(4);
+                Surface hand = surfaces.get(handName), tip = entry.getValue();
+                if (hand == null) continue;
+                float extent = .08F;
+                for (var vertex : hand.vertices) extent = Math.max(extent, Math.abs(vertex.y()));
+                for (var vertex : tip.vertices) extent = Math.max(extent, Math.abs(vertex.y()));
+                surfaces.put(handName, sharedDistalSurface(hand, extent));
+                surfaces.put(entry.getKey(), sharedDistalSurface(tip, extent));
             }
         } catch (Exception e) {
             throw new IllegalStateException("Cannot load Blender claw mesh", e);
         }
+    }
+
+    private static Surface sharedDistalSurface(Surface surface, float extent) {
+        var vertices = new BiomassSurface.Vertex[surface.vertices.length];
+        for (int i = 0; i < vertices.length; i++) {
+            var vertex = surface.vertices[i];
+            vertices[i] = BiomassSurface.vertex(vertex.x(), vertex.y(), vertex.z(), extent, true);
+        }
+        return new Surface(vertices, surface.posed,surface.opacity);
     }
 
     public static LayerDefinition createLayer() {
@@ -91,23 +138,59 @@ public final class ClawArmModel extends Model {
     public void renderJoint(String joint, PoseStack stack, VertexConsumer consumer,
                              int light, int overlay, float progress, float talonLength,Matrix4f wristDelta,float distalLimit,
                              com.codex.blacklight.combat.HammerScales.Shape hammer) {
+        renderJoint(joint,stack,consumer,light,overlay,progress,talonLength,wristDelta,distalLimit,hammer,BiomassSurface.Frame.stable(progress),0);
+    }
+    public void renderJoint(String joint, PoseStack stack, VertexConsumer consumer,
+                             int light, int overlay, float progress, float talonLength,Matrix4f wristDelta,float distalLimit,
+                             com.codex.blacklight.combat.HammerScales.Shape hammer, BiomassSurface.Frame liquid) {
+        float time = 0;
+        if (liquid != null && liquid.liquid()) {
+            var minecraft = net.minecraft.client.Minecraft.getInstance();
+            if (minecraft.level != null) time = minecraft.level.getGameTime() + minecraft.getTimer().getGameTimeDeltaPartialTick(false);
+        }
+        renderJoint(joint,stack,consumer,light,overlay,progress,talonLength,wristDelta,distalLimit,hammer,liquid,time);
+    }
+    public void renderJoint(String joint, PoseStack stack, VertexConsumer consumer,
+                             int light, int overlay, float progress, float talonLength,Matrix4f wristDelta,float distalLimit,
+                             com.codex.blacklight.combat.HammerScales.Shape hammer, BiomassSurface.Frame liquid, float time) {
         Triangle[] faces = joints.get(joint);
-        if (faces == null) return;
-        float t=Math.clamp(progress,0,1), growth=t*t*(3-2*t);
+        if (faces == null || progress <= .001F || liquid != null && !liquid.visible()) return;
+        if (liquid == null) liquid = BiomassSurface.Frame.stable(progress);
+        float t=Math.clamp(progress,0,1);
         float sheath=com.codex.blacklight.infection.InfectionTimeline.stage(t,.05F,.70F);
         float blade=com.codex.blacklight.infection.InfectionTimeline.stage(t,.48F,1);
         float width=.08F+.92F*sheath;
-        boolean forearm=joint.startsWith("Hand");
+        boolean forearm=joint.startsWith("Hand")||joint.startsWith("Tip");
+        Surface surface = surfaces.get(joint);
+        float[] posed = surface.posed;
+        for (int i = 0; i < surface.vertices.length; i++) {
+            var vertex = surface.vertices[i];
+            float y = vertex.y();
+            if (forearm && y > .30F) y = .30F + (y - .30F) * blade * talonLength;
+            float coating=BiomassSurface.coating(vertex,liquid);
+            float tissueWidth=width+(1-width)*liquid.flow()*coating;
+            surface.opacity[i]=1-liquid.flow()+liquid.flow()*coating;
+            BiomassSurface.deform(vertex, liquid, time, vertex.x() * tissueWidth, y, vertex.z() * tissueWidth, posed, i * 6);
+        }
         PoseStack.Pose pose=stack.last();
         for (Triangle face : faces) {
             if(forearm&&Math.max(face.points[0][1],Math.max(face.points[1][1],face.points[2][1]))>distalLimit)continue;
             // QUADS require a repeated final vertex for triangular authored surfaces.
             for (int v=0;v<4;v++) {
-                float[] p=face.points[Math.min(v,2)];
-                float[] n=face.normals[Math.min(v,2)];
-                float y=p[1];
-                if (forearm && y>.30F) y=.30F+(y-.30F)*blade*talonLength;
-                float x=p[0]*width,z=p[2]*width,nx=n[0],ny=n[1],nz=n[2];
+                int corner = Math.min(v,2), index = face.vertices[corner], offset = index * 6;
+                float[] p=face.points[corner];
+                float[] n=face.normals[corner];
+                float x=posed[offset],y=posed[offset+1],z=posed[offset+2],nx=n[0],ny=n[1],nz=n[2];
+                float wet = posed[offset+3];
+                if (wet > 0) {
+                    var vertex = surface.vertices[index];
+                    float soften = wet * .24F;
+                    nx = nx * (1 - soften) + vertex.radialX() * soften;
+                    ny *= 1 - wet * .12F;
+                    nz = nz * (1 - soften) + vertex.radialZ() * soften;
+                    float normalLength = (float)Math.sqrt(nx * nx + ny * ny + nz * nz);
+                    if (normalLength > 1E-6F) { nx /= normalLength; ny /= normalLength; nz /= normalLength; }
+                }
                 if(hammer!=null&&forearm) {
                     // The authored mesh combines forearm and fist in one joint. Blend
                     // their source scales along its length, keeping the elbow seam fixed.
@@ -135,8 +218,10 @@ public final class ClawArmModel extends Model {
                     float length=(float)Math.sqrt(nx*nx+ny*ny+nz*nz);
                     if(length>1e-6F){nx/=length;ny/=length;nz/=length;}
                 }
-                consumer.addVertex(pose,x,y,z).setColor(face.color)
-                        .setUv(.5F,.5F).setOverlay(overlay).setLight(light)
+                int color = BiomassSurface.color(face.color, wet, posed[offset+4], posed[offset+5]);
+                color=(Math.round(surface.opacity[index]*255)<<24)|(color&0xFFFFFF);
+                consumer.addVertex(pose,x,y,z).setColor(color)
+                        .setUv(liquid.liquid()?wet:.5F,.5F).setOverlay(overlay).setLight(light)
                         .setNormal(pose,nx,ny,nz);
             }
         }
