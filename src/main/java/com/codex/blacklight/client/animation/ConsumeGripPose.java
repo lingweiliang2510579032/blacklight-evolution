@@ -5,17 +5,13 @@ import com.codex.blacklight.registry.ModAttachments;
 import com.codex.blacklight.power.PowerForm;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
-import yesman.epicfight.api.animation.Pose;
-import yesman.epicfight.api.animation.JointTransform;
-import yesman.epicfight.api.model.Armature;
-import yesman.epicfight.api.physics.ik.FABRIK;
-import yesman.epicfight.api.utils.math.OpenMatrix4f;
-import yesman.epicfight.api.utils.math.Vec3f;
+import com.codex.blacklight.animation.BlacklightPose;
+import com.codex.blacklight.animation.BoneTransform;
 
 /** Keep the two palms on the rendered head when species proportions or terrain differ. */
 public final class ConsumeGripPose {
     private ConsumeGripPose() {}
-    public static void apply(LivingEntity actor, Armature armature, Pose pose, float partial) {
+    public static void apply(LivingEntity actor, com.codex.blacklight.animation.BlacklightSkeleton armature, BlacklightPose pose, float partial) {
         if(actor.getData(ModAttachments.GRAB_STAGE)!=ConsumeVisual.CONSUME)return;
         var victims=actor.level().getEntitiesOfClass(LivingEntity.class,actor.getBoundingBox().inflate(5),v->{
             var scene=v.getData(ModAttachments.CONSUME_VISUAL);
@@ -32,20 +28,17 @@ public final class ConsumeGripPose {
         Vec3 target=victim.getPosition(partial).add(com.codex.blacklight.client.ClientCarryPlacement.consumeOffset(victim,partial))
                 .add(head).subtract(actor.getPosition(partial));
         if(target.lengthSqr()>9)return;
-        Pose original=Pose.interpolatePose(pose,pose,0);
+        BlacklightPose original=BlacklightPose.interpolatePose(pose,pose,0);
         for(String side:new String[]{"R","L"}){
             var arm=armature.searchJointByName("Arm_"+side);var wrist=armature.searchJointByName("Tool_"+side);
             if(arm==null||wrist==null)continue;
             Vec3 contact=target.add(left.scale((side.equals("L")?1:-1)*Math.clamp(victim.getBbWidth()*.22,.09,.22)));
-            Vec3f desired=new Vec3f((float)(-contact.dot(left)/.9375),(float)(contact.y/.9375),(float)(-contact.dot(forward)/.9375));
-            var tool=pose.orElseEmpty("Tool_"+side).copy();
-            var palm=new Vec3f(side.equals("L")?.00267F:-.00267F,.32362F,.07666F);
-            var endpoint=OpenMatrix4f.transform3v(OpenMatrix4f.invert(wrist.getLocalTransform(),null),palm,null);
-            pose.getJointTransformData().put("Tool_"+side,JointTransform.translation(endpoint));
-            try{new FABRIK(pose,armature,arm,wrist).run(desired,12);}
-            finally{pose.getJointTransformData().put("Tool_"+side,tool);}
+            org.joml.Vector3f desired=new org.joml.Vector3f((float)(-contact.dot(left)/.9375),(float)(contact.y/.9375),(float)(-contact.dot(forward)/.9375));
+            var palm=new org.joml.Vector3f(side.equals("L")?.00267F:-.00267F,.32362F,.07666F);
+            var endpoint=new org.joml.Matrix4f(wrist.getLocalTransform()).invert().transformPosition(palm);
+            BlacklightBoneIk.reach(armature,pose,side,desired,endpoint,12);
         }
-        var blended=Pose.interpolatePose(original,pose,weight);
+        var blended=BlacklightPose.interpolatePose(original,pose,weight);
         pose.getJointTransformData().putAll(blended.getJointTransformData());
     }
 }

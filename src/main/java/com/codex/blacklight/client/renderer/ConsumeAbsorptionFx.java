@@ -16,7 +16,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
-/** One stage-driven effect for vanilla, Epic Fight and Gecko receivers, including large targets. */
+/** One stage-driven effect for vanilla, Blacklight and Gecko receivers, including large targets. */
 @EventBusSubscriber(modid="blacklight",value=Dist.CLIENT)
 public final class ConsumeAbsorptionFx {
     private ConsumeAbsorptionFx() {}

@@ -1,25 +1,17 @@
 package com.codex.blacklight.mode;
 
 import com.codex.blacklight.combat.ClawCombatSystem;
+import com.codex.blacklight.animation.PlayerActions;
 import com.codex.blacklight.registry.ModAttachments;
 import com.codex.blacklight.state.BlacklightState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import yesman.epicfight.world.capabilities.EpicFightCapabilities;
-import yesman.epicfight.world.capabilities.entitypatch.player.ServerPlayerPatch;
 
 /** Server authority for switching the player between vanilla and Prototype rules. */
 public final class PrototypeModeSystem {
     private PrototypeModeSystem() {
-    }
-
-    public static void registerEpicFightModeGuard() {
-        yesman.epicfight.api.event.EpicFightEventHooks.Player.TOGGLE_MODE.registerEvent(event -> {
-            if (event.getPlayerMode() == yesman.epicfight.world.capabilities.entitypatch.player.PlayerPatch.PlayerMode.EPICFIGHT
-                    && !isActive(event.getPlayerPatch().getOriginal())) event.cancel();
-        }, "blacklight:survival_mode", -1000);
     }
 
     public static void handle(ServerPlayer player, boolean enabled) {
@@ -46,7 +38,7 @@ public final class PrototypeModeSystem {
             player.setDeltaMovement(horizontal.x, velocity.y, horizontal.z);
             player.hurtMarked = true;
         }
-        synchronizeEpicFightMode(player, enabled);
+        synchronizePresentationMode(player, enabled);
         ClawCombatSystem.playPrototypeTransition(player, enabled);
         player.displayClientMessage(Component.translatable(enabled
                 ? "message.blacklight.prototype_mode_enabled"
@@ -58,21 +50,15 @@ public final class PrototypeModeSystem {
         return state.isInfected() && state.isPrototypeMode();
     }
 
-    /** Keeps Epic Fight's own mode aligned so B is the only authoritative mode switch. */
+    /** Keeps the presentation engine aligned so B is the only authoritative mode switch. */
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
-        synchronizeEpicFightMode(player, state.isInfected() && state.isPrototypeMode());
+        synchronizePresentationMode(player, state.isInfected() && state.isPrototypeMode());
     }
 
-    private static void synchronizeEpicFightMode(ServerPlayer player, boolean prototypeMode) {
-        ServerPlayerPatch patch = EpicFightCapabilities.getServerPlayerPatch(player);
-        if (patch == null) return;
-        if (prototypeMode && patch.isVanillaMode()) {
-            patch.toEpicFightMode(true);
-        } else if (!prototypeMode && patch.isEpicFightMode()) {
-            patch.toVanillaMode(true);
-        }
+    private static void synchronizePresentationMode(ServerPlayer player, boolean prototypeMode) {
+        PlayerActions.get().synchronizeMode(player, prototypeMode);
     }
 }

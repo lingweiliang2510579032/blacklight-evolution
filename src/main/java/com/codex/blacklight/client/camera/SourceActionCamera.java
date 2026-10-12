@@ -1,14 +1,12 @@
 package com.codex.blacklight.client.camera;
 
 import com.codex.blacklight.combat.*;
-import com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations;
+import com.codex.blacklight.animation.PlayerMotionController;
 import com.codex.blacklight.registry.ModAttachments;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
-import yesman.epicfight.world.capabilities.EpicFightCapabilities;
-import yesman.epicfight.client.world.capabilites.entitypatch.player.LocalPlayerPatch;
 
 /** One source animation clock for body pose, camera events, impact pause and consume recovery. */
 final class SourceActionCamera {
@@ -110,21 +108,16 @@ final class SourceActionCamera {
         if(move==null)return null;
         String key=visual.charging()?LocalWeaponMotion.find(move.id).flatMap(LocalWeaponMotion.Definition::charge).map(LocalWeaponMotion.Charge::animation).orElse(""):move.id;
         if(SourceCameraEvents.events(key).isEmpty())return null;
-        var accessor=visual.charging()?BlacklightEpicFightAnimations.weaponCharge(move):BlacklightEpicFightAnimations.weapon(move);
-        var patch=EpicFightCapabilities.getEntityPatch(player,LocalPlayerPatch.class);
-        if(patch==null||accessor==null)return null;
-        var animation=patch.getAnimator().getPlayerFor(accessor);
-        if(animation==null||animation.getRealAnimation()==null||animation.getRealAnimation().get()!=accessor.get()
-                ||animation.getAnimation().get().isLinkAnimation())return null;
-        double seconds=Mth.lerp(partial,animation.getPrevElapsedTime(),animation.getElapsedTime());
+        if(!PlayerMotionController.isPlaying(player,key))return null;
+        double seconds=PlayerMotionController.elapsed(player,partial);
         return new Clock(key,visual.started(),seconds,visual.yaw());
     }
     private Clock consumeClock(LocalPlayer player,ConsumeVisual visual,float partial) {
         if(!visual.consuming())return null;
         String key="consume_"+GrappleMotion.sceneKey(player,visual)+"_actor";
-        var animation=BlacklightEpicFightAnimations.consumePose(key);
-        if(animation==null||SourceCameraEvents.events(key).isEmpty())return null;
-        double max=Math.max(0,animation.get().getTotalTime()-.001F);
+        float duration=PlayerMotionController.duration(key);
+        if(duration<=0||SourceCameraEvents.events(key).isEmpty())return null;
+        double max=Math.max(0,duration-.001F);
         double time=visual.stage()==ConsumeVisual.HUNTER_CONSUME?Math.min(HunterConsume.seconds(visual,player.level().getGameTime(),partial),max)
                 :GrappleMotion.sceneProgress(player,visual,partial)*max;
         return new Clock(key,visual.started(),time,visual.facing());

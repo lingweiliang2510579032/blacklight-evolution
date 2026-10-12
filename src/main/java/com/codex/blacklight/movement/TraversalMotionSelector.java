@@ -43,6 +43,6 @@ public final class TraversalMotionSelector {
     }
     public static float cadence(double speed,double nominal){
         if(!Double.isFinite(speed)||!Double.isFinite(nominal)||nominal<=0)return 1;
-        return (float)Math.clamp(speed/nominal,.55,1.8);
+        return (float)Math.clamp(speed/nominal,.55,8.0);
     }
 }

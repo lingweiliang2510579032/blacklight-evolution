@@ -270,5 +270,6 @@
   "block.blacklight.nutrient_node": "营养节点",
   "message.blacklight.disguise_exposed": "当前身份已被识破；躲开敌人视线后再切换未曝光身份",
   "message.blacklight.disguise_power_body": "已恢复主角本体以展开生物能力；无人目击，未增加警戒",
-  "message.blacklight.disguise_known": "这个身份仍被认出：先摆脱视线，等待追捕消退"
+  "message.blacklight.disguise_known": "这个身份仍被认出：先摆脱视线，等待追捕消退",
+  "entity.blacklight.hive_tendril": "蜂巢捕食触手"
 }

@@ -13,7 +13,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import yesman.epicfight.api.client.camera.EpicFightCameraAPI;
+import com.codex.blacklight.client.ClientTargetLock;
 
 /** Source follow primitives with a Minecraft state/collision bridge.
  * Observation is shared with movement; shake and active films remain visual only.
@@ -54,7 +54,7 @@ public final class PrototypeChaseCamera {
             var mc=Minecraft.getInstance();
             if(wasOwned&&previousPlayer==mc.player&&mc.player!=null&&mc.player.isAlive()
                     &&mc.options.getCameraType()==CameraType.THIRD_PERSON_BACK
-                    &&(mc.player.isUsingItem()||EpicFightCameraAPI.getInstance().isZooming())
+                    &&(mc.player.isUsingItem()||mc.player.isScoping())
                     &&Double.isFinite(x)&&Double.isFinite(y)) {
                 if(!externalSeeded)releaseControl();
                 lastYaw=Mth.wrapDegrees(lastYaw+(float)(x*.15));
@@ -77,7 +77,9 @@ public final class PrototypeChaseCamera {
         }
         film.cancelForInput(mc.player);filmFrame=null;
         orbit.input(x,y);
-        EpicFightCameraAPI.getInstance().setCameraRotations(orbit.controlPitch(),orbit.controlYaw(),true);
+        // Vanilla sends view pitch for vertical attack aim; body facing and the
+        // free orbit retain separate owners while actions are playing.
+        if(mc.player!=null)mc.player.setXRot(orbit.controlPitch());
         return true;
     }
     public static void impact(com.codex.blacklight.network.PhysicalFeedbackPayload payload) {
@@ -88,7 +90,7 @@ public final class PrototypeChaseCamera {
         var mc=Minecraft.getInstance();var p=mc.player;
         return p!=null&&mc.level!=null&&mc.getCameraEntity()==p&&PrototypeModeSystem.isActive(p)
                 &&p.isAlive()&&!p.isSpectator()&&!p.isSleeping()&&!p.isUsingItem()
-                &&mc.options.getCameraType()==CameraType.THIRD_PERSON_BACK&&!EpicFightCameraAPI.getInstance().isZooming()
+                &&mc.options.getCameraType()==CameraType.THIRD_PERSON_BACK&&!mc.player.isScoping()
                 &&ChaseCameraProfile.get("Ground")!=null&&SourceCameraEvents.available();
     }
     private PrototypeChaseCamera() {}
@@ -106,7 +108,7 @@ public final class PrototypeChaseCamera {
     private static void releaseControl() {
         var p=Minecraft.getInstance().player;
         p.setYRot(lastYaw);p.yRotO=lastYaw;p.setXRot(lastPitch);p.xRotO=lastPitch;
-        EpicFightCameraAPI.getInstance().setCameraRotations(lastPitch,lastYaw,true);externalSeeded=true;
+        externalSeeded=true;
     }
     private static void finishFrame(net.minecraft.client.Camera camera,LocalPlayer player,Vec3 eye,double dt) {
         var access=(PrototypeCameraAccess)camera;
@@ -126,7 +128,7 @@ public final class PrototypeChaseCamera {
         lastOffset=camera.getPosition().subtract(eye);lastYaw=camera.getYRot();lastPitch=camera.getXRot();
     }
 
-    private static String select(LocalPlayer player, EpicFightCameraAPI api) {
+    private static String select(LocalPlayer player) {
         var recovery=player.getData(ModAttachments.CONSUME_RECOVERY);
         if(player.getData(ModAttachments.GRAB_STAGE)!=ConsumeVisual.NONE
                 ||recovery.active()&&recovery.phaseProgress(player.level().getGameTime(),0)<1
@@ -154,13 +156,12 @@ public final class PrototypeChaseCamera {
 
     public static void apply(net.minecraft.client.Camera camera,float partial) {
         var mc=Minecraft.getInstance();var player=mc.player;
-        var api=EpicFightCameraAPI.getInstance();
         if(player==null||mc.level==null||camera!=mc.gameRenderer.getMainCamera()||camera.getEntity()!=player
                 ||!PrototypeModeSystem.isActive(player)||!player.isAlive()||player.isSpectator()||player.isSleeping()
                 ||mc.options.getCameraType()!=CameraType.THIRD_PERSON_BACK) {
             reset();return;
         }
-        String state=select(player,api);var profile=ChaseCameraProfile.get(state);
+        String state=select(player);var profile=ChaseCameraProfile.get(state);
         if(profile==null){reset();return;}
         Vec3 eye=player.getEyePosition(partial);
         long now=System.nanoTime();
@@ -178,7 +179,7 @@ public final class PrototypeChaseCamera {
         previousNanos=now;previousEye=eye;previousPlayer=player;previousLevel=mc.level;
         if(!ownsView()) {
             if(wasOwned) {
-                // Transfer visible facing to vanilla/EF item use before returning control.
+                // Transfer visible facing to vanilla item use before returning control.
                 suspendedManual=orbit.manual();
                 if(!externalSeeded){
                     releaseControl();
@@ -226,7 +227,7 @@ public final class PrototypeChaseCamera {
         distance=SourceCameraMath.approach(distance,profile.distance(),profile.distanceRate(),dt,profile.slowingDistance());
         elevation=SourceCameraMath.approach(elevation,profile.elevation(),profile.elevationRate(),dt,profile.elevationSlow());
         boolean targeting=com.codex.blacklight.client.ClientTargetLock.hasValidLock();
-        var target=targeting?api.getFocusingEntity():null;
+        var target=targeting?ClientTargetLock.target():null;
         if(!targeting&&action.hint("AutoTarget")) {
             var accepted=player.level().getEntity(player.getData(ModAttachments.WEAPON_VISUAL).targetId());
             if(accepted instanceof net.minecraft.world.entity.LivingEntity living&&living.distanceToSqr(player)<4096
@@ -253,7 +254,6 @@ public final class PrototypeChaseCamera {
         var access=(PrototypeCameraAccess)camera;
         // The movement/input API sees the same base orbit as the rendered camera.
         // Do not feed action shake or cinematic offsets into attack direction.
-        api.setCameraRotations(pitch,yaw,true);
         access.blacklight$setRotation(yaw,pitch,0);
         access.blacklight$setPosition(anchor);
         float desired=(float)(distance*player.getScale()/actionValues.dolly());

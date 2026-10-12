@@ -31,18 +31,24 @@ public final class CombatTargeting {
         var target=LOCKS.get(player);
         if (!com.codex.blacklight.power.PrototypeMetabolism.active(player)
                 || !selectable(player,target) || !inReach(player,target,viewRange(player))) {
-            LOCKS.remove(player); return null;
+            LOCKS.remove(player); syncLock(player, -1); return null;
         }
         return target;
     }
-    /** Explicit camera lock only. EF's ordinary crosshair focus is never authoritative. */
+    /** Explicit camera lock only; ordinary crosshair focus is never authoritative. */
     public static void requestLock(ServerPlayer player, int entityId) {
-        if(entityId<0){LOCKS.remove(player);return;}
+        if(entityId<0){LOCKS.remove(player);syncLock(player,-1);return;}
         var entity=resolveTarget(player.serverLevel().getEntity(entityId));
         if(com.codex.blacklight.power.PrototypeMetabolism.active(player)
                 && entity != null && selectable(player,entity)
-                && visibleWithinRange(player,entity,viewRange(player))) LOCKS.put(player,entity);
-        else LOCKS.remove(player);
+                && visibleWithinRange(player,entity,viewRange(player))) {
+            LOCKS.put(player,entity);syncLock(player,entity.getId());
+        } else {LOCKS.remove(player);syncLock(player,-1);}
+    }
+    private static void syncLock(ServerPlayer player,int id) {
+        if(player.getData(ModAttachments.TARGET_LOCK_ID)==id)return;
+        player.setData(ModAttachments.TARGET_LOCK_ID,id);
+        if(!player.isRemoved())player.syncData(ModAttachments.TARGET_LOCK_ID);
     }
     public static boolean damageable(Player player, LivingEntity target) {
         return target!=null && target!=player && target.level()==player.level()

@@ -5,7 +5,7 @@ import com.google.gson.JsonArray;
 import com.mojang.blaze3d.vertex.PoseStack;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import yesman.epicfight.world.capabilities.entitypatch.LivingEntityPatch;
+import net.minecraft.world.entity.LivingEntity;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,19 +34,23 @@ public final class NativeShieldGrip {
         }
         return new Track(fps, frames);
     }
-    public static void apply(LivingEntityPatch<?> patch, PoseStack stack, float partial) {
-        var selected = NativeUtilityPose.select(patch, partial);
-        if (selected == null || selected.plated()) return;
-        var track = tracks.computeIfAbsent(selected.key(), NativeShieldGrip::load);
-        float frame = Math.clamp(selected.time() * track.fps, 0, track.frames.length - 1);
+    public static void apply(LivingEntity entity, PoseStack stack, float partial) {
+        com.codex.blacklight.client.renderer.BlacklightBoneRendering.apply(stack,matrix(entity,partial));
+    }
+    public static org.joml.Matrix4f matrix(LivingEntity entity,float partial) {
+        var selected = NativeUtilityPose.select(entity, partial);
+        if (selected == null || selected.plated()) return new org.joml.Matrix4f();
+        return sample(selected.key(),selected.time(),selected.weight());
+    }
+    public static org.joml.Matrix4f sample(String key,float seconds,float weight) {
+        var track = tracks.computeIfAbsent(key, NativeShieldGrip::load);
+        float frame = Math.clamp(seconds * track.fps, 0, track.frames.length - 1);
         int index = (int)frame;
         var a = track.frames[index]; var b = track.frames[Math.min(index + 1, track.frames.length - 1)];
-        float u = frame - index, weight = selected.weight();
+        float u = frame - index;
         var position = new Vector3f(a.position).lerp(b.position, u).mul(weight);
         var rotation = new Quaternionf().slerp(new Quaternionf(a.rotation).slerp(b.rotation, u), weight);
         var scale = new Vector3f(1).lerp(new Vector3f(a.scale).lerp(b.scale, u), weight);
-        stack.translate(position.x, position.y, position.z);
-        stack.mulPose(rotation);
-        stack.scale(scale.x, scale.y, scale.z);
+        return new org.joml.Matrix4f().translationRotateScale(position,rotation,scale);
     }
 }

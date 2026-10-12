@@ -33,17 +33,11 @@ public final class ConsumedMobVisuals {
             boolean feeding=DevourerFeedingFx.shrinkingVictim(mob,event.getPartialTick());
             var hit=mob.getData(ModAttachments.HIT_REACTION);
             if(!feeding&&hit.weight(mob.level().getGameTime(),event.getPartialTick())<=0)return;
-            var patch=yesman.epicfight.world.capabilities.EpicFightCapabilities.getEntityPatch(mob,yesman.epicfight.world.capabilities.entitypatch.LivingEntityPatch.class);
-            if(!feeding&&com.codex.blacklight.client.animation.NativeHitPose.available(patch))return;
+            if(!feeding&&mob instanceof net.minecraft.client.player.AbstractClientPlayer&&com.codex.blacklight.client.animation.NativeHitPose.available(mob))return;
             var stack=event.getPoseStack();stack.pushPose();
             if(feeding)DevourerFeedingFx.applyVictim(mob,event.getPartialTick(),stack);
             com.codex.blacklight.client.animation.HitBodyPose.apply(mob,stack,event.getPartialTick());
-            var engine=yesman.epicfight.client.events.engine.RenderEngine.getInstance();
-            if(patch!=null&&patch.overrideRender()&&engine.hasRendererFor(mob)){
-                event.setCanceled(true);
-                try{engine.renderEntityArmatureModel(mob,patch,event.getRenderer(),event.getMultiBufferSource(),stack,event.getPackedLight(),event.getPartialTick());}
-                finally{stack.popPose();}
-            }else SCALED.add(mob);
+            SCALED.add(mob);
             return;
         }
         var owner = mob.level().getEntity(data.consumerId());
@@ -59,19 +53,12 @@ public final class ConsumedMobVisuals {
         ConsumeFracture fragments=ConsumeFracture.visible(mob,partial)?new ConsumeFracture(mob,partial,stack,event.getMultiBufferSource(),ConsumeAbsorptionFx.destination(mob,partial,placement)):null;
         if(fragments!=null)fragments.bindModel(event.getRenderer().getModel());
         com.codex.blacklight.client.animation.ConsumeVictimPose.body(mob, stack, partial);
-        var engine = yesman.epicfight.client.events.engine.RenderEngine.getInstance();
-        var patch = yesman.epicfight.world.capabilities.EpicFightCapabilities.getEntityPatch(mob,
-                yesman.epicfight.world.capabilities.entitypatch.LivingEntityPatch.class);
-        boolean epic=patch != null && patch.overrideRender() && engine.hasRendererFor(mob);
-        if (epic || fragments!=null) {
+        if (fragments!=null) {
             event.setCanceled(true);
             var buffers=fragments==null?event.getMultiBufferSource():fragments;
             try {
-                if(epic)engine.renderEntityArmatureModel(mob, patch, event.getRenderer(), buffers,stack, event.getPackedLight(), partial);
-                else {
-                    RENDERING.add(mob);
-                    renderVanilla(event,mob,buffers);
-                }
+                RENDERING.add(mob);
+                renderVanilla(event,mob,buffers);
                 if(fragments!=null)fragments.finish();
             } finally { RENDERING.remove(mob);stack.popPose(); }
         } else SCALED.add(mob);

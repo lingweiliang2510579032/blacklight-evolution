@@ -1,17 +1,5 @@
 # Third-party assets
 
-## 2026-10-01 publication and provenance correction
-
-RC57 was published unchanged at the author's explicit request. See
-[the publication record](docs/RC57-PUBLISHED.md) for the download, checksums,
-dependencies and the author's statement that motions were recreated frame by
-frame and mechanisms were written for this project. The earlier blanket
-private/decoded classification below does not establish the provenance or
-permissions of each individual file. It must not be used to justify replacing
-the project's motions without the author's instruction. The sections below
-retain the packaging history; their not-published status is no longer current.
-Code licensing and individual asset licensing remain separate questions.
-
 ## Package status and license scope
 
 `LICENSE` contains the project's GPL-3.0-only code license. It does not relicense
@@ -37,35 +25,17 @@ and `Blacklight-Public-Release-Ready: false`. Maven publishing is disabled for
 both current profiles. Public release requires reviewed rights and a complete,
 playable asset set; these packaging safeguards do not claim either is complete.
 
-## Epic Fight reference data (not bundled)
+## Independent player animation runtime
 
-Epic Fight 21.17.3.1 declares its code as GPL-3.0 and its assets as All Rights
-Reserved. The dependency is obtained separately through Gradle; this repository
-does not redistribute its reference skeleton, mannequin, or mod JAR. Tests read
-the installed dependency locally. Blender preparation also reads local inputs
-into the ignored `art-work/` directory; see `docs/ASSET_WORKFLOW.md`.
+The current independent runtime has no Epic Fight / Epic ParCool / Weapons of
+Miracles dependency or external animation namespace lookup. Historical
+adapters have been archived outside the source tree. The project-authored
+mathematical bind hierarchy and continuous skin mesh do not copy the earlier
+dependency's reference skeleton or mannequin. The generator is
+`tools/author_player_bind.py`; tests now use this project's hierarchy.
 
-Claw geometry and the authored animation tracks in the Blacklight resource
-namespace are this project's work. This statement does not grant permission to
-redistribute Epic Fight's own assets or commercial Prototype game assets.
-
-## Runtime motion adapters (Epic Fight / Weapons of Miracles)
-
-The nine `AdaptedWeaponAnimation` actions read joint keyframes from separately
-installed dependencies at runtime, retime them, and fit the arms to Blacklight's
-meshes in memory. They do not copy source attack events, colliders, skills, or
-animation files into this repository or its JAR. These dependency motions are
-not claimed as original Blacklight animation assets.
-
-- Epic Fight: 21.17.3.1, sword and fist motions; required existing dependency.
-- Weapons of Miracles by reascer: 2.0.178, Torment motions; optional dependency.
-  Source: https://www.curseforge.com/minecraft/mc-mods/weapons-of-miracles-epicfight/files/8829395
-  License: All Rights Reserved. Obtain its JAR separately; do not bundle it.
-- If WOM is absent, its three adapted moves use the existing authored Blacklight
-  clips. Install matching dependency versions on both client and server.
-
-Temporary runtime pose dumps used for local geometry checks are under ignored
-`tmp/` directories and are not release assets.
+The removal of the framework does not change the provenance or distribution
+status of local Prototype-derived motions, camera and HUD profiles.
 
 ## Private Prototype profiles (not publicly distributed)
 

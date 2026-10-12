@@ -27,8 +27,7 @@ public final class WhipTetherRenderer {
     public static void capture(AbstractClientPlayer player,PoseStack handStack) {
         // The hook's authored local tip. This stack is the very same one used to draw the right forearm.
         // LevelRenderer puts view rotation in RenderSystem's global matrix. Entity stacks are already camera-relative world space.
-        var relative=handStack.last().pose().transformPosition(new Vector3f(0,.30F,.05F));
-        HANDS.put(player.getId(),new Vec3(relative.x,relative.y,relative.z).add(camera));
+        HANDS.put(player.getId(),BlacklightBoneRendering.worldPoint(handStack,new Vector3f(0,.30F,.05F)));
     }
     public static Vec3 capturedHand(int entityId) { return HANDS.get(entityId); }
     public static boolean extended(AbstractClientPlayer player){
@@ -38,12 +37,10 @@ public final class WhipTetherRenderer {
     }
     /** Actual rendered claw palm, also used by the opt-in contact acceptance harness. */
     public static void captureGrip(AbstractClientPlayer player,PoseStack stack) {
-        var v=stack.last().pose().transformPosition(new Vector3f(.00267F,.32362F,.07666F));
-        GRIPS.put(player.getId(),new Vec3(v.x,v.y,v.z).add(camera));
+        GRIPS.put(player.getId(),BlacklightBoneRendering.worldPoint(stack,new Vector3f(.00267F,.32362F,.07666F)));
     }
     public static void captureBlade(AbstractClientPlayer player,PoseStack stack) {
-        var v=stack.last().pose().transformPosition(new Vector3f(-.0636396F,.68F,-.0636396F));
-        GRIPS.put(player.getId(),new Vec3(v.x,v.y,v.z).add(camera));
+        GRIPS.put(player.getId(),BlacklightBoneRendering.worldPoint(stack,new Vector3f(-.0636396F,.68F,-.0636396F)));
     }
     public static Vec3 capturedGrip(int entityId) { return GRIPS.get(entityId); }
     @SubscribeEvent public static void render(RenderLevelStageEvent event) {

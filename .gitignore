@@ -57,5 +57,4 @@ release/local-*/
 __pycache__/
 *.pyc
 
-# Build outputs are distributed separately; private motion bundles stay local.
-release/
+/run-standalone-gametest/

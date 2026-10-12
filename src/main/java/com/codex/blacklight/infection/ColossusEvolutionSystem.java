@@ -138,8 +138,6 @@ public final class ColossusEvolutionSystem {
             return;
         }
         if (!eligibleHost(host)) reason = "宿主正被抓取、骑乘、拴绳或处于不可培育状态";
-        else if (host.feedingStarted() >= 0 && now - host.feedingStarted() < DevourerFeedingSystem.FEED_TICKS + 16)
-            reason = "宿主正在进食，待吞噬动作完成后继续成长";
         else if (!playerNearby) reason = "附近没有存活的非旁观玩家，培育暂停";
         else if (giantNearby) reason = "附近已有巨构，培育暂停";
         if (!reason.isEmpty()) {
@@ -150,7 +148,7 @@ public final class ColossusEvolutionSystem {
         if (DevourerFeedingSystem.isDevourer(host)) {
             next = Math.min(next, DevourerFeedingSystem.availableGrowthTicks(host));
             if (next <= host.evolutionTicks()) {
-                state.putString("BlockedReason", "吞噬生物质不足，需要实际完成进食");
+                state.putString("BlockedReason", "蜂巢吸收养分不足，需要捕食口完成吸收");
                 return;
             }
         }
@@ -225,7 +223,7 @@ public final class ColossusEvolutionSystem {
 
     private static List<Mob> regionalInfected(ServerLevel level, BlacklightHive hive) {
         return level.getEntitiesOfClass(Mob.class, hive.getBoundingBox().inflate(REGION_RADIUS),
-                mob -> mob.isAlive() && !(mob instanceof BlacklightHive)
+                mob -> mob.isAlive() && !(mob instanceof BlacklightHive) && !(mob instanceof com.codex.blacklight.entity.HiveTendril)
                         && !(mob instanceof BlacklightInfectedHost host && host.giantBoss())
                         && mob.distanceToSqr(hive) <= REGION_RADIUS * REGION_RADIUS
                         && BlacklightInfectionSystem.isInfected(mob));

@@ -121,12 +121,22 @@ tasks.named('assemble') {
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 // Opt-in screenshot harness is excluded from normal builds and distributable JARs.
-if (project.hasProperty('captureMotionPreview') || project.hasProperty('captureInfectedPreview') || project.hasProperty('captureHunterPreview') || project.hasProperty('captureConsumeForms') || project.hasProperty('captureGrabPreview') || project.hasProperty('captureGrabContactPreview') || project.hasProperty('captureGameplayPreview') || project.hasProperty('captureClawReference') || project.hasProperty('captureBladeReference') || project.hasProperty('captureBladeSpecial')) {
-    sourceSets.main.java.srcDir('src/visualTest/java')
+if (project.hasProperty('hiveFeedingTest')) {
+    sourceSets.main.java.srcDir('src/hiveTest/java')
+    sourceSets.main.resources.srcDir('src/traversalTest/resources')
 }
 if (project.hasProperty('wallTraversalTest')) {
     sourceSets.main.java.srcDir('src/traversalTest/java')
     sourceSets.main.resources.srcDir('src/traversalTest/resources')
+}
+if (project.hasProperty('standaloneVisual') || project.hasProperty('standaloneGait') || project.hasProperty('standaloneLock')) {
+    sourceSets.main.java.srcDir('src/standaloneVisualTest/java')
+}
+if (project.hasProperty('standaloneTest')) {
+    sourceSets.main.java.srcDir('src/standaloneTest/java')
+    if (!project.hasProperty('wallTraversalTest') && !project.hasProperty('hiveFeedingTest')) {
+        sourceSets.main.resources.srcDir('src/traversalTest/resources')
+    }
 }
 tasks.named('jar', Jar).configure {
     archiveClassifier = releaseProfile
@@ -138,17 +148,8 @@ tasks.named('jar', Jar).configure {
     // Even if stale generated resources exist or tasks are skipped, source-only
     // artifacts cannot acquire the private namespace from an earlier local build.
     if (!bundledMotionDirectory.isPresent()) exclude 'blacklight/bundled_motions/**'
-    exclude 'com/codex/blacklight/client/MotionPreviewCapture*.class'
-    exclude 'com/codex/blacklight/client/InfectedPreviewCapture*.class'
-    exclude 'com/codex/blacklight/client/HunterPreviewCapture*.class'
-    exclude 'com/codex/blacklight/client/ConsumeFormsPreview*.class'
-    exclude 'com/codex/blacklight/client/GrabInteractionPreview*.class'
-    exclude 'com/codex/blacklight/client/GrabContactPreview*.class'
-    exclude 'com/codex/blacklight/client/GameplayPreview*.class'
-    exclude 'com/codex/blacklight/client/ClawReferencePreview*.class'
-    exclude 'com/codex/blacklight/client/BladeReferencePreview*.class'
-    exclude 'com/codex/blacklight/client/BladeSpecialPreview*.class'
     exclude 'com/codex/blacklight/gametest/**'
+    exclude 'com/codex/blacklight/client/Standalone*Smoke*.class'
     exclude 'data/blacklight/structure/wall_test.nbt'
 }
 
@@ -169,19 +170,23 @@ neoForge {
     runs {
         client {
             client()
+            if (project.hasProperty('clientRunDirectory')) gameDirectory = file(project.property('clientRunDirectory'))
+            if (project.hasProperty('standaloneVisual')) {
+                systemProperty 'blacklight.test.standaloneVisual', file(project.property('standaloneVisual')).absolutePath
+                if (project.hasProperty('standaloneVisualShots')) systemProperty 'blacklight.test.standaloneVisual.shots', project.property('standaloneVisualShots').toString()
+                programArguments.addAll '--width', '1280', '--height', '900'
+            }
+            if (project.hasProperty('standaloneLock')) {
+                systemProperty 'blacklight.test.standaloneLock', file(project.property('standaloneLock')).absolutePath
+                programArguments.addAll '--width', '1280', '--height', '900'
+            }
+            if (project.hasProperty('standaloneGait')) {
+                systemProperty 'blacklight.test.standaloneGait', file(project.property('standaloneGait')).absolutePath
+                if (project.hasProperty('standaloneGaitJump')) systemProperty 'blacklight.test.standaloneGait.jumpOnly', 'true'
+                programArguments.addAll '--width', '1280', '--height', '900'
+            }
             if (project.hasProperty('localWeaponMotions')) {
                 systemProperty 'blacklight.localWeaponMotions', file(project.property('localWeaponMotions')).absolutePath
-            }
-            if (project.hasProperty('captureBladeSpecial')) {
-                systemProperty 'blacklight.test.bladeSpecialPreview', project.property('captureBladeSpecial').toString()
-                programArguments.addAll '--width', '1280', '--height', '900'
-            }
-            if (project.hasProperty('captureBladeReference')) {
-                systemProperty 'blacklight.test.bladeReferencePreview', project.property('captureBladeReference').toString()
-                programArguments.addAll '--width', '1280', '--height', '900'
-            }
-            if (project.hasProperty('captureClawReference')) {
-                systemProperty 'blacklight.test.clawReferencePreview', project.property('captureClawReference').toString()
             }
             // This machine has 16 GB RAM shared with other tools; cap the client heap
             // so the game JVM cannot exhaust native memory and crash (see hs_err logs).
@@ -195,43 +200,6 @@ neoForge {
             // Developer-only visual acceptance hook. Normal launches never set it.
             if (project.hasProperty('openAnimationTuner')) {
                 systemProperty 'blacklight.test.openAnimationTuner', 'true'
-            }
-            if (project.hasProperty('captureMotionPreview')) {
-                systemProperty 'blacklight.test.motionCapture', project.property('captureMotionPreview').toString()
-                programArguments.addAll '--width', '960', '--height', '960'
-            }
-            if (project.hasProperty('captureInfectedPreview')) {
-                systemProperty 'blacklight.test.infectedCapture', project.property('captureInfectedPreview').toString()
-                programArguments.addAll '--width', '960', '--height', '960'
-            }
-            if (project.hasProperty('captureGrabPreview')) {
-                systemProperty 'blacklight.test.grabPreview', project.property('captureGrabPreview').toString()
-                programArguments.addAll '--width', '1100', '--height', '850'
-            }
-            if (project.hasProperty('captureGrabContactPreview')) {
-                systemProperty 'blacklight.test.contactPreview', project.property('captureGrabContactPreview').toString()
-                programArguments.addAll '--width', '1100', '--height', '850'
-            }
-            if (project.hasProperty('captureConsumeForms')) {
-                systemProperty 'blacklight.test.consumeForms', project.property('captureConsumeForms').toString()
-                programArguments.addAll '--width', '1100', '--height', '850'
-            }
-            if (project.hasProperty('captureGameplayPreview')) {
-                systemProperty 'blacklight.test.gameplayPreview', project.property('captureGameplayPreview').toString()
-                if (project.hasProperty('attackReview')) systemProperty 'blacklight.test.attackReview', 'true'
-                if (project.hasProperty('packReview')) systemProperty 'blacklight.test.packReview', 'true'
-                if (project.hasProperty('adaptedReview')) systemProperty 'blacklight.test.adaptedReview', 'true'
-                programArguments.addAll '--width', '1280', '--height', '900'
-            }
-            if (project.hasProperty('captureHunterPreview')) {
-                systemProperty 'blacklight.test.hunterCapture', project.property('captureHunterPreview').toString()
-                programArguments.addAll '--width', '1100', '--height', '850'
-            }
-            if (project.hasProperty('keepInfectedPreviewOpen')) {
-                systemProperty 'blacklight.test.keepInfectedPreviewOpen', 'true'
-            }
-            if (project.hasProperty('captureMotionSequence')) {
-                systemProperty 'blacklight.test.motionSequence', 'true'
             }
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
@@ -247,7 +215,7 @@ neoForge {
         // The gametest system is also enabled by default for other run configs under the /test command.
         gameTestServer {
             type = "gameTestServer"
-            gameDirectory = project.file('run-wall-gametest')
+            gameDirectory = project.file(project.hasProperty('standaloneTest') && !project.hasProperty('wallTraversalTest') ? 'run-standalone-gametest' : project.hasProperty('hiveFeedingTest') ? 'run-hive-feeding-gametest' : 'run-wall-gametest')
             jvmArgument '-Xmx2G'
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
             if (project.hasProperty('localWeaponMotions')) {
@@ -300,20 +268,17 @@ configurations {
 
 dependencies {
     implementation "software.bernie.geckolib:geckolib-neoforge-${minecraft_version}:${geckolib_version}"
-    implementation "maven.modrinth:epic-fight:${epicfight_version}"
 
     // Optional compatibility API only. The user installs the two mods independently.
     compileOnly "maven.modrinth:parcool:1.21.1-3.4.3.3"
-    if (project.hasProperty('withEpicParCool')) {
-        localRuntime "maven.modrinth:parcool:1.21.1-3.4.3.3"
-        localRuntime files('art-work/compat/epicparcool-21.0.0.jar')
-    }
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     // BlacklightState exposes a Minecraft Codec; plain JVM tests therefore need DFU too.
     testImplementation 'com.mojang:datafixerupper:8.0.16'
     testImplementation 'com.google.code.gson:gson:2.10.1'
+    testImplementation 'org.joml:joml:1.10.5'
+    testImplementation files(sourceSets.main.compileClasspath)
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
     // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
@@ -339,17 +304,8 @@ dependencies {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
-    // Inspect the installed dependency locally instead of redistributing its
-    // reserved-rights skeleton as a test fixture in the public repository.
-    def epicFightTestJar = providers.provider {
-        configurations.runtimeClasspath.files.find { it.name.startsWith('epic-fight-') }
-    }
-    inputs.file(epicFightTestJar)
-    doFirst {
-        systemProperty 'blacklight.test.epicFightJar', epicFightTestJar.get().absolutePath
-    }
+    // Native pose tests use the project-authored mathematical bind hierarchy.
 }
-sourceSets.test.resources.exclude('epicfight-biped-armature.json')
 
 // This block of code expands all declared replace properties in the specified resource targets.
 // A missing property will result in an error. Properties are expanded using ${} Groovy notation.
@@ -408,3 +364,56 @@ idea {
         downloadJavadoc = true
     }
 }
+
+// This source set deliberately has no Minecraft, NeoForge or Epic Fight dependency.
+sourceSets {
+    standaloneMotion {
+        java {
+            srcDirs = ['src/main/java', 'tools']
+            include 'com/codex/blacklight/animation/MatrixMotionClip.java', 'StandaloneMotionProbe.java'
+        }
+    }
+}
+dependencies {
+    standaloneMotionImplementation 'com.google.code.gson:gson:2.10.1'
+    standaloneMotionImplementation 'org.joml:joml:1.10.5'
+}
+tasks.register('verifyStandaloneMotionAssets', JavaExec) {
+    group = 'verification'
+    description = 'Samples the supplied motion archive without the game or Epic Fight on the classpath.'
+    dependsOn tasks.named('standaloneMotionClasses')
+    classpath = sourceSets.standaloneMotion.runtimeClasspath
+    mainClass = 'StandaloneMotionProbe'
+    maxHeapSize = '1G'
+    doFirst {
+        def archive = providers.gradleProperty('motionProbeArchive')
+        if (!archive.isPresent()) throw new GradleException('Supply -PmotionProbeArchive=<RC59 local-preview jar>')
+        args = [archive.get()]
+    }
+}
+
+tasks.register('verifyStandaloneBoundary') {
+    group = 'verification'
+    description = 'Rejects compiled references and runtime dependencies on Epic Fight or WoM.'
+    dependsOn tasks.named('classes')
+    doLast {
+        def forbidden = configurations.runtimeClasspath.files.findAll {
+            def name = it.name.toLowerCase(Locale.ROOT)
+            name.contains('epic-fight') || name.contains('epicfight') || name.contains('weaponsofmiracles')
+        }.collect { it.name }
+        def linked = []
+        sourceSets.main.output.classesDirs.files.each { root ->
+            fileTree(root).matching { include '**/*.class' }.each { compiled ->
+                def constants = new String(compiled.bytes, java.nio.charset.StandardCharsets.ISO_8859_1)
+                if (constants.contains('yesman/epicfight') || constants.contains('reascer/wom'))
+                    linked.add(root.toPath().relativize(compiled.toPath()).toString())
+            }
+        }
+        if (!forbidden.empty || !linked.empty) {
+            throw new GradleException("Not standalone: dependencies=${forbidden}; ${linked.size()} classes still reference old engines. See docs/STANDALONE_MIGRATION.md.")
+        }
+    }
+}
+
+// Every installable artifact must pass the independent runtime boundary.
+tasks.named('jar') { dependsOn tasks.named('verifyStandaloneBoundary') }

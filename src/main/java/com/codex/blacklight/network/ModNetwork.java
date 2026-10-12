@@ -19,7 +19,9 @@ public final class ModNetwork {
     }
 
     public static void register(RegisterPayloadHandlersEvent event) {
-        event.registrar("36")
+        event.registrar("standalone-2")
+                .playToClient(NativeRootMotionPayload.TYPE, NativeRootMotionPayload.STREAM_CODEC, (payload, context) ->
+                    context.enqueueWork(() -> com.codex.blacklight.animation.PlayerMotionController.acceptRootMotion(payload)))
                 .playToServer(DisguiseTogglePayload.TYPE,DisguiseTogglePayload.CODEC,(payload,context)->
                     context.enqueueWork(()->{
                         if(context.player() instanceof ServerPlayer player && canAct(player))
@@ -27,9 +29,14 @@ public final class ModNetwork {
                     }))
                 .playToServer(TargetLockPayload.TYPE,TargetLockPayload.STREAM_CODEC,(payload,context)->
                     context.enqueueWork(()->{
-                        if(context.player() instanceof ServerPlayer player)
+                        if(context.player() instanceof ServerPlayer player){
                             com.codex.blacklight.combat.CombatTargeting.requestLock(player,payload.entityId());
+                            PacketDistributor.sendToPlayer(player,new TargetLockAckPayload(payload.requestId(),
+                                    player.getData(com.codex.blacklight.registry.ModAttachments.TARGET_LOCK_ID)));
+                        }
                     }))
+                .playToClient(TargetLockAckPayload.TYPE,TargetLockAckPayload.STREAM_CODEC,(payload,context)->
+                    context.enqueueWork(()->com.codex.blacklight.client.ClientTargetLock.acceptAck(payload)))
                 .playToServer(WeaponInputPayload.TYPE,WeaponInputPayload.STREAM_CODEC,(payload,context)->
                     context.enqueueWork(()->{
                         if(context.player() instanceof ServerPlayer player){
@@ -125,6 +132,7 @@ public final class ModNetwork {
     }
 
     private static void synchronizePersistentState(ServerPlayer player) {
+        com.codex.blacklight.animation.NativePlayerActionBackend.clear(player);
         com.codex.blacklight.power.GrowthSystem.updateHealth(player);
         // Copy-on-death restores server data; explicitly publish it for the new client
         // entity as well. Client mode reconciliation tolerates either packet order.

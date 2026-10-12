@@ -35,6 +35,7 @@ public final class BlacklightNeoMod {
         ModParticles.register(modBus);
         modBus.addListener(ModNetwork::register);
         modBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event)->event.enqueueWork(()->{
+            com.codex.blacklight.animation.MotionLibrary.requireInstalled();
             var health=(net.minecraft.world.entity.ai.attributes.RangedAttribute)net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH.value();
             ((com.codex.blacklight.mixin.HealthAttributeLimitAccessor)health).blacklight$setMaximum(Math.max(health.getMaxValue(),1000000));
         }));
@@ -47,7 +48,8 @@ public final class BlacklightNeoMod {
         NeoForge.EVENT_BUS.register(LandingDebrisSystem.class);
         NeoForge.EVENT_BUS.register(PrototypeSurvivalLock.class);
         NeoForge.EVENT_BUS.register(PrototypeModeSystem.class);
-        PrototypeModeSystem.registerEpicFightModeGuard();
+        com.codex.blacklight.animation.PlayerActions.install(new com.codex.blacklight.animation.NativePlayerActionBackend());
+        NeoForge.EVENT_BUS.register(com.codex.blacklight.animation.NativePlayerActionBackend.class);
         NeoForge.EVENT_BUS.register(BlacklightInfectionSystem.class);
         NeoForge.EVENT_BUS.register(com.codex.blacklight.world.ResearchStationTrades.class);
         NeoForge.EVENT_BUS.register(com.codex.blacklight.world.SurvivalGuide.class);
@@ -57,6 +59,6 @@ public final class BlacklightNeoMod {
         if (net.neoforged.fml.ModList.get().isLoaded("parcool")) {
             NeoForge.EVENT_BUS.register(com.codex.blacklight.integration.parcool.ParCoolCompatibility.class);
         }
-        LOGGER.info("Blacklight: Ascension initialized with Epic Fight player actions and GeckoLib morph overlays");
+        LOGGER.info("Blacklight: Ascension initialized with independent player actions, skeletal rendering and GeckoLib entity animations");
     }
 }

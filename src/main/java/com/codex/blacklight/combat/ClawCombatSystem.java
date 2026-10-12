@@ -2,7 +2,8 @@ package com.codex.blacklight.combat;
 
 import com.codex.blacklight.BlacklightNeoMod;
 import com.codex.blacklight.entity.GroundSpikeEntity;
-import com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations;
+import com.codex.blacklight.animation.PlayerAction;
+import com.codex.blacklight.animation.PlayerActions;
 import com.codex.blacklight.network.ClawActionPayload;
 import com.codex.blacklight.network.ClawAnimationPayload;
 import com.codex.blacklight.power.ClawUpgrade;
@@ -31,10 +32,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.joml.Vector3f;
-import yesman.epicfight.api.animation.AnimationManager.AnimationAccessor;
-import yesman.epicfight.api.animation.types.StaticAnimation;
-import yesman.epicfight.world.capabilities.EpicFightCapabilities;
-import yesman.epicfight.world.capabilities.entitypatch.player.ServerPlayerPatch;
 
 import java.util.Comparator;
 import java.util.HashSet;
@@ -131,7 +128,7 @@ public final class ClawCombatSystem {
         ClawCombatState combat = player.getData(ModAttachments.CLAW_COMBAT);
         combat.reset();
         combat.begin(ClawCombatState.Action.TRANSFORM);
-        play(player, BlacklightEpicFightAnimations.TRANSFORM_CLAWS);
+        play(player, PlayerAction.TRANSFORM_CLAWS);
         player.level().playSound(null, player.blockPosition(), SoundEvents.SCULK_CATALYST_BLOOM,
                 SoundSource.PLAYERS, 0.8F, activate ? 0.72F : 0.55F);
         ServerLevel level = player.serverLevel();
@@ -159,7 +156,7 @@ public final class ClawCombatSystem {
         }
         combat.beginGroundSpikeCharge();
         lockGroundSpikePose(player);
-        play(player, BlacklightEpicFightAnimations.CLAW_GROUNDSPIKE);
+        play(player, PlayerAction.CLAW_GROUNDSPIKE);
         BlacklightNeoMod.LOGGER.debug("Groundspike charge started for {}",
                 player.getGameProfile().getName());
     }
@@ -192,7 +189,7 @@ public final class ClawCombatSystem {
         Vec3 forward = player.getLookAngle().multiply(1.0D, 0.0D, 1.0D);
         combat.beginDash(forward.x, forward.z);
         player.setDeltaMovement(0.0D, Math.max(0.0D, player.getDeltaMovement().y), 0.0D);
-        play(player, BlacklightEpicFightAnimations.CLAW_DASHING_SLICE);
+        play(player, PlayerAction.CLAW_DASHING_SLICE);
         ClawPhysicalEffects.onDashStarted(player, forward);
     }
 
@@ -201,7 +198,7 @@ public final class ClawCombatSystem {
         if (combat.action() != ClawCombatState.Action.IDLE || !player.onGround()) return;
         Vec3 forward = player.getLookAngle().multiply(1.0D, 0.0D, 1.0D);
         combat.beginSprintAttack(forward.x, forward.z);
-        play(player, BlacklightEpicFightAnimations.CLAW_SPRINT_ATTACK);
+        play(player, PlayerAction.CLAW_SPRINT_ATTACK);
         ClawPhysicalEffects.onDashStarted(player, forward);
     }
 
@@ -225,6 +222,7 @@ public final class ClawCombatSystem {
 
         combat.advance();
         if (isComboAttack(combat.action())) {
+            com.codex.blacklight.animation.NativeRootMotion.claw(player, combat);
             CombatAnimationSpec spec = attackSpec(combat.action());
             if (!combat.impactTriggered() && spec.isActive(combat.elapsedTicks())) {
                 combat.markImpactTriggered();
@@ -346,10 +344,10 @@ public final class ClawCombatSystem {
         combat.setAttackDirection(forward.x, forward.z);
         BlacklightNeoMod.LOGGER.debug("Starting claw combo action {} for {}",
                 action, player.getGameProfile().getName());
-        AnimationAccessor<? extends StaticAnimation> animation = switch (action) {
-            case AUTO_1 -> BlacklightEpicFightAnimations.CLAW_AUTO_1;
-            case AUTO_2 -> BlacklightEpicFightAnimations.CLAW_AUTO_2;
-            default -> BlacklightEpicFightAnimations.CLAW_AUTO_3;
+        PlayerAction animation = switch (action) {
+            case AUTO_1 -> PlayerAction.CLAW_AUTO_1;
+            case AUTO_2 -> PlayerAction.CLAW_AUTO_2;
+            default -> PlayerAction.CLAW_AUTO_3;
         };
         play(player, animation);
     }
@@ -540,13 +538,12 @@ public final class ClawCombatSystem {
                 state.hasClawUpgrade(ClawUpgrade.DAMAGE));
     }
 
-    private static void play(ServerPlayer player, AnimationAccessor<? extends StaticAnimation> animation) {
+    private static void play(ServerPlayer player, PlayerAction animation) {
         if (animation == null) return;
-        ServerPlayerPatch patch = EpicFightCapabilities.getServerPlayerPatch(player);
-        if (patch != null) patch.playAnimationSynchronized(animation, 0.0F);
+        PlayerActions.get().play(player, animation, 0.0F);
         ClawAnimationPayload.Animation visual = ClawAnimationPayload.Animation.from(animation);
         if (visual != null) {
-            // Epic Fight already synchronizes spectators. This explicit self payload is
+            // The presentation backend synchronizes spectators. This explicit self payload is
             // a reliable visual acknowledgement for the controlling client, whose input
             // and living-motion hooks can otherwise race the ordinary animator packet.
             PacketDistributor.sendToPlayer(player, new ClawAnimationPayload(visual));

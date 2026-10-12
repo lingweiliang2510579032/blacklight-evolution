@@ -33,6 +33,7 @@ public final class UnarmedHammerGameTest {
     }
     @GameTest(template="wall_test",timeoutTicks=40)
     public static void earlyReleasedHammerTapQueuesWithoutAnotherHeldPause(GameTestHelper h){
+        MovingCombatGameTest.supportFloor(h,24);
         var p=MovingCombatGameTest.player(h,PowerForm.HAMMERFISTS);
         WeaponCombatSystem.acceptInput(p,true,false);tick(p);WeaponCombatSystem.acceptInput(p,false,false);
         WeaponCombatSystem.acceptInput(p,true,false);WeaponCombatSystem.acceptInput(p,false,false);
@@ -45,6 +46,7 @@ public final class UnarmedHammerGameTest {
     }
     @GameTest(template="wall_test",timeoutTicks=40)
     public static void ordinaryMixedComboAndJumpHaveUsableRoutes(GameTestHelper h){
+        MovingCombatGameTest.supportFloor(h,24);
         var p=MovingCombatGameTest.player(h,PowerForm.NONE);WeaponCombatSystem.request(p,false);tick(p);
         WeaponCombatSystem.request(p,true);
         for(int i=0;i<WeaponMove.MUSCLE_JAB.comboLinkTick();i++)tick(p);

@@ -7,10 +7,12 @@
 ## 开发环境
 
 - Java 21，使用仓库内的 Gradle Wrapper。
-- Minecraft 1.21.1、NeoForge 21.1.244；GeckoLib 和 Epic Fight 由 Gradle 获取。
+- Minecraft 1.21.1、NeoForge 21.1.244；GeckoLib 由 Gradle 获取；独立版不要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。
 - 默认只编译打包：Windows 使用 `./gradlew.bat assemble --no-daemon`；Linux/macOS 使用 `bash ./gradlew assemble --no-daemon`。
 - 用户明确要求启动试玩时，使用 `./gradlew.bat runClient`；Linux/macOS 替换为 `bash ./gradlew`。
 - 第一轮构建需要网络下载依赖。不要提交 `.gradle/`、`build/`、`run/`、存档或个人账户配置。
+
+普通源码构建是 source-only，缺少完整运行所需的本地动作资料，不能直接作为可玩发行包。私有 local-preview 资料不提交到仓库，详见 `THIRD_PARTY_ASSETS.md`。
 
 默认构建与 CI 不运行单元测试、碰撞测试、GameTest 或游戏内验收；这些检查仅在用户明确要求时运行。编译打包成功不代表真人试玩已通过。
 
@@ -25,8 +27,8 @@
 
 - `src/main/java/com/codex/blacklight/movement/`：移动逻辑；`WallTraversal` 为客户端和服务器共用的墙面状态机，`WallContacts` 负责方块接触检测。
 - `src/main/java/com/codex/blacklight/client/`：客户端预测、动作选择及渲染。
-- `src/main/java/com/codex/blacklight/integration/epicfight/`：Epic Fight 动画适配。
-- `src/main/resources/assets/blacklight/animmodels/animations/biped/`：游戏使用的烘焙动画 JSON。
+- `src/main/java/com/codex/blacklight/animation/`：独立动作时钟、骨架采样、姿态与 Root 移动。
+- `src/main/java/com/codex/blacklight/client/animation/` 与 `client/renderer/`：模型姿态、原生第一人称手臂挂接与渲染。
 - `tools/`：Blender 创作、烘焙及预览脚本。脚本需要额外的骨架、插件源码或 `.blend` 输入，目前尚不是新克隆仓库即可完整重建美术资产的流程；开始美术工作前请向维护者确认源文件。
 - 现有第三方声明见 `THIRD_PARTY_ASSETS.md`、`THIRD_PARTY_NOTICES.md` 和资源目录内的许可文件。
 

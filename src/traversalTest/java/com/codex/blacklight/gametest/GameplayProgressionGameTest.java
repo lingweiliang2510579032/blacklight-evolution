@@ -89,10 +89,17 @@ public final class GameplayProgressionGameTest {
         // Allow those retries; the required wave count and reinforcement budget stay strict.
         for(int t=0;t<2400&&hive.waves()<3;t++){hive.tickCount++;hive.tick();}
         h.assertTrue(hive.waves()==3,"three reinforcement waves finish");
-        int count=level.getEntitiesOfClass(com.codex.blacklight.entity.BlacklightMutant.class,box).size();h.assertTrue(count>=3&&count<=6,"wave budget caps active reinforcements");
+        // Each wave starts with a hunter; random blocked secondary positions may
+        // reduce mutants without reducing the completed wave count.
+        java.util.function.Predicate<net.minecraft.world.entity.Mob> guard=mob->
+                (mob instanceof com.codex.blacklight.entity.BlacklightMutant||mob instanceof com.codex.blacklight.entity.BlacklightHunter)
+                &&mob.getPersistentData().hasUUID("BlacklightHiveGuard")
+                &&mob.getPersistentData().getUUID("BlacklightHiveGuard").equals(hive.getUUID());
+        int count=level.getEntitiesOfClass(net.minecraft.world.entity.Mob.class,box,guard).size();
+        h.assertTrue(count>=3&&count<=6,"wave budget caps active hunter and mutant reinforcements: guards="+count);
         CompoundTag saved=new CompoundTag();hive.addAdditionalSaveData(saved);hive.readAdditionalSaveData(saved);
         for(int t=0;t<300;t++){hive.tickCount++;hive.tick();}
-        h.assertTrue(level.getEntitiesOfClass(com.codex.blacklight.entity.BlacklightMutant.class,box).size()==count,"reload does not refill wave budget");
+        h.assertTrue(level.getEntitiesOfClass(net.minecraft.world.entity.Mob.class,box,guard).size()==count,"reload does not refill wave budget");
         for(var mob:level.getEntitiesOfClass(net.minecraft.world.entity.Mob.class,box))mob.discard();p.discard();h.succeed();
     }
 }

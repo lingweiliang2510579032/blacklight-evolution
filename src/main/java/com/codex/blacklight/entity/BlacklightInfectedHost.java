@@ -44,6 +44,8 @@ public final class BlacklightInfectedHost extends Monster {
     private static final EntityDataAccessor<CompoundTag> HOST=SynchedEntityData.defineId(BlacklightInfectedHost.class,EntityDataSerializers.COMPOUND_TAG);
     private static final EntityDataAccessor<Integer> FEED_TARGET=SynchedEntityData.defineId(BlacklightInfectedHost.class,EntityDataSerializers.INT);
     private static final EntityDataAccessor<Long> FEED_STARTED=SynchedEntityData.defineId(BlacklightInfectedHost.class,EntityDataSerializers.LONG);
+    private static final EntityDataAccessor<CompoundTag> NURSERY=SynchedEntityData.defineId(BlacklightInfectedHost.class,EntityDataSerializers.COMPOUND_TAG);
+    private static final EntityDataAccessor<Integer> FEED_NODE=SynchedEntityData.defineId(BlacklightInfectedHost.class,EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> DEVOURER=SynchedEntityData.defineId(BlacklightInfectedHost.class,EntityDataSerializers.BOOLEAN);
     // Reserve stable part IDs before the spawn packet. Species data arrives after that packet.
     private static final int PART_COUNT=20;
@@ -72,13 +74,22 @@ public final class BlacklightInfectedHost extends Monster {
                 .add(Attributes.STEP_HEIGHT,1).add(Attributes.KNOCKBACK_RESISTANCE,0);
     }
     @Override protected void defineSynchedData(SynchedEntityData.Builder b) {
-        super.defineSynchedData(b);b.define(HOST,new CompoundTag());b.define(FEED_TARGET,-1);b.define(FEED_STARTED,-1L);b.define(DEVOURER,false);
+        super.defineSynchedData(b);b.define(HOST,new CompoundTag());b.define(FEED_TARGET,-1);b.define(FEED_STARTED,-1L);b.define(DEVOURER,false);b.define(NURSERY,new CompoundTag());b.define(FEED_NODE,-1);
     }
     public int feedingTargetId() { return entityData.get(FEED_TARGET); }
     public long feedingStarted() { return entityData.get(FEED_STARTED); }
     public boolean devourerIdentity() { return entityData.get(DEVOURER); }
     public void setFeedingVisual(int target,long started) {
         if(!level().isClientSide){entityData.set(FEED_TARGET,target);entityData.set(FEED_STARTED,started);}
+    }
+    public int feedingNode() { return entityData.get(FEED_NODE); }
+    public CompoundTag nurseryData() { return entityData.get(NURSERY); }
+    public net.minecraft.core.BlockPos nurseryHome() { return net.minecraft.core.BlockPos.of(nurseryData().getLong("Home")); }
+    public void setFeedingNode(int node) { if(!level().isClientSide)entityData.set(FEED_NODE,node); }
+    public void syncNursery(net.minecraft.core.BlockPos home,int nodes,boolean supplied) {
+        if(level().isClientSide)return;
+        CompoundTag data=new CompoundTag();data.putLong("Home",home.asLong());data.putInt("Nodes",nodes);data.putBoolean("Supplied",supplied);
+        if(!data.equals(nurseryData()))entityData.set(NURSERY,data);
     }
     public CompoundTag hostData() { return entityData.get(HOST); }
     public String speciesId() { return hostData().getString("Type"); }
@@ -299,7 +310,8 @@ public final class BlacklightInfectedHost extends Monster {
         return Component.translatable(giantBoss()?"entity.blacklight.infected_boss_name":"entity.blacklight.infected_host_name",sourceType().getDescription());
     }
     private boolean validTarget(LivingEntity target) {
-        if(target==this||!target.isAlive())return false;
+        if(target==this||!target.isAlive()||target instanceof HiveTendril)return false;
+        if(DevourerFeedingSystem.isDevourer(this)&&!giantBoss())return false;
         if(DevourerFeedingSystem.isDevourer(this)&&(!(target instanceof Player)
                 ||!DevourerFeedingSystem.withinTerritory(this,target)))return false;
         if(target instanceof Player player)return !player.isCreative()&&!player.isSpectator()&&(encounterBoss()||!BlacklightInfectionSystem.isInfected(player));

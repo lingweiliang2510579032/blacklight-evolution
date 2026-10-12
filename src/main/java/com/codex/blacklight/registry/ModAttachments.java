@@ -32,6 +32,17 @@ public final class ModAttachments {
             "movement_state",
             () -> AttachmentType.builder(MovementState::new).build());
 
+    /** Action playback belongs to Blacklight and survives a new observer's tracking handshake. */
+    public static final Supplier<AttachmentType<com.codex.blacklight.animation.NativeActionState>> PLAYER_ACTION =
+            ATTACHMENTS.register("player_action", () -> AttachmentType.builder(
+                    () -> com.codex.blacklight.animation.NativeActionState.EMPTY)
+                    .sync(com.codex.blacklight.animation.NativeActionState.CODEC).build());
+
+    /** Confirmed explicit target, used by observers to face the same actor as the server. */
+    public static final Supplier<AttachmentType<Integer>> TARGET_LOCK_ID = ATTACHMENTS.register(
+            "target_lock_id", () -> AttachmentType.builder(() -> -1)
+                    .sync(net.minecraft.network.codec.ByteBufCodecs.VAR_INT).build());
+
     /** Short-lived glide visual lease; expires on interruption, logout or dimension change. */
     public static final Supplier<AttachmentType<Long>> GLIDE_UNTIL = ATTACHMENTS.register(
             "glide_until", () -> AttachmentType.builder(() -> -1L)

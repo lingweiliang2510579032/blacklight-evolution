@@ -3,12 +3,11 @@ package com.codex.blacklight.client;
 import com.codex.blacklight.combat.WeaponMove;
 import com.codex.blacklight.registry.ModAttachments;
 import com.codex.blacklight.network.*;
-import com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations;
+import com.codex.blacklight.animation.PlayerMotionController;
+import com.codex.blacklight.combat.LocalWeaponMotion;
 import net.minecraft.client.Minecraft;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
-import yesman.epicfight.world.capabilities.EpicFightCapabilities;
-import yesman.epicfight.client.world.capabilites.entitypatch.player.AbstractClientPlayerPatch;
 
 public final class ClientWeaponCombat {
     private static boolean left,right,action,jump,controlling;
@@ -70,8 +69,9 @@ public final class ClientWeaponCombat {
     }
     public static void animate(WeaponAnimationPayload payload){
         var mc=Minecraft.getInstance();var move=WeaponMove.byId(payload.move());if(mc.player==null||move==null)return;
-        var patch=EpicFightCapabilities.getEntityPatch(mc.player,AbstractClientPlayerPatch.class);
-        var animation=payload.charging()?BlacklightEpicFightAnimations.weaponCharge(move):BlacklightEpicFightAnimations.weapon(move);
-        if(patch!=null&&animation!=null&&(payload.clipOffset()>0||!patch.getAnimator().isPlaying(animation)))patch.getAnimator().playAnimation(animation,-payload.clipOffset());
+        String key=payload.charging()?LocalWeaponMotion.find(move.id)
+                .flatMap(LocalWeaponMotion.Definition::charge).map(LocalWeaponMotion.Charge::animation).orElse(move.id):move.id;
+        if(payload.clipOffset()>0||!PlayerMotionController.isPlaying(mc.player,key))
+            PlayerMotionController.request(mc.player,key,payload.clipOffset());
     }
 }

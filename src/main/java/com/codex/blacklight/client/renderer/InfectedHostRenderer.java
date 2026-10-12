@@ -60,6 +60,8 @@ public final class InfectedHostRenderer extends EntityRenderer<BlacklightInfecte
     }
 
     @Override public boolean shouldRender(BlacklightInfectedHost entity,Frustum camera,double x,double y,double z){
+        if(entity.devourerIdentity()&&!entity.giantBoss()&&entity.nurseryData().contains("Home")&&entity.shouldRender(x,y,z)
+                &&camera.isVisible(new net.minecraft.world.phys.AABB(entity.nurseryHome()).inflate(42)))return true;
         if(entity.feedingStarted()>=0&&entity.level().getEntity(entity.feedingTargetId()) instanceof net.minecraft.world.entity.LivingEntity prey
                 &&prey.isAlive()&&prey.distanceToSqr(entity)<=48*48
                 &&camera.isVisible(entity.getBoundingBox().minmax(prey.getBoundingBox()).inflate(3)))return true;

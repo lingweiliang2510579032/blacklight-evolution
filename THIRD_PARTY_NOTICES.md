@@ -39,26 +39,28 @@ SOFTWARE.
 
 ## Required runtime dependencies (installed separately)
 
-- GeckoLib 4.9.2 for Minecraft 1.21.1 NeoForge: the installed JAR declares MIT
-  and includes `GECKOLIB_LICENSE`.
-- Epic Fight 21.17.3.1: the installed JAR declares `Code: GPL-3.0; Assets: All
-  Rights Reserved` and includes separate `LICENSE` / `LICENSE-ASSETS` files.
+GeckoLib 4.9.2 for Minecraft 1.21.1 NeoForge is the only required additional
+mod. Its installed JAR declares MIT and includes `GECKOLIB_LICENSE`.
+Minecraft and NeoForge remain required platform components. GeckoLib is not
+shaded into Blacklight's JAR. Local convenience packages may include its
+unchanged separate JAR and complete license.
 
-These dependencies are referenced by Gradle and required by the mod metadata;
-neither JAR nor its code/assets are shaded into Blacklight's JAR or included in
-the Gradle distribution ZIP. Obtain them independently from their official
-distribution. Their licenses remain applicable to their own files. This
-project's GPL code license and the MIT notice above do not grant redistribution
-rights to Epic Fight assets or the private Prototype profiles documented in
-`THIRD_PARTY_ASSETS.md`.
+## Independent animation and player geometry
 
-The checks above refer to the installed versions named here, not to future
-dependency versions. A distributor adding separate dependency JARs to a package
-must independently check and retain each dependency's complete license notices.
+The independent runtime does not load Epic Fight, Epic ParCool, or Weapons of
+Miracles code, skeletons, meshes, or animations. The player bind hierarchy at
+`assets/blacklight/animation/player_bind.json` is generated from mathematical
+block proportions by `tools/author_player_bind.py`; the generator does not
+read third-party skeleton files. BoneTransform, BlacklightPose,
+BlacklightSkeleton, MatrixMotionClip, the CPU skin renderer, and the action
+clock are project-authored code covered by the project's license.
 
+This does not relicense the private Prototype profiles listed in
+`THIRD_PARTY_ASSETS.md`. Historical RC59 packages and archived Epic Fight
+adapters remain historical development inputs, not contents of this runtime.
 
-## Optional Epic ParCool / ParCool integration (R8)
+## Optional ParCool compatibility
 
-ParCool 3.4.3.3 (LGPL-3.0) is an optional installed mod and compile-only API. Epic ParCool 21.0.0 is independently installed from its official distribution. Blacklight may reference its wall-run animation at runtime, combined with Blacklight's original claw-safe upper body. Neither third-party jar nor any of its animation assets is embedded in Blacklight's distribution or source tree. The optional development runtime jar is placed under ignored `art-work/compat`.
-
-Sources: https://modrinth.com/mod/parcool and https://www.curseforge.com/minecraft/mc-mods/official-epic-fight-x-parcool/files/7490217 . Epic ParCool's distribution metadata says All Rights Reserved even though the project page advertises GPLv3; no permission to redistribute its assets is inferred from the page.
+ParCool 3.4.3.3 is an optional installed mod and compile-only compatibility API
+(LGPL-3.0). Blacklight's native traversal does not require it. Its JAR and assets
+are not embedded. The former Epic ParCool animation lookup has been removed.

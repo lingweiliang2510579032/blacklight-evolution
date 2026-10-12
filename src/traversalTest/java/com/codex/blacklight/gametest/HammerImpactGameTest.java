@@ -13,6 +13,7 @@ import net.neoforged.neoforge.gametest.*;
 public final class HammerImpactGameTest {
     @GameTest(template="wall_test",timeoutTicks=40)
     public static void groundImpactHitsBehindButNotThroughWall(GameTestHelper h){
+        MovingCombatGameTest.supportFloor(h,24);
         var p=MovingCombatGameTest.player(h,PowerForm.HAMMERFISTS);
         var rear=h.spawn(EntityType.IRON_GOLEM,3,25,1);rear.setNoAi(true);
         var blocked=h.spawn(EntityType.IRON_GOLEM,3,25,6);blocked.setNoAi(true);

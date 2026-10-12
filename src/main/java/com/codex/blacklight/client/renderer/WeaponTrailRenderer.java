@@ -33,19 +33,17 @@ public final class WeaponTrailRenderer {
         captureLocal(p,stack,left?1:0,form==PowerForm.HAMMERFISTS?.30F:.40F,tip);
     }
     private static void captureBlade(AbstractClientPlayer p,PoseStack stack,int slot,float x,float y,float z,float tx,float ty,float tz){
-        var camera=Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
         var root=com.codex.blacklight.client.model.BladeShape.point(x,y,z);
         var tip=com.codex.blacklight.client.model.BladeShape.point(tx,ty,tz);
-        var a=stack.last().pose().transformPosition(new Vector3f((float)root.x,(float)root.y,(float)root.z));
-        var b=stack.last().pose().transformPosition(new Vector3f((float)tip.x,(float)tip.y,(float)tip.z));
-        captureWorld(p,slot,new Vec3(a.x,a.y,a.z).add(camera),new Vec3(b.x,b.y,b.z).add(camera));
+        var a=BlacklightBoneRendering.worldPoint(stack,new Vector3f((float)root.x,(float)root.y,(float)root.z));
+        var b=BlacklightBoneRendering.worldPoint(stack,new Vector3f((float)tip.x,(float)tip.y,(float)tip.z));
+        captureWorld(p,slot,a,b);
     }
     public static void captureLocal(AbstractClientPlayer p,PoseStack stack,int slot,float inner,float tip){
         var form=p.getData(ModAttachments.PLAYER_STATE).getActivePower();
-        var camera=Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
-        var a=stack.last().pose().transformPosition(new Vector3f(0,inner,0));
-        var b=stack.last().pose().transformPosition(new Vector3f(form==PowerForm.BLADE?-.08F:0,tip,form==PowerForm.BLADE?-.08F:.1F));
-        captureWorld(p,slot,new Vec3(a.x,a.y,a.z).add(camera),new Vec3(b.x,b.y,b.z).add(camera));
+        var a=BlacklightBoneRendering.worldPoint(stack,new Vector3f(0,inner,0));
+        var b=BlacklightBoneRendering.worldPoint(stack,new Vector3f(form==PowerForm.BLADE?-.08F:0,tip,form==PowerForm.BLADE?-.08F:.1F));
+        captureWorld(p,slot,a,b);
     }
     public static void captureWorld(Player p,boolean left,Vec3 inner,Vec3 tip){
         captureWorld(p,left?1:0,inner,tip);
