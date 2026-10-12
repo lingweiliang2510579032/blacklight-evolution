@@ -1,0 +1,70 @@
+{
+  "unit_tests": 85,
+  "server_game_tests": 15,
+  "tested_with_and_without_optional_parkour": true,
+  "runtime": [
+    {
+      "case": "normal_cow",
+      "consumed": true,
+      "health": 12.0,
+      "biomass": 270,
+      "ep": 2,
+      "unlocked": true
+    },
+    {
+      "case": "claws_zombie",
+      "consumed": true,
+      "health": 14.0,
+      "biomass": 290,
+      "ep": 10,
+      "unlocked": true
+    },
+    {
+      "case": "hammer_villager",
+      "consumed": true,
+      "health": 14.0,
+      "biomass": 290,
+      "ep": 2,
+      "unlocked": true
+    },
+    {
+      "case": "blade_hunter",
+      "consumed": true,
+      "health": 18.0,
+      "biomass": 370,
+      "ep": 30,
+      "unlocked": true
+    },
+    {
+      "case": "whip_pig",
+      "consumed": true,
+      "health": 12.0,
+      "biomass": 270,
+      "ep": 2,
+      "unlocked": true
+    },
+    {
+      "case": "blade_zombie",
+      "consumed": true,
+      "health": 14.0,
+      "biomass": 290,
+      "ep": 10,
+      "unlocked": true
+    },
+    {
+      "case": "hammer_sheep",
+      "consumed": true,
+      "health": 12.0,
+      "biomass": 266,
+      "ep": 2,
+      "unlocked": true
+    }
+  ],
+  "shared_model_pose": {
+    "jointPoseChanged": true,
+    "sharedModelRestored": true
+  },
+  "sha256": "717d6fe0246fd1383be6d179efbc40a78a78d895ccf17ba906fc88bd64421fbc",
+  "network_protocol": 9,
+  "whip_arm_anchor_checked_each_frame": true
+}

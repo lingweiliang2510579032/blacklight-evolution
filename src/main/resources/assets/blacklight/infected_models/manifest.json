@@ -1,0 +1,2713 @@
+{
+  "format": 1,
+  "coordinates": "blocks, Y-up, front=-Z, absolute rest vertices/pivots",
+  "triangleLayout": "flat groups of i0, i1, i2, packed RGB",
+  "models": [
+    {
+      "id": "minecraft:allay",
+      "file": "blacklight:infected_models/allay.json",
+      "boss": false,
+      "bones": 9,
+      "triangles": 616,
+      "bounds": {
+        "min": [
+          -0.469132,
+          0.0,
+          -0.215
+        ],
+        "max": [
+          0.469132,
+          1.10625,
+          0.1875
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.234375,
+          0.0,
+          -0.1875
+        ],
+        "max": [
+          0.234375,
+          1.10625,
+          0.1875
+        ]
+      },
+      "referenceScale": 0.5,
+      "sourceSha256": "401cb052ecfa583ad9f1db4b4dbe17a0e6f566b3de37bb21b8d7e56a83487a01"
+    },
+    {
+      "id": "minecraft:armadillo",
+      "file": "blacklight:infected_models/armadillo.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1144,
+      "bounds": {
+        "min": [
+          -0.382949,
+          0.0,
+          -0.685
+        ],
+        "max": [
+          0.34375,
+          0.934375,
+          0.81344
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.3125,
+          0.0,
+          -0.65625
+        ],
+        "max": [
+          0.3125,
+          0.8125,
+          0.375
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "3f59874a75a830941e2001ff950650326938aed265c6dfc90f3ebd1c5ba3f9fa"
+    },
+    {
+      "id": "minecraft:axolotl",
+      "file": "blacklight:infected_models/axolotl.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 772,
+      "bounds": {
+        "min": [
+          -0.437983,
+          0.0,
+          -0.71625
+        ],
+        "max": [
+          0.437983,
+          0.519841,
+          1.000177
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.25,
+          0.0,
+          -0.6875
+        ],
+        "max": [
+          0.25,
+          0.375,
+          0.375
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "81466a729eb49e8cc1c26b1b359b395f4e768aac5f608733561817802fce5654"
+    },
+    {
+      "id": "minecraft:bat",
+      "file": "blacklight:infected_models/bat.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 572,
+      "bounds": {
+        "min": [
+          -0.937683,
+          0.0,
+          -0.2475
+        ],
+        "max": [
+          0.937683,
+          1.195232,
+          0.15625
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.1875,
+          0.132732,
+          -0.21875
+        ],
+        "max": [
+          0.1875,
+          1.007732,
+          0.15625
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "5a6fa0623af3c687017f59285e4d5fa8be5f8cd5a264c83586a4d884ca9f2554"
+    },
+    {
+      "id": "minecraft:bee",
+      "file": "blacklight:infected_models/bee.json",
+      "boss": false,
+      "bones": 11,
+      "triangles": 870,
+      "bounds": {
+        "min": [
+          -0.625292,
+          0.0,
+          -0.59125
+        ],
+        "max": [
+          0.625292,
+          0.720923,
+          0.750757
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.25,
+          0.125896,
+          -0.5625
+        ],
+        "max": [
+          0.25,
+          0.625896,
+          0.4375
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "e6970f79e2b9c2a6be9dbba52ffc28c9312554a33811085a67f298f5bcc3e9e3"
+    },
+    {
+      "id": "minecraft:blaze",
+      "file": "blacklight:infected_models/blaze.json",
+      "boss": false,
+      "bones": 15,
+      "triangles": 830,
+      "bounds": {
+        "min": [
+          -0.552426,
+          0.0,
+          -0.568885
+        ],
+        "max": [
+          0.538028,
+          1.350247,
+          0.538028
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.538028,
+          0.006497,
+          -0.538028
+        ],
+        "max": [
+          0.538028,
+          1.350247,
+          0.538028
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "a43ccc29d6932bbe70daa1d6bdf83f244595cc4c092ef29f5bf333cb18c207f6"
+    },
+    {
+      "id": "minecraft:bogged",
+      "file": "blacklight:infected_models/bogged.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1164,
+      "bounds": {
+        "min": [
+          -0.457929,
+          0.0,
+          -0.304687
+        ],
+        "max": [
+          0.375,
+          2.1375,
+          0.269347
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.375,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.375,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "daf739a9f2fdf651f53776d3f55140e10ac06eae1119d84898b476507d434684"
+    },
+    {
+      "id": "minecraft:breeze",
+      "file": "blacklight:infected_models/breeze.json",
+      "boss": false,
+      "bones": 6,
+      "triangles": 598,
+      "bounds": {
+        "min": [
+          -0.462758,
+          0.0,
+          -0.462758
+        ],
+        "max": [
+          0.462758,
+          1.45625,
+          0.462758
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.3125,
+          0.95625,
+          -0.309375
+        ],
+        "max": [
+          0.3125,
+          1.45625,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "ac0332d35273ce70e126783083fd6f10c8d2247bfd3e319a6da0dec480498a34"
+    },
+    {
+      "id": "minecraft:camel",
+      "file": "blacklight:infected_models/camel.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1410,
+      "bounds": {
+        "min": [
+          -0.474778,
+          0.0,
+          -1.1825
+        ],
+        "max": [
+          0.474778,
+          2.5625,
+          0.75
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.375,
+          0.0,
+          -1.15625
+        ],
+        "max": [
+          0.375,
+          2.34375,
+          0.75
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "3572ca52e2a18abe48b2a7ad3b11c2d37eedb873bd03be6cd1e2ffc518f5017a"
+    },
+    {
+      "id": "minecraft:cat",
+      "file": "blacklight:infected_models/cat.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1470,
+      "bounds": {
+        "min": [
+          -0.255468,
+          0.0,
+          -0.745
+        ],
+        "max": [
+          0.255468,
+          1.03125,
+          1.001307
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.1875,
+          0.0,
+          -0.71875
+        ],
+        "max": [
+          0.1875,
+          0.875,
+          0.71875
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "d56d8f077309b1e617b4581d2d0c30eee5bc9da15a380caae7bf1c36871f24d7"
+    },
+    {
+      "id": "minecraft:cave_spider",
+      "file": "blacklight:infected_models/cave_spider.json",
+      "boss": false,
+      "bones": 12,
+      "triangles": 2336,
+      "bounds": {
+        "min": [
+          -1.126204,
+          0.0,
+          -0.907293
+        ],
+        "max": [
+          1.126347,
+          0.854433,
+          0.850133
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.3125,
+          0.169585,
+          -0.75
+        ],
+        "max": [
+          0.3125,
+          0.669585,
+          0.8125
+        ]
+      },
+      "referenceScale": 0.5,
+      "sourceSha256": "747e6d2d5c1faa3a5415dfc5e8ac25a6fbcf7b848dcdb71bb3e0cdc9a4226418"
+    },
+    {
+      "id": "minecraft:chicken",
+      "file": "blacklight:infected_models/chicken.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1354,
+      "bounds": {
+        "min": [
+          -0.325552,
+          0.0,
+          -0.45
+        ],
+        "max": [
+          0.334111,
+          1.1875,
+          0.312986
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.275,
+          0.0,
+          -0.375
+        ],
+        "max": [
+          0.275,
+          1.1875,
+          0.21875
+        ]
+      },
+      "referenceScale": 0.6,
+      "sourceSha256": "5a2181822e7c0538f9f7f6b2749c46ce3ed6a85dee9259705e4d137ed192a69f"
+    },
+    {
+      "id": "minecraft:cod",
+      "file": "blacklight:infected_models/cod.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 744,
+      "bounds": {
+        "min": [
+          -0.3125,
+          0.0,
+          -0.5
+        ],
+        "max": [
+          0.3125,
+          0.5625,
+          0.65625
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.125,
+          0.0,
+          -0.5
+        ],
+        "max": [
+          0.125,
+          0.4375,
+          0.65625
+        ]
+      },
+      "referenceScale": 0.75,
+      "sourceSha256": "d419cae6efaa55ad8b4df6caf6fef2519d08b18f5a2b94c5c6b962f479903622"
+    },
+    {
+      "id": "minecraft:cow",
+      "file": "blacklight:infected_models/cow.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 2010,
+      "bounds": {
+        "min": [
+          -0.50622,
+          0.0,
+          -0.9125
+        ],
+        "max": [
+          0.50622,
+          1.850771,
+          0.625
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.375,
+          0.0,
+          -0.90625
+        ],
+        "max": [
+          0.375,
+          1.40625,
+          0.625
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "2cbb9ccdb653fabb3cc19e24f0e59ebf592f35c9a2dd27fe0c64ee2d6e5213f5"
+    },
+    {
+      "id": "minecraft:creeper",
+      "file": "blacklight:infected_models/creeper.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 2078,
+      "bounds": {
+        "min": [
+          -0.351962,
+          0.0,
+          -0.43125
+        ],
+        "max": [
+          0.344876,
+          1.64189,
+          0.395664
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.25,
+          0.0,
+          -0.375
+        ],
+        "max": [
+          0.25,
+          1.625,
+          0.375
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "2b27ab8ae097713bb951f239d16f30396674c92aff23cc7a6d924c41cab9d41c"
+    },
+    {
+      "id": "minecraft:dolphin",
+      "file": "blacklight:infected_models/dolphin.json",
+      "boss": false,
+      "bones": 6,
+      "triangles": 616,
+      "bounds": {
+        "min": [
+          -0.5625,
+          0.0,
+          -1.102148
+        ],
+        "max": [
+          0.5625,
+          0.774912,
+          1.375
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.21875,
+          0.03125,
+          -1.09375
+        ],
+        "max": [
+          0.21875,
+          0.46875,
+          0.625
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "949830ea1f1c044e0af8a78d55d1edd527e4b116f7ac2037eb4f570feb0fae41"
+    },
+    {
+      "id": "minecraft:donkey",
+      "file": "blacklight:infected_models/donkey.json",
+      "boss": false,
+      "bones": 9,
+      "triangles": 1402,
+      "bounds": {
+        "min": [
+          -0.412278,
+          0.0,
+          -1.24813
+        ],
+        "max": [
+          0.412278,
+          2.34167,
+          0.984691
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.3125,
+          0.0,
+          -1.24813
+        ],
+        "max": [
+          0.3125,
+          2.135964,
+          0.65625
+        ]
+      },
+      "referenceScale": 0.7,
+      "sourceSha256": "0331850af2fb9ad80b7f4e3da2b172b4c3047112887af852e5bb2d623c141224"
+    },
+    {
+      "id": "minecraft:drowned",
+      "file": "blacklight:infected_models/drowned.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 2080,
+      "bounds": {
+        "min": [
+          -0.544974,
+          0.0,
+          -0.311356
+        ],
+        "max": [
+          0.66,
+          2.030523,
+          0.331274
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.4875,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.4875,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "aaf88b27427a846663b884b32c88275caeacd99a45b25841b8c071399fdd07f3"
+    },
+    {
+      "id": "minecraft:elder_guardian",
+      "file": "blacklight:infected_models/elder_guardian.json",
+      "boss": false,
+      "bones": 4,
+      "triangles": 1300,
+      "bounds": {
+        "min": [
+          -0.813257,
+          0.0,
+          -0.54375
+        ],
+        "max": [
+          0.813257,
+          1.282538,
+          1.625
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.5,
+          0.203769,
+          -0.5
+        ],
+        "max": [
+          0.5,
+          1.078769,
+          0.5
+        ]
+      },
+      "referenceScale": 2.35,
+      "sourceSha256": "89e6f8755b4b0e634805d8398bb22fbb541c5e5e0cf055a91bdfb5dc8a947f36"
+    },
+    {
+      "id": "minecraft:ender_dragon",
+      "file": "blacklight:infected_models/ender_dragon.json",
+      "boss": true,
+      "bones": 37,
+      "triangles": 4056,
+      "bounds": {
+        "min": [
+          -56.000305,
+          0.0,
+          -42.820957
+        ],
+        "max": [
+          55.999691,
+          37.753277,
+          61.860638
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -56.000305,
+          0.0,
+          -42.820957
+        ],
+        "max": [
+          55.999691,
+          37.753277,
+          61.860638
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "2afdd0fba76596b6e444728b5e44dca78d7b72d0030ffa11ecdb29622ac72151"
+    },
+    {
+      "id": "minecraft:enderman",
+      "file": "blacklight:infected_models/enderman.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1222,
+      "bounds": {
+        "min": [
+          -0.41875,
+          0.0,
+          -0.27875
+        ],
+        "max": [
+          0.425,
+          2.5625,
+          0.25
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.41875,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.41875,
+          2.5625,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "67ddc858fdfd3a93f54e5240f64118565cff76cd0c43f75810b3b4fd5acb0b0a"
+    },
+    {
+      "id": "minecraft:endermite",
+      "file": "blacklight:infected_models/endermite.json",
+      "boss": false,
+      "bones": 14,
+      "triangles": 752,
+      "bounds": {
+        "min": [
+          -0.34534,
+          0.0,
+          -0.41625
+        ],
+        "max": [
+          0.34534,
+          0.420835,
+          0.440625
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.15625,
+          0.038494,
+          -0.390625
+        ],
+        "max": [
+          0.15625,
+          0.288494,
+          0.440625
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "7e5a913c6edc5d3c61eaed2df8c3e325e9516ce2220bfb777a8673e267b2ef61"
+    },
+    {
+      "id": "minecraft:evoker",
+      "file": "blacklight:infected_models/evoker.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1536,
+      "bounds": {
+        "min": [
+          -0.428125,
+          0.0,
+          -0.374064
+        ],
+        "max": [
+          0.428125,
+          2.018436,
+          0.356624
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.428125,
+          0.0,
+          -0.3125
+        ],
+        "max": [
+          0.428125,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "605688334dcf2da0db4bb44a329baadf170069238e52633a8fddffb00a3be7dd"
+    },
+    {
+      "id": "minecraft:fox",
+      "file": "blacklight:infected_models/fox.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1478,
+      "bounds": {
+        "min": [
+          -0.293861,
+          0.0,
+          -0.90625
+        ],
+        "max": [
+          0.293861,
+          0.96875,
+          1.125757
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.21875,
+          0.0,
+          -0.90625
+        ],
+        "max": [
+          0.21875,
+          0.8125,
+          0.6875
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "a0b8d0c91ca82d88aa8d885ed2449725489d712bb8f7344e23a7513714cae844"
+    },
+    {
+      "id": "minecraft:frog",
+      "file": "blacklight:infected_models/frog.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 864,
+      "bounds": {
+        "min": [
+          -0.53125,
+          0.0,
+          -0.59125
+        ],
+        "max": [
+          0.53125,
+          0.53125,
+          0.3125
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.53125,
+          0.0,
+          -0.5625
+        ],
+        "max": [
+          0.53125,
+          0.4375,
+          0.3125
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "182533ce8f8d1357cb841b55a9d74db59bab0db6c6da4503be0961ea74d8119b"
+    },
+    {
+      "id": "minecraft:ghast",
+      "file": "blacklight:infected_models/ghast.json",
+      "boss": false,
+      "bones": 12,
+      "triangles": 1190,
+      "bounds": {
+        "min": [
+          -0.529636,
+          0.0,
+          -0.539375
+        ],
+        "max": [
+          0.5,
+          1.956055,
+          0.5
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.5,
+          0.815485,
+          -0.5
+        ],
+        "max": [
+          0.5,
+          1.815485,
+          0.5
+        ]
+      },
+      "referenceScale": 4.0,
+      "sourceSha256": "950140c87bc168da2b10ce080bebcc9e3f7eb9182fb0ab39e89962aec4d73f34"
+    },
+    {
+      "id": "minecraft:giant",
+      "file": "blacklight:infected_models/giant.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 2060,
+      "bounds": {
+        "min": [
+          -0.579785,
+          0.0,
+          -0.311356
+        ],
+        "max": [
+          0.66,
+          2.030523,
+          0.331274
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.4875,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.4875,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 6.0,
+      "sourceSha256": "7e113a9ada13503ddbc757cd02be951eaf5f9253345ccaf28a62abe197243017"
+    },
+    {
+      "id": "minecraft:glow_squid",
+      "file": "blacklight:infected_models/glow_squid.json",
+      "boss": false,
+      "bones": 11,
+      "triangles": 1228,
+      "bounds": {
+        "min": [
+          -0.59003,
+          0.0,
+          -0.645864
+        ],
+        "max": [
+          0.59653,
+          1.58817,
+          0.645864
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.3125,
+          0.703012,
+          -0.3125
+        ],
+        "max": [
+          0.3125,
+          1.453012,
+          0.3125
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "00313217a34ad2201b6dd7d32a21fdf81328fd57a65dd1cf4453bacc9bf9d0d8"
+    },
+    {
+      "id": "minecraft:goat",
+      "file": "blacklight:infected_models/goat.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1332,
+      "bounds": {
+        "min": [
+          -0.37384,
+          0.0,
+          -0.77625
+        ],
+        "max": [
+          0.37384,
+          1.76575,
+          0.71875
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.28125,
+          0.0,
+          -0.75
+        ],
+        "max": [
+          0.28125,
+          1.53125,
+          0.71875
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "417c518642ef77bbf6e39f8ff9c75d3ff64f05c320fe0de813bad3110684155a"
+    },
+    {
+      "id": "minecraft:guardian",
+      "file": "blacklight:infected_models/guardian.json",
+      "boss": false,
+      "bones": 4,
+      "triangles": 926,
+      "bounds": {
+        "min": [
+          -0.813257,
+          0.0,
+          -0.54375
+        ],
+        "max": [
+          0.813257,
+          1.282538,
+          1.625
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.5,
+          0.203769,
+          -0.5
+        ],
+        "max": [
+          0.5,
+          1.078769,
+          0.5
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "ee878bc9c65db47538e5da17c6aa88a128e4344971f2987b4f967f52cd8d5e5a"
+    },
+    {
+      "id": "minecraft:hoglin",
+      "file": "blacklight:infected_models/hoglin.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1318,
+      "bounds": {
+        "min": [
+          -0.592503,
+          0.0,
+          -1.336039
+        ],
+        "max": [
+          0.592503,
+          1.263143,
+          0.96875
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.46875,
+          0.0,
+          -1.28125
+        ],
+        "max": [
+          0.46875,
+          1.125,
+          0.96875
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "47f2754547aae5908024a49e2d8e1d2eeaaad440ed19723ac5bd20921bd7a11e"
+    },
+    {
+      "id": "minecraft:horse",
+      "file": "blacklight:infected_models/horse.json",
+      "boss": false,
+      "bones": 9,
+      "triangles": 1378,
+      "bounds": {
+        "min": [
+          -0.412278,
+          0.0,
+          -1.24813
+        ],
+        "max": [
+          0.412278,
+          2.284138,
+          0.984691
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.3125,
+          0.0,
+          -1.24813
+        ],
+        "max": [
+          0.3125,
+          2.135964,
+          0.65625
+        ]
+      },
+      "referenceScale": 0.75,
+      "sourceSha256": "484eb87dc3f90868f98b38484c05f7670804d7e6c218b90b0688cdeb72a87d33"
+    },
+    {
+      "id": "minecraft:husk",
+      "file": "blacklight:infected_models/husk.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1988,
+      "bounds": {
+        "min": [
+          -0.544974,
+          0.0,
+          -0.311356
+        ],
+        "max": [
+          0.66,
+          2.030523,
+          0.331274
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.4875,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.4875,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "7013a36485b9a18332a69feade0f9d81f9a25da8aa3eb1ebd917892ed773e6b6"
+    },
+    {
+      "id": "minecraft:illusioner",
+      "file": "blacklight:infected_models/illusioner.json",
+      "boss": false,
+      "bones": 6,
+      "triangles": 1572,
+      "bounds": {
+        "min": [
+          -0.428125,
+          0.0,
+          -0.374064
+        ],
+        "max": [
+          0.428125,
+          2.41875,
+          0.356624
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.428125,
+          0.0,
+          -0.3125
+        ],
+        "max": [
+          0.428125,
+          2.41875,
+          0.3125
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "24f0d1ccd0a8d2a6cf9fc78e0c21effdfc5a2c85e9a3f8a035ccff01554b2bcd"
+    },
+    {
+      "id": "minecraft:iron_golem",
+      "file": "blacklight:infected_models/iron_golem.json",
+      "boss": true,
+      "bones": 16,
+      "triangles": 1866,
+      "bounds": {
+        "min": [
+          -17.08606,
+          0.0,
+          -10.057871
+        ],
+        "max": [
+          15.095542,
+          30.0,
+          9.175501
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -2.675159,
+          23.503185,
+          -3.248408
+        ],
+        "max": [
+          2.675159,
+          30.0,
+          1.719745
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "db5edaf459754abbf8838483740131ccde30d923693c92fc7fb384192e4645c2"
+    },
+    {
+      "id": "minecraft:llama",
+      "file": "blacklight:infected_models/llama.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1266,
+      "bounds": {
+        "min": [
+          -0.380599,
+          0.0,
+          -0.83875
+        ],
+        "max": [
+          0.380599,
+          2.25,
+          0.53125
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.28125,
+          0.0,
+          -0.8125
+        ],
+        "max": [
+          0.28125,
+          2.03125,
+          0.53125
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "c24702af438ac75a099a984d87bad9a9581823f98eb63f93a2c9f932b25b0a5c"
+    },
+    {
+      "id": "minecraft:magma_cube",
+      "file": "blacklight:infected_models/magma_cube.json",
+      "boss": false,
+      "bones": 9,
+      "triangles": 1274,
+      "bounds": {
+        "min": [
+          -0.466359,
+          0.0,
+          -0.485624
+        ],
+        "max": [
+          0.4375,
+          1.080146,
+          0.4375
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.4375,
+          0.0,
+          -0.4375
+        ],
+        "max": [
+          0.4375,
+          0.965625,
+          0.4375
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "8aa2315f3db0853d9b4942fa0805bd60b00c96af692c70735020a0ebaf71442b"
+    },
+    {
+      "id": "minecraft:mooshroom",
+      "file": "blacklight:infected_models/mooshroom.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 2142,
+      "bounds": {
+        "min": [
+          -0.50622,
+          0.0,
+          -0.9125
+        ],
+        "max": [
+          0.50622,
+          1.850771,
+          0.625
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.375,
+          0.0,
+          -0.90625
+        ],
+        "max": [
+          0.375,
+          1.40625,
+          0.625
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "a56394add6abaf4c3a98663358f7b91956c37431a1abde4331393bcd7015db0e"
+    },
+    {
+      "id": "minecraft:mule",
+      "file": "blacklight:infected_models/mule.json",
+      "boss": false,
+      "bones": 9,
+      "triangles": 1402,
+      "bounds": {
+        "min": [
+          -0.412278,
+          0.0,
+          -1.24813
+        ],
+        "max": [
+          0.412278,
+          2.34167,
+          0.984691
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.3125,
+          0.0,
+          -1.24813
+        ],
+        "max": [
+          0.3125,
+          2.135964,
+          0.65625
+        ]
+      },
+      "referenceScale": 0.75,
+      "sourceSha256": "732c2bb5baf46f5685445e61f081633e0aa037deb39d9a6d247e425e99624127"
+    },
+    {
+      "id": "minecraft:ocelot",
+      "file": "blacklight:infected_models/ocelot.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1530,
+      "bounds": {
+        "min": [
+          -0.255468,
+          0.0,
+          -0.745
+        ],
+        "max": [
+          0.255468,
+          1.03125,
+          1.001307
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.19,
+          0.0,
+          -0.71875
+        ],
+        "max": [
+          0.19,
+          0.875,
+          0.71875
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "e16774dd4292df1af8bfc74990b7bd0c65c31f3b305a840a469dd4dabd7a9f27"
+    },
+    {
+      "id": "minecraft:panda",
+      "file": "blacklight:infected_models/panda.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1498,
+      "bounds": {
+        "min": [
+          -0.557983,
+          0.0,
+          -1.34375
+        ],
+        "max": [
+          0.557983,
+          1.40625,
+          1.0
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.4375,
+          0.0,
+          -1.34375
+        ],
+        "max": [
+          0.4375,
+          1.25,
+          1.0
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "40638b870ea4f907d9f8df5f4945761bd0e11de52350674d833edeb6418fd94f"
+    },
+    {
+      "id": "minecraft:parrot",
+      "file": "blacklight:infected_models/parrot.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1354,
+      "bounds": {
+        "min": [
+          -0.325552,
+          0.0,
+          -0.45
+        ],
+        "max": [
+          0.334111,
+          1.34375,
+          0.5
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.275,
+          0.0,
+          -0.34375
+        ],
+        "max": [
+          0.275,
+          1.1875,
+          0.5
+        ]
+      },
+      "referenceScale": 0.75,
+      "sourceSha256": "b5733a799dcd35996a3caa79c6789b508432ac70cd2179b7c27bc7bf61378edc"
+    },
+    {
+      "id": "minecraft:phantom",
+      "file": "blacklight:infected_models/phantom.json",
+      "boss": false,
+      "bones": 6,
+      "triangles": 626,
+      "bounds": {
+        "min": [
+          -1.375126,
+          0.0,
+          -0.7475
+        ],
+        "max": [
+          1.375126,
+          0.3231,
+          1.500432
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.25,
+          0.04935,
+          -0.71875
+        ],
+        "max": [
+          0.25,
+          0.29935,
+          0.53125
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "0cf8b813c5999c089dc114d4fda3db1de3b462a58a969b00153d596ef24ce66f"
+    },
+    {
+      "id": "minecraft:pig",
+      "file": "blacklight:infected_models/pig.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1950,
+      "bounds": {
+        "min": [
+          -0.451681,
+          0.0,
+          -0.996653
+        ],
+        "max": [
+          0.324992,
+          0.986096,
+          0.5625
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.3125,
+          0.0,
+          -0.9625
+        ],
+        "max": [
+          0.3125,
+          0.875,
+          0.5625
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "cc61b89e84c83256dd8dea79bd9b73ee1c418292aed333bbf04f642aed9c73f8"
+    },
+    {
+      "id": "minecraft:piglin",
+      "file": "blacklight:infected_models/piglin.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1742,
+      "bounds": {
+        "min": [
+          -0.621359,
+          0.0,
+          -0.363542
+        ],
+        "max": [
+          0.4875,
+          2.018436,
+          0.356624
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.4875,
+          0.0,
+          -0.35
+        ],
+        "max": [
+          0.4875,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "3e465e740570cf96ed6d00f4f2ee28223ecf039074e58c71dcfd3d0b4af609f5"
+    },
+    {
+      "id": "minecraft:piglin_brute",
+      "file": "blacklight:infected_models/piglin_brute.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1862,
+      "bounds": {
+        "min": [
+          -0.621359,
+          0.0,
+          -0.363542
+        ],
+        "max": [
+          0.50625,
+          2.018436,
+          0.356624
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.4875,
+          0.0,
+          -0.35
+        ],
+        "max": [
+          0.50625,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "c9553ff45790957472016a6b1e978091efee569ea418226ff97c8466f0e0c5f5"
+    },
+    {
+      "id": "minecraft:pillager",
+      "file": "blacklight:infected_models/pillager.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1646,
+      "bounds": {
+        "min": [
+          -0.621359,
+          0.0,
+          -0.3625
+        ],
+        "max": [
+          0.4875,
+          2.018436,
+          0.356624
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.4875,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.4875,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "e9cd027530e3836dbda792069efc8301fa29e76b21961ac433d02a9035cfa0a0"
+    },
+    {
+      "id": "minecraft:polar_bear",
+      "file": "blacklight:infected_models/polar_bear.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1434,
+      "bounds": {
+        "min": [
+          -0.557983,
+          0.0,
+          -1.34375
+        ],
+        "max": [
+          0.557983,
+          1.521843,
+          1.0
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.4375,
+          0.0,
+          -1.34375
+        ],
+        "max": [
+          0.4375,
+          1.25,
+          1.0
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "483dd176e7973e93bcf12c7a00f3623e2216c7ce40384d189dc9368742330d9c"
+    },
+    {
+      "id": "minecraft:pufferfish",
+      "file": "blacklight:infected_models/pufferfish.json",
+      "boss": false,
+      "bones": 6,
+      "triangles": 708,
+      "bounds": {
+        "min": [
+          -0.5,
+          0.0,
+          -0.337859
+        ],
+        "max": [
+          0.5,
+          0.759377,
+          0.5625
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.3125,
+          0.0,
+          -0.3125
+        ],
+        "max": [
+          0.3125,
+          0.625,
+          0.3125
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "eeb8cb236923248dd93f46808aa86b3e873f6f9153d11dc9aa817dae8aabd6ef"
+    },
+    {
+      "id": "minecraft:rabbit",
+      "file": "blacklight:infected_models/rabbit.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1450,
+      "bounds": {
+        "min": [
+          -0.207692,
+          0.0,
+          -0.495
+        ],
+        "max": [
+          0.207692,
+          1.0625,
+          0.5
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.1875,
+          0.0,
+          -0.46875
+        ],
+        "max": [
+          0.1875,
+          0.59375,
+          0.5
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "39631e9297f5e5339cf0bb7987f37a7c39765cef4742a2e69ee4eea9a104189e"
+    },
+    {
+      "id": "minecraft:ravager",
+      "file": "blacklight:infected_models/ravager.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1858,
+      "bounds": {
+        "min": [
+          -0.717687,
+          0.0,
+          -1.5625
+        ],
+        "max": [
+          0.720235,
+          2.156566,
+          1.03125
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.53125,
+          0.0,
+          -1.5625
+        ],
+        "max": [
+          0.53125,
+          1.875,
+          1.03125
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "6202b9878cc8524fcf482ee1675aca203a9c940aea2e77aac8b699d4706e886c"
+    },
+    {
+      "id": "minecraft:salmon",
+      "file": "blacklight:infected_models/salmon.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 744,
+      "bounds": {
+        "min": [
+          -0.3125,
+          0.0,
+          -0.71875
+        ],
+        "max": [
+          0.3125,
+          0.5625,
+          0.875
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.125,
+          0.0,
+          -0.71875
+        ],
+        "max": [
+          0.125,
+          0.4375,
+          0.875
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "bbe79408125558e197b46f385d64513118803a12ba81e1a86cf52eeed1341a2c"
+    },
+    {
+      "id": "minecraft:sheep",
+      "file": "blacklight:infected_models/sheep.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 2114,
+      "bounds": {
+        "min": [
+          -0.372298,
+          0.0,
+          -0.919794
+        ],
+        "max": [
+          0.34375,
+          1.50092,
+          0.59375
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.25,
+          0.0,
+          -0.875
+        ],
+        "max": [
+          0.25,
+          1.2625,
+          0.5625
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "802596a066b53789c27daaa9c762e3f81744f1bbf24eea73b87148b155be7c16"
+    },
+    {
+      "id": "minecraft:shulker",
+      "file": "blacklight:infected_models/shulker.json",
+      "boss": false,
+      "bones": 5,
+      "triangles": 760,
+      "bounds": {
+        "min": [
+          -0.529024,
+          0.0,
+          -0.5
+        ],
+        "max": [
+          0.5125,
+          1.5625,
+          0.5
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.5,
+          0.0,
+          -0.5
+        ],
+        "max": [
+          0.5,
+          1.5625,
+          0.5
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "5bb4a222272aa9b81162cb56db1c3f359bde75f74e668d18845cf3bbc024d4d8"
+    },
+    {
+      "id": "minecraft:silverfish",
+      "file": "blacklight:infected_models/silverfish.json",
+      "boss": false,
+      "bones": 14,
+      "triangles": 732,
+      "bounds": {
+        "min": [
+          -0.34534,
+          0.0,
+          -0.41625
+        ],
+        "max": [
+          0.34534,
+          0.420835,
+          0.440625
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.15625,
+          0.038494,
+          -0.390625
+        ],
+        "max": [
+          0.15625,
+          0.288494,
+          0.440625
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "45013ced7ead1ee097de53eed0a1479e818357e9859eeba5accfa4ce129a2949"
+    },
+    {
+      "id": "minecraft:skeleton",
+      "file": "blacklight:infected_models/skeleton.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1072,
+      "bounds": {
+        "min": [
+          -0.457929,
+          0.0,
+          -0.304687
+        ],
+        "max": [
+          0.375,
+          2.011145,
+          0.269347
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.375,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.375,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "4669220d348c88b3a167b6bc5d5c83925a6c3914914252bc7501f61bfed1917c"
+    },
+    {
+      "id": "minecraft:skeleton_horse",
+      "file": "blacklight:infected_models/skeleton_horse.json",
+      "boss": false,
+      "bones": 9,
+      "triangles": 1800,
+      "bounds": {
+        "min": [
+          -0.412278,
+          0.0,
+          -1.24813
+        ],
+        "max": [
+          0.412278,
+          2.284138,
+          0.984691
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.3125,
+          0.0,
+          -1.24813
+        ],
+        "max": [
+          0.3125,
+          2.135964,
+          0.65625
+        ]
+      },
+      "referenceScale": 0.75,
+      "sourceSha256": "3364f95d3523daff9da33a83ecbe340a0173fae7e606eac7d92502dcfdf8e2fa"
+    },
+    {
+      "id": "minecraft:slime",
+      "file": "blacklight:infected_models/slime.json",
+      "boss": false,
+      "bones": 3,
+      "triangles": 910,
+      "bounds": {
+        "min": [
+          -0.466359,
+          0.0,
+          -0.485624
+        ],
+        "max": [
+          0.4375,
+          1.080146,
+          0.4375
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.4375,
+          0.0,
+          -0.4375
+        ],
+        "max": [
+          0.4375,
+          0.875,
+          0.4375
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "0aa0c9beefa605f4f49f210af5ed83187def89609a18a9f96deb53e89f4985a0"
+    },
+    {
+      "id": "minecraft:sniffer",
+      "file": "blacklight:infected_models/sniffer.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1950,
+      "bounds": {
+        "min": [
+          -0.749005,
+          0.0,
+          -1.634375
+        ],
+        "max": [
+          0.749005,
+          1.71,
+          1.15625
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.65625,
+          0.0,
+          -1.625
+        ],
+        "max": [
+          0.65625,
+          1.53125,
+          1.15625
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "9c68cedcdd01197ff97371b1416c3bee2666b9e042d42a7f12c3291174709c58"
+    },
+    {
+      "id": "minecraft:snow_golem",
+      "file": "blacklight:infected_models/snow_golem.json",
+      "boss": false,
+      "bones": 5,
+      "triangles": 886,
+      "bounds": {
+        "min": [
+          -0.822625,
+          0.0,
+          -0.406074
+        ],
+        "max": [
+          0.820691,
+          1.75,
+          0.375
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.760401,
+          0.0,
+          -0.375
+        ],
+        "max": [
+          0.760401,
+          1.75,
+          0.375
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "1a8662576d6c661112185a76ab094429f26eaaf496f75342f5c72458e992736e"
+    },
+    {
+      "id": "minecraft:spider",
+      "file": "blacklight:infected_models/spider.json",
+      "boss": false,
+      "bones": 12,
+      "triangles": 2284,
+      "bounds": {
+        "min": [
+          -1.126204,
+          0.0,
+          -0.907293
+        ],
+        "max": [
+          1.126347,
+          0.854433,
+          0.850133
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.3125,
+          0.169585,
+          -0.75
+        ],
+        "max": [
+          0.3125,
+          0.669585,
+          0.8125
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "7e0280cd20aa5825d2f3c7afa99c4b5014f809790d139c08851cb78f504eebbb"
+    },
+    {
+      "id": "minecraft:squid",
+      "file": "blacklight:infected_models/squid.json",
+      "boss": false,
+      "bones": 11,
+      "triangles": 1156,
+      "bounds": {
+        "min": [
+          -0.59003,
+          0.0,
+          -0.645864
+        ],
+        "max": [
+          0.59653,
+          1.58817,
+          0.645864
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.3125,
+          0.703012,
+          -0.3125
+        ],
+        "max": [
+          0.3125,
+          1.453012,
+          0.3125
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "a219767f1159d2a711558c980875ae4178304a7d2c9547e16ee072ce3b1059c5"
+    },
+    {
+      "id": "minecraft:stray",
+      "file": "blacklight:infected_models/stray.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1144,
+      "bounds": {
+        "min": [
+          -0.457929,
+          0.0,
+          -0.304687
+        ],
+        "max": [
+          0.375,
+          2.011145,
+          0.269347
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.375,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.375,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "dc216c047added6b72f241a59de88ec739dc6baf8350a7b4ca02c6b4269b00b9"
+    },
+    {
+      "id": "minecraft:strider",
+      "file": "blacklight:infected_models/strider.json",
+      "boss": false,
+      "bones": 5,
+      "triangles": 1014,
+      "bounds": {
+        "min": [
+          -0.875593,
+          0.0,
+          -0.46625
+        ],
+        "max": [
+          0.875593,
+          1.762502,
+          0.4375
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.5,
+          0.0,
+          -0.4375
+        ],
+        "max": [
+          0.5,
+          1.625,
+          0.4375
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "1ef6e02b85daf6f847fc329a3a94d67563423aa49191bf5952382657e0201483"
+    },
+    {
+      "id": "minecraft:tadpole",
+      "file": "blacklight:infected_models/tadpole.json",
+      "boss": false,
+      "bones": 4,
+      "triangles": 486,
+      "bounds": {
+        "min": [
+          -0.153947,
+          0.0,
+          -0.21875
+        ],
+        "max": [
+          0.145625,
+          0.25,
+          0.625103
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.125,
+          0.03125,
+          -0.21875
+        ],
+        "max": [
+          0.125,
+          0.21875,
+          0.09375
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "75f8a2e904ebd132b7bf59830d0f86523242355da5919ffe5376e8d01a2e7976"
+    },
+    {
+      "id": "minecraft:trader_llama",
+      "file": "blacklight:infected_models/trader_llama.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1314,
+      "bounds": {
+        "min": [
+          -0.380599,
+          0.0,
+          -0.83875
+        ],
+        "max": [
+          0.380599,
+          2.25,
+          0.53125
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.303125,
+          0.0,
+          -0.8125
+        ],
+        "max": [
+          0.303125,
+          2.03125,
+          0.53125
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "674d25685cf2f642c1407336fa36cfdc74a7aaf8540dfbf97602771e3e297477"
+    },
+    {
+      "id": "minecraft:tropical_fish",
+      "file": "blacklight:infected_models/tropical_fish.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1148,
+      "bounds": {
+        "min": [
+          -0.3125,
+          0.0,
+          -0.5
+        ],
+        "max": [
+          0.3125,
+          0.8625,
+          0.65625
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.09375,
+          0.0,
+          -0.5
+        ],
+        "max": [
+          0.09375,
+          0.7875,
+          0.65625
+        ]
+      },
+      "referenceScale": 0.55,
+      "sourceSha256": "644dd458ba682d53dcca8f47f25ec0913810ae076df160d50f1ba1685de8f82f"
+    },
+    {
+      "id": "minecraft:turtle",
+      "file": "blacklight:infected_models/turtle.json",
+      "boss": false,
+      "bones": 11,
+      "triangles": 1022,
+      "bounds": {
+        "min": [
+          -0.75,
+          0.0,
+          -0.81
+        ],
+        "max": [
+          0.75,
+          0.77809,
+          0.5625
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.75,
+          0.0,
+          -0.78125
+        ],
+        "max": [
+          0.75,
+          0.71875,
+          0.5625
+        ]
+      },
+      "referenceScale": 0.65,
+      "sourceSha256": "2257ccf55f6dd2d9458990d3e60d5b603565012371abcab2e810771625244660"
+    },
+    {
+      "id": "minecraft:vex",
+      "file": "blacklight:infected_models/vex.json",
+      "boss": false,
+      "bones": 9,
+      "triangles": 616,
+      "bounds": {
+        "min": [
+          -0.469132,
+          0.0,
+          -0.215
+        ],
+        "max": [
+          0.469132,
+          1.10625,
+          0.1875
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.234375,
+          0.0,
+          -0.1875
+        ],
+        "max": [
+          0.234375,
+          1.10625,
+          0.1875
+        ]
+      },
+      "referenceScale": 0.7,
+      "sourceSha256": "229caafd536bebabf715a86b948dc16dfba2271a7bff7d51d0771f159128cb78"
+    },
+    {
+      "id": "minecraft:villager",
+      "file": "blacklight:infected_models/villager.json",
+      "boss": false,
+      "bones": 6,
+      "triangles": 1476,
+      "bounds": {
+        "min": [
+          -0.428125,
+          0.0,
+          -0.374064
+        ],
+        "max": [
+          0.428125,
+          2.018436,
+          0.356624
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.428125,
+          0.0,
+          -0.3125
+        ],
+        "max": [
+          0.428125,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "d075e95682bb97fbad45325dbbcb725f2d5d587280951744a6adee3e04a99426"
+    },
+    {
+      "id": "minecraft:vindicator",
+      "file": "blacklight:infected_models/vindicator.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 2054,
+      "bounds": {
+        "min": [
+          -0.621359,
+          0.0,
+          -0.3625
+        ],
+        "max": [
+          0.4875,
+          2.018436,
+          0.356624
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.4875,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.4875,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "e806e50e091616e8ce19a955b5395f5c4c1d5ff971aa5b04fd4c70334edad88c"
+    },
+    {
+      "id": "minecraft:wandering_trader",
+      "file": "blacklight:infected_models/wandering_trader.json",
+      "boss": false,
+      "bones": 6,
+      "triangles": 1520,
+      "bounds": {
+        "min": [
+          -0.428125,
+          0.0,
+          -0.374064
+        ],
+        "max": [
+          0.428125,
+          2.018436,
+          0.356624
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.428125,
+          0.0,
+          -0.3125
+        ],
+        "max": [
+          0.428125,
+          2.0,
+          0.28125
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "d99a71e461d791259c1f4c0fc4318769b287bcda018a8c92c2ae9bf6556731f4"
+    },
+    {
+      "id": "minecraft:warden",
+      "file": "blacklight:infected_models/warden.json",
+      "boss": true,
+      "bones": 18,
+      "triangles": 2484,
+      "bounds": {
+        "min": [
+          -17.599195,
+          0.0,
+          -9.540029
+        ],
+        "max": [
+          16.905632,
+          36.0,
+          9.540509
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -17.599195,
+          0.0,
+          -9.540029
+        ],
+        "max": [
+          16.905632,
+          36.0,
+          9.540509
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "631be92d1d4f9569d9cfa332ed2b4acb6dae7336f1eea493c9fa484cc20c0b72"
+    },
+    {
+      "id": "minecraft:witch",
+      "file": "blacklight:infected_models/witch.json",
+      "boss": false,
+      "bones": 6,
+      "triangles": 1572,
+      "bounds": {
+        "min": [
+          -0.428125,
+          0.0,
+          -0.374064
+        ],
+        "max": [
+          0.428125,
+          2.41875,
+          0.356624
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.428125,
+          0.0,
+          -0.3125
+        ],
+        "max": [
+          0.428125,
+          2.41875,
+          0.3125
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "93b4fee6eb7909ff74d89265f3aa332988faa3bb4d2cefbf0c712caca4796d77"
+    },
+    {
+      "id": "minecraft:wither",
+      "file": "blacklight:infected_models/wither.json",
+      "boss": true,
+      "bones": 15,
+      "triangles": 2820,
+      "bounds": {
+        "min": [
+          -15.201931,
+          0.0,
+          -5.362626
+        ],
+        "max": [
+          15.180621,
+          40.0,
+          8.036013
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -14.239687,
+          26.667093,
+          -4.518362
+        ],
+        "max": [
+          14.239687,
+          34.973576,
+          2.327641
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "9beb779458a2fba38b587308d0445b11d93ef1d9775c8724b6e7219aa3791b14"
+    },
+    {
+      "id": "minecraft:wither_skeleton",
+      "file": "blacklight:infected_models/wither_skeleton.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1108,
+      "bounds": {
+        "min": [
+          -0.515689,
+          0.0,
+          -0.304687
+        ],
+        "max": [
+          0.375,
+          2.011145,
+          0.269347
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.375,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.375,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.2,
+      "sourceSha256": "ac12d075bc93c2bb0b70cb853189a7ae484e4166fb698d020a302a1c032976d9"
+    },
+    {
+      "id": "minecraft:wolf",
+      "file": "blacklight:infected_models/wolf.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 1844,
+      "bounds": {
+        "min": [
+          -0.26875,
+          0.0,
+          -0.973165
+        ],
+        "max": [
+          0.26875,
+          1.09375,
+          0.75
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.1875,
+          0.0,
+          -0.9375
+        ],
+        "max": [
+          0.1875,
+          0.9375,
+          0.75
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "8a3987aac217b7b08f88cb9afb2b6ef23b95b278c1adcb9e427fd6c347535f86"
+    },
+    {
+      "id": "minecraft:zoglin",
+      "file": "blacklight:infected_models/zoglin.json",
+      "boss": false,
+      "bones": 8,
+      "triangles": 2340,
+      "bounds": {
+        "min": [
+          -0.592503,
+          0.0,
+          -1.336039
+        ],
+        "max": [
+          0.592503,
+          1.263143,
+          0.96875
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.46875,
+          0.0,
+          -1.28125
+        ],
+        "max": [
+          0.46875,
+          1.125,
+          0.96875
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "1dd38f665ad2435c9b16e9e9964433f93d3553f7ec20f352c28cd14e7c6de178"
+    },
+    {
+      "id": "minecraft:zombie",
+      "file": "blacklight:infected_models/zombie.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1340,
+      "bounds": {
+        "min": [
+          -0.544974,
+          0.0,
+          -0.311356
+        ],
+        "max": [
+          0.66,
+          2.030523,
+          0.331274
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.4875,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.4875,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "9421c65b7a1315f9e15ea34159f23a1315a1fa3747d15ba97266fdcdc6fb1b79"
+    },
+    {
+      "id": "minecraft:zombie_horse",
+      "file": "blacklight:infected_models/zombie_horse.json",
+      "boss": false,
+      "bones": 9,
+      "triangles": 1752,
+      "bounds": {
+        "min": [
+          -0.412278,
+          0.0,
+          -1.24813
+        ],
+        "max": [
+          0.412278,
+          2.284138,
+          0.984691
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.3125,
+          0.0,
+          -1.24813
+        ],
+        "max": [
+          0.3125,
+          2.135964,
+          0.65625
+        ]
+      },
+      "referenceScale": 0.75,
+      "sourceSha256": "e01ecf0c1ca58b16780acbd6c30c72e07128c87c8de41311bad94bb518305099"
+    },
+    {
+      "id": "minecraft:zombie_villager",
+      "file": "blacklight:infected_models/zombie_villager.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 1976,
+      "bounds": {
+        "min": [
+          -0.544974,
+          0.0,
+          -0.3625
+        ],
+        "max": [
+          0.66,
+          2.030523,
+          0.331274
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.4875,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.4875,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "44d0edb5fa3896de0f7e18e6650d8f079405cc5b85c286720f314cb573d9a7de"
+    },
+    {
+      "id": "minecraft:zombified_piglin",
+      "file": "blacklight:infected_models/zombified_piglin.json",
+      "boss": false,
+      "bones": 7,
+      "triangles": 2546,
+      "bounds": {
+        "min": [
+          -0.621359,
+          0.0,
+          -0.363542
+        ],
+        "max": [
+          0.4875,
+          2.018436,
+          0.356624
+        ]
+      },
+      "baseBounds": {
+        "min": [
+          -0.4875,
+          0.0,
+          -0.35
+        ],
+        "max": [
+          0.4875,
+          2.0,
+          0.25
+        ]
+      },
+      "referenceScale": 1.0,
+      "sourceSha256": "b08fdc55af5fae1043d28ee4f0aab45b0e0242195be26a4ee0b663f0b8ff261f"
+    }
+  ]
+}

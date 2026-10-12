@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "moves": {
+    "muscle_cross": {
+      "releaseTime": 0.1,
+      "inputHookSeconds": 0.16666699945926666,
+      "sourceBlock": "prototype_bare",
+      "windupOwner": 26664,
+      "releaseOwner": 28248,
+      "eventOffset": 29260,
+      "eventPhase": "release"
+    },
+    "combo_kick1": {
+      "releaseTime": 0.1,
+      "inputHookSeconds": 0.30000001192092896,
+      "sourceBlock": "prototype_bare",
+      "windupOwner": 40340,
+      "releaseOwner": 42024,
+      "eventOffset": 43364,
+      "eventPhase": "release"
+    },
+    "combo_knee": {
+      "releaseTime": 0.13333333333333333,
+      "inputHookSeconds": 0.33333298563957214,
+      "sourceBlock": "prototype_bare",
+      "windupOwner": 59508,
+      "releaseOwner": 61344,
+      "eventOffset": 62576,
+      "eventPhase": "release"
+    },
+    "combo_spin": {
+      "releaseTime": 0.1,
+      "inputHookSeconds": 0.3666670024394989,
+      "sourceBlock": "prototype_bare",
+      "windupOwner": 64968,
+      "releaseOwner": 66652,
+      "eventOffset": 67516,
+      "eventPhase": "release"
+    },
+    "combo_axe_handle": {
+      "releaseTime": 0.2,
+      "inputHookSeconds": 0.4666669964790344,
+      "sourceBlock": "prototype_bare",
+      "windupOwner": 85580,
+      "releaseOwner": 87356,
+      "eventOffset": 88248,
+      "eventPhase": "release"
+    },
+    "claw_auto1": {
+      "releaseTime": 0.03333333333333333,
+      "inputHookSeconds": 0.16666699945926666,
+      "sourceBlock": "prototype_claws",
+      "windupOwner": 16640,
+      "releaseOwner": 18076,
+      "eventOffset": 19000,
+      "eventPhase": "release"
+    },
+    "claw_auto2": {
+      "releaseTime": 0.03333333333333333,
+      "inputHookSeconds": 0.23333300650119781,
+      "sourceBlock": "prototype_claws",
+      "windupOwner": 20940,
+      "releaseOwner": 22312,
+      "eventOffset": 23196,
+      "eventPhase": "release"
+    },
+    "blade_cut": {
+      "releaseTime": 0.16666666666666666,
+      "inputHookSeconds": 0.30000001192092896,
+      "sourceBlock": "prototype_blades",
+      "windupOwner": 12256,
+      "releaseOwner": 13748,
+      "eventOffset": 14748,
+      "eventPhase": "release"
+    },
+    "blade_combo_c": {
+      "releaseTime": 0.1,
+      "inputHookSeconds": 0.20000000298023224,
+      "sourceBlock": "prototype_blades",
+      "windupOwner": 21048,
+      "releaseOwner": 22424,
+      "eventOffset": 23424,
+      "eventPhase": "release"
+    },
+    "blade_combo_c2": {
+      "releaseTime": 0.06666666666666667,
+      "inputHookSeconds": 0.20000000298023224,
+      "sourceBlock": "prototype_blades",
+      "windupOwner": 25320,
+      "releaseOwner": 26696,
+      "eventOffset": 27696,
+      "eventPhase": "release"
+    },
+    "hammer_hook": {
+      "releaseTime": 0.3333333333333333,
+      "inputHookSeconds": 0.6000000238418579,
+      "sourceBlock": "prototype_hammerfist",
+      "windupOwner": 25392,
+      "releaseOwner": 27072,
+      "eventOffset": 28144,
+      "eventPhase": "release"
+    },
+    "blade_return": {
+      "releaseTime": 0.13333333333333333,
+      "inputHookSeconds": 0.5666666666666667,
+      "sourceBlock": "prototype_blades",
+      "windupOwner": 16648,
+      "releaseOwner": 18024,
+      "recoveryOwner": 19900,
+      "releaseDuration": 0.5666666666666667,
+      "recoveryInputHookSeconds": 0.0,
+      "eventOffset": 20348,
+      "eventPhase": "recovery"
+    },
+    "hammer_jab": {
+      "releaseTime": 0.1,
+      "inputHookSeconds": 0.5,
+      "sourceBlock": "prototype_hammerfist",
+      "windupOwner": 21048,
+      "releaseOwner": 22640,
+      "recoveryOwner": 24448,
+      "releaseDuration": 0.5,
+      "recoveryInputHookSeconds": 0.0,
+      "eventOffset": 24800,
+      "eventPhase": "recovery"
+    },
+    "hammer_combo_c": {
+      "releaseTime": 0.3333333333333333,
+      "inputHookSeconds": 0.6,
+      "sourceBlock": "prototype_hammerfist",
+      "windupOwner": 30128,
+      "releaseOwner": 31808,
+      "recoveryOwner": 33336,
+      "releaseDuration": 0.6,
+      "recoveryInputHookSeconds": 0.0,
+      "eventOffset": 33560,
+      "eventPhase": "recovery"
+    },
+    "whip_lash": {
+      "releaseTime": 0.13,
+      "inputHookSeconds": 0.43333333333333335,
+      "sourceBlock": "prototype_whipfist",
+      "windupOwner": 12796,
+      "releaseOwner": 16616,
+      "recoveryOwner": 17512,
+      "releaseDuration": 0.43333333333333335,
+      "recoveryInputHookSeconds": 0.0,
+      "eventOffset": 17876,
+      "eventPhase": "recovery"
+    },
+    "whip_return": {
+      "releaseTime": 0.26666666666666666,
+      "inputHookSeconds": 0.5,
+      "sourceBlock": "prototype_whipfist",
+      "windupOwner": 18844,
+      "releaseOwner": 22812,
+      "recoveryOwner": 23708,
+      "releaseDuration": 0.5,
+      "recoveryInputHookSeconds": 0.0,
+      "eventOffset": 24072,
+      "eventPhase": "recovery"
+    }
+  }
+}

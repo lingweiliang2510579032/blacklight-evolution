@@ -7,7 +7,7 @@ import com.codex.blacklight.client.tuning.AnimationPoseSettings.ActionSnapshot;
 import com.codex.blacklight.client.tuning.AnimationPoseSettings.Axis;
 import com.codex.blacklight.client.tuning.AnimationPoseSettings.Joint;
 import com.codex.blacklight.client.tuning.AnimationPoseSettings.TransformMode;
-import com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations;
+import com.codex.blacklight.animation.PlayerMotionController;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -16,12 +16,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
-import yesman.epicfight.api.animation.AnimationPlayer;
-import yesman.epicfight.api.animation.Animator;
-import yesman.epicfight.api.animation.types.StaticAnimation;
-import yesman.epicfight.api.asset.AssetAccessor;
-import yesman.epicfight.client.world.capabilites.entitypatch.player.AbstractClientPlayerPatch;
-import yesman.epicfight.world.capabilities.EpicFightCapabilities;
 
 import java.util.List;
 import java.util.Locale;
@@ -57,9 +51,8 @@ public final class AnimationTunerScreen extends Screen {
     private int dragButton = -1;
     private GizmoPart draggedGizmoPart;
     private String status = "拖彩环旋转 · Home视角归位 · Ctrl+Shift+R动作还原";
-    private CameraType previousCamera;
-    private AssetAccessor<? extends StaticAnimation> previewAnimation;
-    private AnimationPlayer previewPlayer;
+    private String previewAnimation;
+
     private TimelineSlider timelineSlider;
     private Button playButton;
     private Button modeButton;
@@ -75,10 +68,6 @@ public final class AnimationTunerScreen extends Screen {
     @Override
     protected void init() {
         AnimationPoseSettings.load();
-        if (previousCamera == null) {
-            previousCamera = minecraft.options.getCameraType();
-            minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
-        }
         currentTime = clampTime(currentTime);
         buildTopControls();
         buildTimeline();
@@ -105,7 +94,7 @@ public final class AnimationTunerScreen extends Screen {
         }).bounds(102, 27, 92, 17).build());
         squatButton = addRenderableWidget(Button.builder(squatLabel(), button -> toggleSquatControl())
                 .bounds(6, 48, 188, 17).build());
-        addRenderableWidget(Button.builder(Component.literal("视角归位"), button -> resetView())
+        addRenderableWidget(Button.builder(Component.literal("背面归位"), button -> resetView())
                 .bounds(width - 250, 6, 68, 17).build());
         addRenderableWidget(Button.builder(Component.literal("动作还原"), button -> resetCurrentAction())
                 .bounds(width - 178, 6, 68, 17).build());
@@ -322,25 +311,15 @@ public final class AnimationTunerScreen extends Screen {
     private void previewSelected() {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) return;
-        AbstractClientPlayerPatch<?> patch = EpicFightCapabilities.getEntityPatch(
-                client.player, AbstractClientPlayerPatch.class);
-        AssetAccessor<? extends StaticAnimation> selected = animationFor(selectedAction);
-        if (patch == null || selected == null) {
-            status = "Epic Fight 动画尚未就绪";
-            return;
-        }
-        Animator animator = patch.getAnimator();
-        animator.setHardPause(false);
-        animator.playAnimationInstantly(selected);
-        previewPlayer = animator.getPlayerFor(selected);
-        previewAnimation = selected;
+        previewAnimation = animationFor(selectedAction);
+        PlayerMotionController.preview(client.player, previewAnimation, currentTime);
         setPreviewTime(currentTime);
-        animator.setHardPause(true);
     }
 
     private void setPreviewTime(float time) {
         currentTime = clampTime(time);
-        if (previewPlayer != null) previewPlayer.setElapsedTime(currentTime, currentTime);
+        if (Minecraft.getInstance().player != null && previewAnimation != null)
+            PlayerMotionController.seekPreview(Minecraft.getInstance().player, currentTime);
     }
 
     private void syncTime() {
@@ -353,10 +332,10 @@ public final class AnimationTunerScreen extends Screen {
         if (timelineSlider != null) timelineSlider.updateMessage();
     }
 
-    private static AssetAccessor<? extends StaticAnimation> animationFor(Action action) {
+    private static String animationFor(Action action) {
         return action == Action.GROUND_SPIKE
-                ? BlacklightEpicFightAnimations.CLAW_GROUNDSPIKE
-                : BlacklightEpicFightAnimations.CHARGED_JUMP;
+                ? com.codex.blacklight.animation.MotionLibrary.resolve(com.codex.blacklight.animation.PlayerAction.CLAW_GROUNDSPIKE)
+                : "charged_jump";
     }
 
     private float clampTime(float time) {
@@ -811,6 +790,16 @@ public final class AnimationTunerScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (minecraft != null && minecraft.options.keyTogglePerspective.matches(keyCode, scanCode)) {
+            var previous = minecraft.options.getCameraType();
+            var next = previous.cycle();
+            minecraft.options.setCameraType(next);
+            if (previous.isFirstPerson() != next.isFirstPerson())
+                minecraft.gameRenderer.checkEntityPostEffect(next.isFirstPerson() ? minecraft.getCameraEntity() : null);
+            minecraft.levelRenderer.needsUpdate();
+            status = "视角已切换";
+            return true;
+        }
         if (keyCode == GLFW.GLFW_KEY_J) { onClose(); return true; }
         if (keyCode == GLFW.GLFW_KEY_SPACE) { togglePlayback(); return true; }
         if (keyCode == GLFW.GLFW_KEY_HOME) { resetView(); return true; }
@@ -864,35 +853,18 @@ public final class AnimationTunerScreen extends Screen {
     public void onClose() {
         AnimationPoseSettings.save();
         stopPreview();
-        restoreCamera();
         super.onClose();
     }
 
     @Override
     public void removed() {
         stopPreview();
-        restoreCamera();
         super.removed();
-    }
-
-    private void restoreCamera() {
-        if (minecraft != null && previousCamera != null) {
-            minecraft.options.setCameraType(previousCamera);
-            previousCamera = null;
-        }
     }
 
     private void stopPreview() {
         playing = false;
-        previewPlayer = null;
-        if (minecraft == null || minecraft.player == null) return;
-        AbstractClientPlayerPatch<?> patch = EpicFightCapabilities.getEntityPatch(
-                minecraft.player, AbstractClientPlayerPatch.class);
-        if (patch == null) return;
-        Animator animator = patch.getAnimator();
-        animator.setHardPause(false);
-        if (previewAnimation != null) animator.stopPlaying(previewAnimation);
-        patch.updateMotion(true);
+        if (minecraft != null && minecraft.player != null) PlayerMotionController.clearPreview(minecraft.player);
         previewAnimation = null;
     }
 

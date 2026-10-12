@@ -35,16 +35,39 @@ public final class LandingDebrisSystem {
     public static void toss(ServerLevel level, double x, double y, double z,
                             BlockState state, double vx, double vy, double vz,
                             int lifetimeTicks) {
+        spawn(level,x,y,z,state,vx,vy,vz,lifetimeTicks,1,false);
+    }
+
+    /** Smaller attack fragments share the landing debris budget and lifecycle. */
+    public static void fragment(ServerLevel level,Vec3 at,BlockState state,Vec3 velocity,float size,int lifetimeTicks){
+        spawn(level,at.x,at.y,at.z,state,velocity.x,velocity.y,velocity.z,lifetimeTicks,Math.clamp(size,.08F,.55F),true);
+    }
+
+    private static void spawn(ServerLevel level,double x,double y,double z,BlockState state,double vx,double vy,double vz,int lifetimeTicks,float size,boolean fragment){
         if (TRACKED.size() >= MAX_TRACKED) return;
-        Display.BlockDisplay chunk = new Display.BlockDisplay(EntityType.BLOCK_DISPLAY, level);
+        Display.BlockDisplay chunk = new Display.BlockDisplay(EntityType.BLOCK_DISPLAY, level){
+            @Override public boolean shouldBeSaved(){return false;}
+        };
         // BlockDisplay's state setter and data accessor are private in 1.21.1, so the
         // chunk receives its block look through the public NBT load path instead.
         CompoundTag tag = new CompoundTag();
         tag.put("block_state", NbtUtils.writeBlockState(state));
+        if(fragment){
+            var transform=new CompoundTag();
+            transform.put("scale",floats(size,size,size));
+            transform.put("translation",floats(-size/2,-size/2,-size/2));
+            transform.put("left_rotation",floats(0,0,0,1));transform.put("right_rotation",floats(0,0,0,1));
+            tag.put("transformation",transform);
+            tag.putInt("teleport_duration",1);
+        }
         chunk.load(tag);
         chunk.moveTo(x, y, z, 0.0F, 0.0F);
         if (!level.addFreshEntity(chunk)) return;
-        TRACKED.add(new Entry(chunk, state, vx, vy, vz, lifetimeTicks));
+        TRACKED.add(new Entry(chunk, state, vx, vy, vz, lifetimeTicks,fragment));
+    }
+
+    private static net.minecraft.nbt.ListTag floats(float... values){
+        var list=new net.minecraft.nbt.ListTag();for(float value:values)list.add(net.minecraft.nbt.FloatTag.valueOf(value));return list;
     }
 
     @SubscribeEvent
@@ -66,6 +89,12 @@ public final class LandingDebrisSystem {
             }
             entry.vy -= GRAVITY;
             Vec3 position = chunk.position();
+            if(entry.fragment){
+                var next=position.add(entry.vx,entry.vy,entry.vz);
+                var hit=chunk.level().clip(new net.minecraft.world.level.ClipContext(position,next,net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,chunk));
+                if(hit.getType()!=net.minecraft.world.phys.HitResult.Type.MISS){iterator.remove();shatter(chunk,entry.state);continue;}
+                chunk.setYRot(chunk.getYRot()+19);chunk.setXRot(chunk.getXRot()+11);
+            }
             chunk.setPos(position.x + entry.vx, position.y + entry.vy, position.z + entry.vz);
             chunk.hasImpulse = true;
         }
@@ -90,15 +119,17 @@ public final class LandingDebrisSystem {
         private double vy;
         private double vz;
         private int ticksLeft;
+        private final boolean fragment;
 
         private Entry(Display.BlockDisplay chunk, BlockState state,
-                      double vx, double vy, double vz, int ticksLeft) {
+                      double vx, double vy, double vz, int ticksLeft,boolean fragment) {
             this.chunk = chunk;
             this.state = state;
             this.vx = vx;
             this.vy = vy;
             this.vz = vz;
             this.ticksLeft = ticksLeft;
+            this.fragment=fragment;
         }
     }
 }

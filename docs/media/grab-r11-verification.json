@@ -1,0 +1,78 @@
+{
+  "unit_tests": 85,
+  "server_game_tests": 20,
+  "network_protocol": 10,
+  "runtime": [
+    {
+      "case": "normal_cow",
+      "consumed": true,
+      "thrown": false,
+      "health": 12.0,
+      "biomass": 270,
+      "ep": 2,
+      "unlocked": true
+    },
+    {
+      "case": "claws_zombie",
+      "consumed": true,
+      "thrown": false,
+      "health": 14.0,
+      "biomass": 290,
+      "ep": 10,
+      "unlocked": true
+    },
+    {
+      "case": "hammer_villager",
+      "consumed": true,
+      "thrown": false,
+      "health": 14.0,
+      "biomass": 290,
+      "ep": 2,
+      "unlocked": true
+    },
+    {
+      "case": "blade_hunter",
+      "consumed": true,
+      "thrown": false,
+      "health": 18.0,
+      "biomass": 370,
+      "ep": 30,
+      "unlocked": true
+    },
+    {
+      "case": "whip_pig",
+      "consumed": true,
+      "thrown": false,
+      "health": 12.0,
+      "biomass": 270,
+      "ep": 2,
+      "unlocked": true
+    },
+    {
+      "case": "claws_throw",
+      "consumed": false,
+      "thrown": true,
+      "throwDistance": 12.618972778320312,
+      "health": 10.0,
+      "biomass": 250,
+      "ep": 0,
+      "unlocked": true
+    },
+    {
+      "case": "whip_throw",
+      "consumed": false,
+      "thrown": true,
+      "throwDistance": 12.618972778320312,
+      "health": 10.0,
+      "biomass": 250,
+      "ep": 0,
+      "unlocked": true
+    }
+  ],
+  "shared_model_pose": {
+    "jointPoseChanged": true,
+    "sharedModelRestored": true
+  },
+  "sha256": "18c62373414caf6a66613a6ee2556e915be7865c2151dd507c6c43673ab4765b",
+  "capture_uses_key_handler_and_network": true
+}

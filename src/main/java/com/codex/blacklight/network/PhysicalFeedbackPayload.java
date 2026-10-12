@@ -44,7 +44,10 @@ public record PhysicalFeedbackPayload(Effect effect, float intensity) implements
         SPRINT_COLLISION,
         SPRINT_START,
         WALL_RUN_START,
-        WALL_MANTLE;
+        WALL_MANTLE,
+        BLADE_CUT,
+        BLADE_RETURN,
+        BLADE_HEAVY;
 
         private static Effect byId(int id) {
             Effect[] values = values();

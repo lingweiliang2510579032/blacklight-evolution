@@ -51,3 +51,10 @@ hs_err_pid*.log
 *.blend2
 src/test/resources/epicfight-biped-armature.json
 art-work/
+
+# Local release packages can contain private decoded motion data.
+release/local-*/
+__pycache__/
+*.pyc
+
+/run-standalone-gametest/

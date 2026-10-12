@@ -3,8 +3,8 @@ package com.codex.blacklight.client.tuning;
 import com.codex.blacklight.BlacklightNeoMod;
 import net.neoforged.fml.loading.FMLPaths;
 import org.joml.Quaternionf;
-import yesman.epicfight.api.animation.JointTransform;
-import yesman.epicfight.api.animation.Pose;
+import com.codex.blacklight.animation.BoneTransform;
+import com.codex.blacklight.animation.BlacklightPose;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -221,7 +221,7 @@ public final class AnimationPoseSettings {
         try {
             Files.createDirectories(path().getParent());
             try (Writer writer = Files.newBufferedWriter(path())) {
-                properties.store(writer, "Blacklight Evolution full animation transform timelines");
+                properties.store(writer, "Blacklight: Ascension full animation transform timelines");
             }
             BlacklightNeoMod.LOGGER.info("Saved full animation transform timelines to {}", path());
         } catch (IOException exception) {
@@ -318,13 +318,13 @@ public final class AnimationPoseSettings {
         return lower.getValue().lerp(upper.getValue(), amount);
     }
 
-    /** Applies translation, rotation and scale after Epic Fight generates the authored pose. */
-    public static void apply(Action action, Pose pose, float time) {
+    /** Applies translation, rotation and scale after Blacklight samples the authored pose. */
+    public static void apply(Action action, BlacklightPose pose, float time) {
         for (Joint joint : Joint.values()) {
             if (!pose.hasTransform(joint.boneName())) continue;
             Transform adjustment = sample(action, joint, time);
             if (adjustment.isIdentity()) continue;
-            JointTransform transform = pose.get(joint.boneName());
+            BoneTransform transform = pose.get(joint.boneName());
             transform.translation().add((float)adjustment.positionX(),
                     (float)adjustment.positionY(), (float)adjustment.positionZ());
             Quaternionf offset = new Quaternionf().rotationXYZ(
@@ -332,7 +332,7 @@ public final class AnimationPoseSettings {
                     (float)Math.toRadians(adjustment.rotationY()),
                     (float)Math.toRadians(adjustment.rotationZ()));
             transform.rotation().mul(offset).normalize();
-            transform.scale().multiply((float)adjustment.scaleX(),
+            transform.scale().mul((float)adjustment.scaleX(),
                     (float)adjustment.scaleY(), (float)adjustment.scaleZ());
         }
     }

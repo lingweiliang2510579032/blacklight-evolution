@@ -1,73 +1,105 @@
-# Blacklight Evolution · 黑光进化
+# Blacklight: Ascension
 
-受 Prototype 启发的 Minecraft 1.21.1 / NeoForge 模组，欢迎共同开发。
+> **独立开发版 `0.3.0-standalone-dev.5`。** 基于现有 RC59 工作区，核心、动作、模型、输入、镜头和服务端同步已改由黑光自身驱动，运行不再要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。无这些模组的客户端和 GameTestServer 已实际启动。当前仍在检查脱离前置后的姿态与移动回归，结果见 [独立化记录](docs/STANDALONE_MIGRATION.md)。
 
-**当前为实验性原型**：可以体验利爪战斗、蓄力跳跃、墙面移动和滑翔；模型、动画、手感及多人同步仍在迭代。这不是官方 Prototype 项目，也不承诺逐帧复刻原作。
+**黑光：进化 · 作者：末者**
+Minecraft 1.21.1 / NeoForge 的黑光病毒同人 Mod，包含生物武器、抓取吸收、伪装、强化移动、感染生物与组织蜂巢。
 
-**Prototype-inspired Minecraft mod for NeoForge. Experimental; code, animation, modeling and testing contributions are welcome.**
+## 当前版本与发布状态
 
-## 一起开发
+当前为 **0.3.0-standalone-dev.5，本地独立开发版**，尚未公开发行，也未将完整人工验收标记为通过。项目按现有黑光能力与感染生存玩法收尾，不宣称完整复刻原游戏。
 
-欢迎程序员、模型/动画作者、特效作者和测试玩家参与。先阅读 [贡献指南](CONTRIBUTING.md)，通过 Issue 讨论一个具体问题，再提交 PR。
+**公开资源方案仍是发布阻塞。** 普通源码构建不含本地解包动作；当前动画初始化又要求完整动作资料，缺失时会报错。因此 source-only 构建只用于源码编译，不能当作可直接游玩的公开成品。含私有资料的 local-preview 包仅供本地预览，授权尚未明确，不公开上传。
 
-目前优先方向：
+- [安装、依赖与故障排除](docs/INSTALL_ZH.md)
+- [当前已知问题与发布阻塞](docs/KNOWN_ISSUES_AND_SLOTS_ZH.md)
+- [0.2.0 人工验收表](docs/ACCEPTANCE_0.2.0.md)
+- [发布准备](docs/RELEASE_PREPARATION_ZH.md) · [平台计划](docs/PLATFORM_PLAN_ZH.md)
+- [截至 RC56 的完整历史记录](docs/history/README-through-RC56.md)
 
-- 攀爬、墙跑、沿墙跳跃和翻上屋顶之间的动作衔接。
-- 利爪与头部、身体的空间关系，以及多个视角下的表现。
-- 凹凸墙面、转角、战斗打断和联网延迟下的移动行为。
-- 战斗命中反馈、复现步骤和中英文文档。
+## 安装环境
 
-## 环境与构建
+| 项目 | 当前使用版本 | 是否必需 |
+| --- | --- | --- |
+| Minecraft Java 版 | 1.21.1 | 是 |
+| Java | 21 | 是 |
+| NeoForge | 21.1.244 | 是 |
+| GeckoLib | 4.9.2，NeoForge 1.21.1 版 | 是，单独安装 |
+| ParCool | 3.4.3.3 | 可选兼容；不是动作来源 |
 
-| 组件 | 版本 |
-|---|---|
-| Minecraft | 1.21.1 |
-| NeoForge | 21.1.244 |
-| Java | 21 |
-| Epic Fight | 21.17.3.1 |
-| GeckoLib | 4.9.2 |
+Blacklight JAR 不内置前置 Mod。请使用上表的明确版本，不以“最新版”代替；可选模组装入后也要满足兼容范围。安装包不是完整游戏或完整整合包。多人客户端和服务端需要匹配的 Mod 版本、依赖与动作资料；联机行为仍待验收。
 
-Windows：
+退出游戏并备份存档、配置，把对应 NeoForge 版本的依赖与 Blacklight JAR 放入实例的 mods 目录，移除旧的 Blacklight JAR，只保留一份。当前本地试玩使用资料完整的 local-preview 包；不要用 source-only JAR 替换后直接试玩。具体步骤见 [安装文档](docs/INSTALL_ZH.md)。
 
-```powershell
-.\gradlew.bat test build
-.\gradlew.bat runClient
-```
+## 生存开始
 
-Linux / macOS：
+1. 寻找雪地村庄的制图师，升至学徒，取得冰下研究站地图。已生成交易的旧村民不会自动换表；研究站只在符合条件的新区域生成。
+2. 按地图探索研究站，在冷藏箱取得病毒安瓿。附近没有可定位的研究站时，制图师可能仍售原版地图。
+3. 未感染时，手持安瓿按住使用键约 2 秒主动觉醒。接触感染体或被安瓿溅射不会强制感染玩家。
+4. 按 B 进入黑光模式，通过战斗、抓取吸收和 U 面板推进成长。已感染后，潜行使用安瓿可投掷感染生物。
 
-```sh
-bash ./gradlew test build
-bash ./gradlew runClient
-```
+自然开局的交易、结构可达性与完整成长节奏仍需人工验收；调试解锁不能替代生存流程验收。详见 [研究站与觉醒](docs/RC18-survival-opening.md)。
 
-首次构建需联网获取依赖。安装包输出到 `build/libs/`；正式游戏实例的客户端和服务器都需要安装 Blacklight Evolution、Epic Fight 与 GeckoLib。不要同时安装两份 Blacklight JAR。
+## 默认操作
 
-## 试玩操作
+| 按键 | 用途 |
+| --- | --- |
+| B | Minecraft 普通模式 / 黑光模式 |
+| Z | 按住打开能力轮盘；轮盘内 Tab 切页 |
+| U | 升级与属性面板，查看具体生命等数值 |
+| Tab | 游戏中锁定目标 |
+| 左键 / 右键 | 当前形态的普通 / 特殊攻击 |
+| E | 抓取；持有时再次按下投掷 |
+| 持有时右键 / 左键 | 吸收 / 投掷 |
+| X | 本体与最近一次成功吸收的可用身份切换 |
+| G / H | 已解锁的防御能力 / 感知能力切换 |
+| 空格 / 奔跑键 | 跳跃、蓄力及移动能力，取决于状态和升级 |
+| F8 | 移动引擎调参；普通试玩建议先保留默认值 |
 
-- 创造模式取得黑光病毒安瓿并投掷；也可使用调试命令 `/blacklight infect`。
-- `B` 切换原版/Prototype 模式，`V` 展开或收回利爪。
-- 左键利爪连击；长按右键使用地刺。部分技能需先解锁。
-- 地面按住空格蓄力，松开起跳。
-- 加速贴墙进入墙跑；停止移动时抓墙停住。
-- 墙上 `W/S` 上下攀爬、`A/D` 横移；加速恢复墙跑，空格沿墙向上跳，`Shift` 离墙。
+以控制设置中的实际绑定为准。黑光模式中的 E 抓取可能与原背包键冲突，需要时重新绑定。未感染或普通模式保留 Minecraft 生存交互。
 
-Prototype 模式会限制普通挖掘、放置和物品交互；按 `B` 返回原版模式恢复这些操作。
+抓取需要目标可吸收、距离和视线有效。弱目标可直接抓取；强目标需削弱至最大生命的 15% 或以下。强弱分界使用**排除本 Mod 五倍生命单位后的最大生命 50**，不是把显示的放大生命数直接与 50 比较。大型目标使用攀附流程；宠物、载客、无敌等限制仍存在。
 
-## 验证与素材工作流
+## 常用指令
 
-当前 R7 基线通过 82 项单元测试和 3 项 Minecraft 方块碰撞测试。真实手感、所有相机角度和多人延迟场景仍需持续测试。
+修改类指令需管理员权限或单人允许作弊，并由玩家执行。status 可查看自己的状态。
 
-墙面物理测试使用独立的测试世界：
+| 指令示例 | 用途 |
+| --- | --- |
+| `/blacklight status` | 查看感染、模式、生物质、EP 与当前形态 |
+| `/blacklight grant_ep 1000` | 给自己追加 1000 进化点；单次范围 1～100000 |
+| `/blacklight infect` | 让自己感染，供调试使用 |
+| `/blacklight spawn_infected zombie` | 在前方生成普通感染僵尸，需空间可用 |
+| `/blacklight spawn_colossus iron_golem` | 生成成熟巨构；也支持 warden、wither、ender_dragon，需足够空地 |
+| `/blacklight hive locate` | 分段搜索巨巢；默认半径 32768，可追加 1024～65536 的半径 |
+| `/blacklight hive status` / `/blacklight hive cancel` | 查看或取消当前搜索、建造任务 |
+| `/blacklight colossus_status` | 查看附近核心的成熟、宿主成长、生物质和暂停原因 |
+| `/blacklight hive accelerate 20` | 将附近一座巨巢及其配对吞噬者设为 20 倍；1 恢复正常 |
 
-```powershell
-.\gradlew.bat runGameTestServer -PwallTraversalTest
-```
+管理员在准备好的空地可用 `/blacklight hive place` 建造巨巢。它会改造约 **113×113 格**范围，要求区域已加载并通过地形保护检查；取消后已建部分保留，不回滚。执行前备份，详见 [巨巢指令](docs/RC54-disguise-and-hive-commands.md)。搜索结果会区分现存巨巢与尚未加载核实的候选位置。
 
-利爪模型和动画创作流程见 [Blender 工作流](docs/ASSET_WORKFLOW.md)。正常编译与运行不需要 Blender。项目保留创作脚本和运行资源；第三方参考骨架、比例模型及其导出工具由开发者在本机准备。
+加速不赠送生物质，不跳过真实吞噬、核心、营养节点和空间条件。**体型巨大不等于进化完成**：完成前摧毁核心会导致成长衰退。看生命条阶段和状态指令确认，见 [成长与锁定](docs/RC56-devourer-health-and-targeting.md)。
 
-更多资料：[动画架构](docs/ANIMATION_ARCHITECTURE.md)、[已知问题](docs/KNOWN_ISSUES_AND_SLOTS_ZH.md)、[规划](docs/ROADMAP_ZH.md)。历史设计文档中的目标不等于当前已实现功能。
+## 当前内容与边界
 
-## 许可证
+已接入利爪、刀锋、拳套、鞭拳、肌肉增强及空手战斗，抓取吸收与受害者表现，护盾、装甲、两种感知，强化移动，最近吸收身份切换，研究站开局、感染传播、巨型组织蜂巢与实际吞噬成长。完整私有资料可提供当前接入的原作派生动作、镜头与 HUD；这些实现不代表原游戏全部机制已移植。
 
-项目原创代码、文档、模型和制作的动画采用 [GPL-3.0-only](LICENSE)。贡献者提交的改动按同一许可证提供；第三方内容保留其原许可与声明，见 [素材来源](THIRD_PARTY_ASSETS.md)、[第三方声明](THIRD_PARTY_NOTICES.md) 和 `TEMPLATE_LICENSE.txt`。
+感染僵尸保留专属模型；其他普通感染体主要是在原生物外形上叠加破损、啃食和组织变化。四类巨构及其成长形态使用专属模型、基础动作与分段判定，**完整破茧演出和巨构专属战斗连招尚未完成**。
+
+军事科技、可建实验室、黑色守望与超级士兵、城市与载具、记忆网和剧情任务尚未完成。伪装只保存最近的可用身份，使用玩家碰撞体与视点，不获得目标技能。攻击裂纹和碎块主要是视觉反馈，不代表通用地形破坏。多人、性能和完整生存平衡仍待验收。
+
+## 构建与命名
+
+~~~text
+gradlew.bat clean assemble --no-daemon
+~~~
+
+默认只编译打包，不运行单元测试、碰撞测试、GameTest 或自动游戏验收。上面的 source-only 构建目前不能作为可运行成品。获准的本地资料构建使用 `-PbundleMotionDirectory=<完整资料目录>`，产物标为 local-preview。
+
+文件保留 Minecraft 和 Mod 两个版本号：
+
+- 源码编译产物：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.5-source-only.jar` / `.zip`。
+- 私有本地预览：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.5-local-preview.jar` / `.zip`。
+- 原始源码快照：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.5-sources.zip`。
+
+这些名称区分用途，不表示已经发布。原创代码与原创资源的许可见 [LICENSE](LICENSE)；私有派生资源不随该声明取得分发授权，见 [资源来源说明](THIRD_PARTY_ASSETS.md)。[公开仓库](https://github.com/mengyuyuan/blacklight-evolution) · [贡献说明](CONTRIBUTING.md)。

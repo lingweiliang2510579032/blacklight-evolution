@@ -140,11 +140,25 @@ public final class PrototypeMovementEffects {
         feedback(player, PhysicalFeedbackPayload.Effect.WALL_MANTLE, 0.92F);
     }
 
+    public static void onGlideStarted(ServerPlayer player, Vec3 forward) {
+        var level = player.serverLevel();
+        var tail = player.position().add(0, 1, 0).subtract(forward.scale(.4));
+        level.sendParticles(ParticleTypes.CLOUD, tail.x, tail.y, tail.z, 9, .45, .18, .45, .035);
+        level.sendParticles(BIOMASS_RED, tail.x, tail.y, tail.z, 12, .4, .4, .4, .025);
+        level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
+                SoundSource.PLAYERS, .65F, .7F);
+    }
+
     public static void tickGlide(ServerPlayer player, Vec3 forward) {
-        if (player.tickCount % 4 != 0) return;
-        Vec3 tail = player.position().add(0.0D, 1.05D, 0.0D).subtract(forward.scale(0.55D));
-        player.serverLevel().sendParticles(BIOMASS_DARK, tail.x, tail.y, tail.z,
-                4, 0.48D, 0.28D, 0.48D, 0.018D);
+        if (player.tickCount % 2 != 0) return;
+        Vec3 side = new Vec3(-forward.z, 0, forward.x);
+        for (int sign : new int[]{-1, 1}) {
+            Vec3 tail = player.position().add(0, .82, 0)
+                    .subtract(forward.scale(.40)).add(side.scale(sign * .38));
+            Vec3 drift = forward.scale(-.12).add(0, -.015, 0);
+            spawnDirected(player.serverLevel(), BIOMASS_DARK, tail.x, tail.y, tail.z, drift.x, drift.y, drift.z);
+            spawnDirected(player.serverLevel(), BIOMASS_RED, tail.x, tail.y, tail.z, drift.x * .7, 0, drift.z * .7);
+        }
     }
 
     public static void onSprintStarted(ServerPlayer player, Vec3 forward) {
@@ -182,6 +196,14 @@ public final class PrototypeMovementEffects {
         double side = ((player.tickCount / interval) & 1) == 0 ? -0.18D : 0.18D;
         Vec3 foot = player.position().subtract(forward.scale(0.22D)).add(right.scale(side));
         ServerLevel level = player.serverLevel();
+        if (WaterRunning.onSurface(player)) {
+            level.sendParticles(ParticleTypes.SPLASH, foot.x, player.getY() + .025, foot.z,
+                    5 + Math.round(intensity * 7), .22, .035, .22, .06);
+            if (player.tickCount % (interval * 2) == 0)
+                level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_SPLASH,
+                        SoundSource.PLAYERS, .25F, 1.3F);
+            return;
+        }
         int footDebris = 4 + Math.round(intensity * 7.0F);
         level.sendParticles(terrainParticle(player), foot.x, player.getY() + 0.07D, foot.z,
                 footDebris, 0.18D + intensity * 0.16D,

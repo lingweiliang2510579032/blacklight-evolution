@@ -28,7 +28,12 @@ public record ClawActionPayload(Action action) implements CustomPacketPayload {
         DASHING_SLICE(3),
         GROUND_SPIKE_CHARGE_START(4),
         GROUND_SPIKE_CHARGE_RELEASE(5),
-        SPRINT_ATTACK(6);
+        SPRINT_ATTACK(6),
+        CONSUME(7),
+        CYCLE_FORM(8),
+        GRAB(9),
+        THROW(10),
+        WEAPON_SPECIAL(11);
 
         private final int id;
 
@@ -48,6 +53,11 @@ public record ClawActionPayload(Action action) implements CustomPacketPayload {
                 case 4 -> GROUND_SPIKE_CHARGE_START;
                 case 5 -> GROUND_SPIKE_CHARGE_RELEASE;
                 case 6 -> SPRINT_ATTACK;
+                case 7 -> CONSUME;
+                case 8 -> CYCLE_FORM;
+                case 9 -> GRAB;
+                case 10 -> THROW;
+                case 11 -> WEAPON_SPECIAL;
                 default -> {
                     // Unknown ids fall back to the least powerful action so a corrupt
                     // or malicious packet cannot silently map to a stronger one.

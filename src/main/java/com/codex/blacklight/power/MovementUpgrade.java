@@ -42,16 +42,16 @@ public enum MovementUpgrade {
     }
 
     public static double jumpMultiplier(int mask) {
-        if ((mask & JUMP_3.bit) != 0) return 1.75D;
-        if ((mask & JUMP_2.bit) != 0) return 1.45D;
-        if ((mask & JUMP_1.bit) != 0) return 1.20D;
+        if ((mask & JUMP_3.bit) != 0) return 1.30D;
+        if ((mask & JUMP_2.bit) != 0) return 1.20D;
+        if ((mask & JUMP_1.bit) != 0) return 1.10D;
         return 1.0D;
     }
 
     public static double sprintMultiplier(int mask) {
-        if ((mask & SPRINT_2.bit) != 0) return 1.30D;
-        if ((mask & SPRINT_1.bit) != 0) return 1.15D;
-        return 1.0D;
+        if ((mask & SPRINT_2.bit) != 0) return 1.45D;
+        if ((mask & SPRINT_1.bit) != 0) return 1.25D;
+        return 1.08D;
     }
 
     public static double wallMultiplier(int mask) {

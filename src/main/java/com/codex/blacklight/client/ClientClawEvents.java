@@ -2,15 +2,13 @@ package com.codex.blacklight.client;
 
 import com.codex.blacklight.BlacklightNeoMod;
 import com.codex.blacklight.client.renderer.GroundSpikeRenderer;
-import com.codex.blacklight.client.renderer.BlacklightPlayerRenderer;
 import com.codex.blacklight.client.screen.ClawTunerScreen;
 import com.codex.blacklight.client.screen.AnimationTunerScreen;
 import com.codex.blacklight.client.screen.UpgradeScreen;
 import com.codex.blacklight.client.model.ClawArmModel;
-import com.codex.blacklight.client.tuning.AnimationPoseSettings;
 import com.codex.blacklight.entity.GroundSpikeEntity;
-import com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations;
-import com.codex.blacklight.integration.epicfight.GroundSpikeActionAnimation;
+import com.codex.blacklight.animation.PlayerAction;
+import com.codex.blacklight.animation.PlayerMotionController;
 import com.codex.blacklight.network.ClawActionPayload;
 import com.codex.blacklight.network.PrototypeModePayload;
 import com.codex.blacklight.mode.PrototypeSurvivalLock;
@@ -23,7 +21,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.renderer.entity.ThrownItemRenderer;
-import net.minecraft.world.entity.EntityType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -35,16 +32,14 @@ import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
-import yesman.epicfight.api.animation.AnimationPlayer;
-import yesman.epicfight.api.animation.Animator;
-import yesman.epicfight.api.client.camera.EpicFightCameraAPI;
-import yesman.epicfight.api.client.event.EpicFightClientEventHooks;
-import yesman.epicfight.client.world.capabilites.entitypatch.player.AbstractClientPlayerPatch;
-import yesman.epicfight.world.capabilities.EpicFightCapabilities;
 
 @EventBusSubscriber(modid = BlacklightNeoMod.MOD_ID, value = Dist.CLIENT)
 public final class ClientClawEvents {
+    public static KeyMapping targetLockKey(){return TARGET_LOCK;}
     private static final String CATEGORY = "key.categories.blacklight";
+    private static final KeyMapping CYCLE_FORM = new KeyMapping("key.blacklight.cycle_form", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Z, CATEGORY);
+    private static final KeyMapping GRAB = new KeyMapping(
+            "key.blacklight.grab", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_E, CATEGORY);
     private static final KeyMapping TOGGLE_CLAWS = new KeyMapping(
             "key.blacklight.toggle_claws", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, CATEGORY);
     private static final KeyMapping PROTOTYPE_MODE = new KeyMapping(
@@ -59,8 +54,10 @@ public final class ClientClawEvents {
             "key.blacklight.upgrades", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_U, CATEGORY);
     /** Grounded left-clicks held this long become a dashing slice instead of a combo hit. */
     private static final int DASHING_SLICE_HOLD_TICKS = 4;
-    private static boolean layerHookRegistered;
     private static boolean automaticTunerOpened;
+    private static boolean lastGrabLeft,lastGrabRight;
+    private static boolean lastGrabDown;
+    private static net.minecraft.client.player.LocalPlayer inputOwner;
     private static boolean leftAttackHeld;
     private static boolean leftAttackConsumed;
     private static boolean leftAttackTapSent;
@@ -75,7 +72,7 @@ public final class ClientClawEvents {
     // The authored insertion reaches contact after 11 ticks. Capture within half
     // a tick so we do not skip the last visible downward motion before holding.
     // The same 0.55 s insertion is reversed to withdraw the claw.
-    private static final float GROUND_SPIKE_PLANT_TIME = GroundSpikeActionAnimation.PLANT_TIME;
+    private static final float GROUND_SPIKE_PLANT_TIME = 0.55F;
     private static final float GROUND_SPIKE_END_CAPTURE_WINDOW = 0.025F;
 
     private ClientClawEvents() {
@@ -83,18 +80,26 @@ public final class ClientClawEvents {
 
     @SubscribeEvent
     public static void registerKeys(RegisterKeyMappingsEvent event) {
+        event.register(GRAB);
+        event.register(CYCLE_FORM);
         event.register(TOGGLE_CLAWS);
         event.register(PROTOTYPE_MODE);
         event.register(CLAW_TUNER);
         event.register(ANIMATION_TUNER);
         event.register(TARGET_LOCK);
         event.register(UPGRADE_PANEL);
-        registerEpicFightLayerHook();
     }
 
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerEntityRenderer(ModEntities.INFECTED_HOST.get(), com.codex.blacklight.client.renderer.InfectedHostRenderer::new);
         event.registerEntityRenderer(ModEntities.GROUND_SPIKE.get(), GroundSpikeRenderer::new);
+        for(var type:java.util.List.of(ModEntities.BLACKLIGHT_STALKER,ModEntities.BLACKLIGHT_SPITTER,ModEntities.BLACKLIGHT_BRUTE))
+            event.registerEntityRenderer(type.get(),context->new com.codex.blacklight.client.renderer.BlacklightCreatureRenderer<com.codex.blacklight.entity.BlacklightMutant>(context,com.codex.blacklight.entity.BlacklightMutant::asset));
+        event.registerEntityRenderer(ModEntities.HIVE_TENDRIL.get(),com.codex.blacklight.client.renderer.HiveTendrilRenderer::new);
+        event.registerEntityRenderer(ModEntities.BLACKLIGHT_HIVE.get(),context->new com.codex.blacklight.client.renderer.BlacklightCreatureRenderer<com.codex.blacklight.entity.BlacklightHive>(context,e->"blacklight_hive"));
+        event.registerEntityRenderer(ModEntities.BLACKLIGHT_SPIT.get(),ThrownItemRenderer::new);
+        event.registerEntityRenderer(ModEntities.BLACKLIGHT_HUNTER.get(), com.codex.blacklight.client.renderer.BlacklightHunterRenderer::new);
         event.registerEntityRenderer(ModEntities.BLACKLIGHT_VIRUS_VIAL.get(), ThrownItemRenderer::new);
     }
 
@@ -104,8 +109,18 @@ public final class ClientClawEvents {
     }
 
     @SubscribeEvent
+    public static void lockConsumptionMovement(net.neoforged.neoforge.client.event.MovementInputUpdateEvent event) {
+        if (!event.getEntity().getData(ModAttachments.CONSUMING)
+                || !com.codex.blacklight.combat.ConsumeVisual.blocksInput(event.getEntity().getData(ModAttachments.GRAB_STAGE))) return;
+        var input = event.getInput();
+        input.forwardImpulse = 0; input.leftImpulse = 0; input.jumping = false;
+        input.up = false; input.down = false; input.left = false; input.right = false;
+    }
+
+    @SubscribeEvent
     public static void onKey(InputEvent.Key event) {
         Minecraft minecraft = Minecraft.getInstance();
+        if (event.getAction() == GLFW.GLFW_RELEASE && GRAB.matches(event.getKey(),event.getScanCode())) lastGrabDown=false;
         if (event.getAction() != GLFW.GLFW_PRESS || minecraft.player == null
                 || minecraft.getConnection() == null) return;
 
@@ -119,6 +134,14 @@ public final class ClientClawEvents {
             return;
         }
         if (!state.isPrototypeMode()) return;
+        ClientTargetLock.sync();
+        if (minecraft.screen == null && CYCLE_FORM.matches(event.getKey(), event.getScanCode())) {
+            if(!minecraft.player.getData(ModAttachments.CONSUMING))minecraft.setScreen(new com.codex.blacklight.client.screen.PowerWheelScreen(CYCLE_FORM)); return;
+        }
+        if (minecraft.screen == null && GRAB.matches(event.getKey(), event.getScanCode())) {
+            pollGrabPress(true);
+            return;
+        }
 
         if (minecraft.screen == null && CLAW_TUNER.matches(event.getKey(), event.getScanCode())) {
             minecraft.setScreen(new ClawTunerScreen());
@@ -143,7 +166,12 @@ public final class ClientClawEvents {
     /** Opens the timeline once for repeatable development screenshots and nothing else. */
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
+        resetInputOwner();
+        pollGrabPress(physicalGrabDown());
         suppressPrototypePlayerList();
+        tickGrabButtons();
+        ClientWeaponCombat.poll();
+        tickDeferredGrab();
         tickPhysicalLeftAttack();
         holdGroundSpikePlantPose();
         if (automaticTunerOpened || !Boolean.getBoolean("blacklight.test.openAnimationTuner")) return;
@@ -159,6 +187,9 @@ public final class ClientClawEvents {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.screen != null) return;
         var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
+        if(ClientWeaponCombat.active()&&(event.getButton()==0||event.getButton()==1)){
+            event.setCanceled(true);ClientWeaponCombat.poll();return;
+        }
         if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_LEFT
                 && event.getAction() == GLFW.GLFW_PRESS) {
             BlacklightNeoMod.LOGGER.debug(
@@ -166,15 +197,18 @@ public final class ClientClawEvents {
                     state.isInfected(), state.isPrototypeMode(), state.getActivePower().id(),
                     minecraft.player.onGround());
         }
+        if(state.isPrototypeMode() && minecraft.player.getData(ModAttachments.CONSUMING)
+                && (event.getButton()==GLFW.GLFW_MOUSE_BUTTON_LEFT||event.getButton()==GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
+            event.setCanceled(true);tickGrabButtons();return;
+        }
         if (!state.isInfected() || !state.isPrototypeMode()
                 || state.getActivePower() != PowerForm.CLAWS) return;
 
         if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_LEFT
                 && (event.getAction() == GLFW.GLFW_PRESS
                 || event.getAction() == GLFW.GLFW_RELEASE)) {
-            // Only suppress the vanilla/Epic Fight attack here. Physical edges are polled
-            // once per client tick below because Epic Fight can consume this callback
-            // before all NeoForge mouse listeners observe it.
+            // Callbacks cover short taps; tick polling covers held inputs.
+            // Both paths share the edge latch so one click sends one attack.
             event.setCanceled(true);
             if (event.getAction() == GLFW.GLFW_PRESS) {
                 beginLeftAttack(minecraft);
@@ -204,8 +238,79 @@ public final class ClientClawEvents {
         }
     }
 
+    /** Raw callbacks and polling share the same edge latch: one click sends one intent. */
+    private static void tickGrabButtons() {
+        var mc=Minecraft.getInstance();if(mc.getWindow()==null)return;
+        long window=mc.getWindow().getWindow();
+        boolean left=GLFW.glfwGetMouseButton(window,GLFW.GLFW_MOUSE_BUTTON_LEFT)==GLFW.GLFW_PRESS;
+        boolean right=GLFW.glfwGetMouseButton(window,GLFW.GLFW_MOUSE_BUTTON_RIGHT)==GLFW.GLFW_PRESS;
+        if(mc.player!=null&&mc.screen==null&&mc.player.getData(ModAttachments.CONSUMING)) {
+            clearLeftAttackHold();
+            mc.options.keyAttack.setDown(false);mc.options.keyUse.setDown(false);
+            int stage=mc.player.getData(ModAttachments.GRAB_STAGE);
+            boolean holding=com.codex.blacklight.combat.ConsumeVisual.holding(stage);
+            if(right&&!lastGrabRight&&(holding||com.codex.blacklight.combat.ConsumeVisual.acquiring(stage)))
+                PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.CONSUME));
+            else if(left&&!lastGrabLeft&&holding)
+                PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.THROW));
+        }
+        lastGrabLeft=left;lastGrabRight=right;
+    }
+
+    private static int deferredGrabTick=-1;
+    private static void resetInputOwner(){
+        var mc=Minecraft.getInstance();
+        if(inputOwner==mc.player)return;
+        if(inputOwner!=null){
+            PlayerMotionController.pause(inputOwner,false);
+        }
+        inputOwner=mc.player;
+        clearLeftAttackHold();
+        groundSpikeHeld=groundSpikePosePaused=groundSpikeAutoReleased=groundSpikeReversing=false;
+        groundSpikeEruptionTicks=groundSpikeStartupWaitTicks=0;
+        deferredGrabTick=-1;lastGrabDown=physicalGrabDown();
+        lastPhysicalLeftDown=lastGrabLeft=lastGrabRight=false;
+    }
+    /** Callback preserves short taps; polling covers keys swallowed by other input handlers. */
+    private static void pollGrabPress(boolean down){
+        var mc=Minecraft.getInstance();
+        resetInputOwner();
+        boolean pressed=down&&!lastGrabDown;
+        lastGrabDown=down;
+        if(!pressed||mc.player==null||mc.getConnection()==null||mc.screen!=null||!mc.isWindowActive()
+                ||!mc.player.isAlive()||!com.codex.blacklight.mode.PrototypeModeSystem.isActive(mc.player))return;
+        if(ClientWeaponCombat.active())deferredGrabTick=mc.player.tickCount+2;
+        else sendGrab(mc);
+        mc.options.keyInventory.setDown(false);
+        while(mc.options.keyInventory.consumeClick()){}
+    }
+    private static void sendGrab(Minecraft mc){
+        ClientMovementEvents.sendAttackDirection(mc);
+        ClientTargetLock.sync();
+        PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.GRAB));
+    }
+    static boolean physicalGrabDown(){
+        var mc=Minecraft.getInstance();if(mc.getWindow()==null)return false;
+        var key=GRAB.getKey();long window=mc.getWindow().getWindow();
+        return key.getType()==InputConstants.Type.MOUSE
+                ? GLFW.glfwGetMouseButton(window,key.getValue())==GLFW.GLFW_PRESS
+                : key.getValue()>=0&&GLFW.glfwGetKey(window,key.getValue())==GLFW.GLFW_PRESS;
+    }
+    private static void tickDeferredGrab(){
+        if(deferredGrabTick<0)return;
+        var mc=Minecraft.getInstance();
+        if(mc.player==null||!mc.player.isAlive()||mc.screen!=null||!mc.isWindowActive()
+                ||!com.codex.blacklight.mode.PrototypeModeSystem.isActive(mc.player)){deferredGrabTick=-1;return;}
+        long window=mc.getWindow().getWindow();
+        if(GLFW.glfwGetMouseButton(window,0)==GLFW.GLFW_PRESS||GLFW.glfwGetMouseButton(window,1)==GLFW.GLFW_PRESS){deferredGrabTick=-1;return;}
+        if(mc.player.tickCount>=deferredGrabTick){
+            deferredGrabTick=-1;
+            sendGrab(mc);
+        }
+    }
+
     private static void toggleTargetLock(Minecraft minecraft) {
-        EpicFightCameraAPI.getInstance().toggleLockOn();
+        ClientTargetLock.toggle();
     }
 
     /** Tab belongs to lock-on while Prototype mode is active, not the player-list overlay. */
@@ -238,7 +343,7 @@ public final class ClientClawEvents {
             return;
         }
         var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
-        if (!state.isInfected() || !state.isPrototypeMode()
+        if (ClientWeaponCombat.active() || minecraft.player.getData(ModAttachments.CONSUMING) || !state.isInfected() || !state.isPrototypeMode()
                 || state.getActivePower() != PowerForm.CLAWS) {
             clearLeftAttackHold();
             lastPhysicalLeftDown = physicallyDown;
@@ -310,145 +415,61 @@ public final class ClientClawEvents {
                 ClawActionPayload.Action.ATTACK));
     }
 
-    /** Freezes the local Epic Fight player exactly at the right-claw planted frame. */
+    /** Hold the own motion clock at the authored right-claw contact marker. */
     private static void holdGroundSpikePlantPose() {
-        if (groundSpikeAutoReleased) {
-            tickGroundSpikeEruptionHold();
+        if(groundSpikeAutoReleased){tickGroundSpikeEruptionHold();return;}
+        if(groundSpikeReversing){tickGroundSpikeReverse();return;}
+        if(!groundSpikeHeld){releaseGroundSpikePlantPose();return;}
+        var mc=Minecraft.getInstance();
+        if(mc.player==null||mc.level==null){clearGroundSpikePlaybackState(mc);return;}
+        var state=mc.player.getData(ModAttachments.PLAYER_STATE);
+        if(!state.isInfected()||!state.isPrototypeMode()||state.getActivePower()!=PowerForm.CLAWS){
+            clearGroundSpikePlaybackState(mc);return;
+        }
+        var velocity=mc.player.getDeltaMovement();mc.player.setDeltaMovement(0,velocity.y,0);
+        if(!groundSpikePlaying(mc)) {
+            if(groundSpikeStartupWaitTicks--<=0)clearGroundSpikePlaybackState(mc);
             return;
         }
-        if (groundSpikeReversing) {
-            tickGroundSpikeReverse();
-            return;
-        }
-        if (!groundSpikeHeld) {
-            releaseGroundSpikePlantPose();
-            return;
-        }
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null || minecraft.level == null) {
-            groundSpikeHeld = false;
-            groundSpikePosePaused = false;
-            return;
-        }
-        var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
-        if (!state.isInfected() || !state.isPrototypeMode()
-                || state.getActivePower() != PowerForm.CLAWS) {
-            groundSpikeHeld = false;
-            releaseGroundSpikePlantPose();
-            return;
-        }
-        // Starting the action while running is allowed. The action itself arrests all
-        // horizontal motion and remains planted until the reversed withdrawal ends.
-        var velocity = minecraft.player.getDeltaMovement();
-        minecraft.player.setDeltaMovement(0.0D, velocity.y, 0.0D);
-        AnimationPlayer player = groundSpikeAnimationPlayer(minecraft);
-        if (player == null) {
-            if (groundSpikeStartupWaitTicks-- <= 0) {
-                BlacklightNeoMod.LOGGER.debug(
-                        "Groundspike start was rejected or never reached the client animator");
-                clearGroundSpikePlaybackState(minecraft);
-            }
-            return;
-        }
-        groundSpikeStartupWaitTicks = 0;
-        if (player.getElapsedTime()
-                >= GROUND_SPIKE_PLANT_TIME - GROUND_SPIKE_END_CAPTURE_WINDOW) {
-            player.setElapsedTime(GROUND_SPIKE_PLANT_TIME, GROUND_SPIKE_PLANT_TIME);
-            Animator animator = groundSpikeAnimator(minecraft);
-            if (animator != null) animator.setHardPause(true);
-            if (!groundSpikePosePaused) {
-                BlacklightNeoMod.LOGGER.debug(
-                        "Groundspike reached authored final frame; auto-releasing eruption");
-                groundSpikePosePaused = true;
-                groundSpikeAutoReleased = true;
-                groundSpikeEruptionTicks = GroundSpikeEntity.ERUPTION_DURATION_TICKS;
-            }
+        groundSpikeStartupWaitTicks=0;
+        if(PlayerMotionController.elapsed(mc.player)>=GROUND_SPIKE_PLANT_TIME-GROUND_SPIKE_END_CAPTURE_WINDOW){
+            PlayerMotionController.seek(mc.player,GROUND_SPIKE_PLANT_TIME);
+            PlayerMotionController.pause(mc.player,true);
+            groundSpikePosePaused=groundSpikeAutoReleased=true;
+            groundSpikeEruptionTicks=GroundSpikeEntity.ERUPTION_DURATION_TICKS;
         }
     }
-
-    /** Holds the planted frame until the 1.1 second spike visual has fully finished. */
     private static void tickGroundSpikeEruptionHold() {
-        Minecraft minecraft = Minecraft.getInstance();
-        AnimationPlayer player = groundSpikeAnimationPlayer(minecraft);
-        Animator animator = groundSpikeAnimator(minecraft);
-        if (player == null || animator == null) {
-            clearGroundSpikePlaybackState(minecraft);
-            return;
-        }
-        player.setElapsedTime(GROUND_SPIKE_PLANT_TIME, GROUND_SPIKE_PLANT_TIME);
-        animator.setHardPause(true);
-        if (groundSpikeEruptionTicks-- > 0) return;
-
-        groundSpikeAutoReleased = false;
-        groundSpikeReversing = true;
-        groundSpikePosePaused = false;
-        player.setElapsedTime(GROUND_SPIKE_PLANT_TIME, GROUND_SPIKE_PLANT_TIME);
-        player.setReversed(true);
-        animator.setHardPause(false);
-        BlacklightNeoMod.LOGGER.debug(
-                "Groundspike eruption finished; reversing authored action to neutral");
+        var mc=Minecraft.getInstance();
+        if(!groundSpikePlaying(mc)){clearGroundSpikePlaybackState(mc);return;}
+        PlayerMotionController.seek(mc.player,GROUND_SPIKE_PLANT_TIME);
+        PlayerMotionController.pause(mc.player,true);
+        if(groundSpikeEruptionTicks-->0)return;
+        groundSpikeAutoReleased=false;groundSpikeReversing=true;groundSpikePosePaused=false;
+        PlayerMotionController.reverse(mc.player,true);
+        PlayerMotionController.pause(mc.player,false);
     }
-
-    /** Lets Epic Fight play the same accelerated timeline backward exactly once. */
     private static void tickGroundSpikeReverse() {
-        Minecraft minecraft = Minecraft.getInstance();
-        AnimationPlayer player = groundSpikeAnimationPlayer(minecraft);
-        if (player == null) {
-            clearGroundSpikePlaybackState(minecraft);
-            return;
-        }
-        if (player.getElapsedTime() > 0.001F && !player.isEnd()) return;
-        player.setReversed(false);
-        groundSpikeReversing = false;
-        groundSpikeHeld = false;
-        BlacklightNeoMod.LOGGER.debug("Groundspike authored reverse recovery completed");
+        var mc=Minecraft.getInstance();
+        if(!groundSpikePlaying(mc)){clearGroundSpikePlaybackState(mc);return;}
+        if(PlayerMotionController.elapsed(mc.player)>.001F&&!PlayerMotionController.ended(mc.player))return;
+        PlayerMotionController.reverse(mc.player,false);
+        PlayerMotionController.clear(mc.player);
+        groundSpikeReversing=groundSpikeHeld=false;
     }
-
     private static void releaseGroundSpikePlantPose() {
-        if (!groundSpikePosePaused) return;
-        Animator animator = groundSpikeAnimator(Minecraft.getInstance());
-        if (animator != null) {
-            animator.setHardPause(false);
-            BlacklightNeoMod.LOGGER.debug(
-                    "Groundspike plant-frame pause released into authored recovery");
-        }
-        groundSpikePosePaused = false;
+        if(!groundSpikePosePaused)return;
+        var player=Minecraft.getInstance().player;
+        if(player!=null)PlayerMotionController.pause(player,false);
+        groundSpikePosePaused=false;
     }
-
-    private static void clearGroundSpikePlaybackState(Minecraft minecraft) {
-        Animator animator = groundSpikeAnimator(minecraft);
-        if (animator != null && groundSpikePosePaused) animator.setHardPause(false);
-        groundSpikeHeld = false;
-        groundSpikePosePaused = false;
-        groundSpikeAutoReleased = false;
-        groundSpikeReversing = false;
-        groundSpikeEruptionTicks = 0;
-        groundSpikeStartupWaitTicks = 0;
+    private static void clearGroundSpikePlaybackState(Minecraft mc) {
+        if(groundSpikePlaying(mc)){PlayerMotionController.pause(mc.player,false);PlayerMotionController.reverse(mc.player,false);}
+        groundSpikeHeld=groundSpikePosePaused=groundSpikeAutoReleased=groundSpikeReversing=false;
+        groundSpikeEruptionTicks=groundSpikeStartupWaitTicks=0;
     }
-
-    private static AnimationPlayer groundSpikeAnimationPlayer(Minecraft minecraft) {
-        Animator animator = groundSpikeAnimator(minecraft);
-        if (animator == null) return null;
-        // getPlayerFor on a BASE_LAYER accessor unconditionally returns the base
-        // layer's player, so identity must be checked against the REAL animation
-        // (the same comparison Epic Fight's isPlaying uses). Comparing the raw
-        // accessor against the loaded animation never matched and made the whole
-        // plant-pose state machine give up after its startup grace window.
-        AnimationPlayer player = animator.getPlayerFor(BlacklightEpicFightAnimations.CLAW_GROUNDSPIKE);
-        if (player == null) return null;
-        var real = player.getRealAnimation();
-        return real != null && (real.equals(BlacklightEpicFightAnimations.CLAW_GROUNDSPIKE)
-                || real.equals(BlacklightEpicFightAnimations.CLAW_GROUNDSPIKE.get()))
-                ? player : null;
-    }
-
-    private static Animator groundSpikeAnimator(Minecraft minecraft) {
-        if (minecraft.player == null || BlacklightEpicFightAnimations.CLAW_GROUNDSPIKE == null) {
-            return null;
-        }
-        AbstractClientPlayerPatch<?> patch = EpicFightCapabilities.getEntityPatch(
-                minecraft.player, AbstractClientPlayerPatch.class);
-        return patch == null ? null : patch.getAnimator();
+    private static boolean groundSpikePlaying(Minecraft mc) {
+        return mc.player!=null&&PlayerMotionController.isPlaying(mc.player,PlayerAction.CLAW_GROUNDSPIKE);
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -456,6 +477,10 @@ public final class ClientClawEvents {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.screen != null) return;
         var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
+        if(ClientWeaponCombat.active()) {event.setSwingHand(false);event.setCanceled(true);ClientWeaponCombat.poll();return;}
+        if(state.isPrototypeMode()&&minecraft.player.getData(ModAttachments.CONSUMING)) {
+            event.setSwingHand(false);event.setCanceled(true);tickGrabButtons();return;
+        }
         if (!state.isInfected() || !state.isPrototypeMode()
                 || state.getActivePower() != PowerForm.CLAWS) return;
 
@@ -468,8 +493,8 @@ public final class ClientClawEvents {
 
         event.setSwingHand(false);
         event.setCanceled(true);
-        // This mapping event is the reliable fallback when Epic Fight consumes the raw
-        // mouse callback over air or an entity. beginLeftAttack is edge-deduplicated.
+        // Key mappings provide a remapped-input fallback; physical mouse edges
+        // and mapping events share the same attack latch.
         beginLeftAttack(minecraft);
     }
 
@@ -480,17 +505,7 @@ public final class ClientClawEvents {
                 || !(event.getNewScreen() instanceof AbstractContainerScreen<?>)
                 && !(event.getNewScreen() instanceof InventoryScreen)) return;
         event.setCanceled(true);
-        PrototypeSurvivalLock.notifyClient(minecraft.player);
+        if (!GRAB.isDown()) PrototypeSurvivalLock.notifyClient(minecraft.player);
     }
 
-    private static void registerEpicFightLayerHook() {
-        if (layerHookRegistered) return;
-        layerHookRegistered = true;
-        BlacklightNeoMod.LOGGER.info("Registering Blacklight Epic Fight player renderer");
-        EpicFightClientEventHooks.Registry.ADD_PATCHED_ENTITY.registerEvent(event -> {
-            event.addPatchedEntityRenderer(EntityType.PLAYER,
-                    type -> new BlacklightPlayerRenderer(event.getContext(), type));
-            BlacklightNeoMod.LOGGER.info("Replaced Epic Fight player renderer with biological limb renderer");
-        });
-    }
 }

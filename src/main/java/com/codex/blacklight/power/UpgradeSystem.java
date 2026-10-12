@@ -14,7 +14,14 @@ public final class UpgradeSystem {
     }
 
     public static void purchase(ServerPlayer player, String upgradeId) {
+        var growth=GrowthUpgrade.byId(upgradeId);
+        if(growth!=null){GrowthSystem.purchase(player,growth);return;}
         BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
+        var form = PowerForm.byId(upgradeId);
+        if (PowerFormSystem.supported(form) && form != PowerForm.NONE) {
+            if (!state.buy(form)) { deny(player, upgradeId, form.epCost()); return; }
+            confirm(player, state, upgradeId); return;
+        }
         ClawUpgrade claw = ClawUpgrade.byId(upgradeId);
         if (claw != null) {
             if (!state.buyClawUpgrade(claw)) {

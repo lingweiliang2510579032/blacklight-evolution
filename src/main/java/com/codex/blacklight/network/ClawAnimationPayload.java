@@ -1,14 +1,12 @@
 package com.codex.blacklight.network;
 
 import com.codex.blacklight.BlacklightNeoMod;
-import com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations;
+import com.codex.blacklight.animation.PlayerAction;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import yesman.epicfight.api.animation.AnimationManager.AnimationAccessor;
-import yesman.epicfight.api.animation.types.StaticAnimation;
 
 /** Server acknowledgement that guarantees the controlling client starts the visual action. */
 public record ClawAnimationPayload(Animation animation) implements CustomPacketPayload {
@@ -59,15 +57,15 @@ public record ClawAnimationPayload(Animation animation) implements CustomPacketP
         }
 
         public static Animation from(
-                AnimationAccessor<? extends StaticAnimation> accessor) {
-            if (accessor == BlacklightEpicFightAnimations.TRANSFORM_CLAWS) return TRANSFORM;
-            if (accessor == BlacklightEpicFightAnimations.CLAW_AUTO_1) return AUTO_1;
-            if (accessor == BlacklightEpicFightAnimations.CLAW_AUTO_2) return AUTO_2;
-            if (accessor == BlacklightEpicFightAnimations.CLAW_AUTO_3) return AUTO_3;
-            if (accessor == BlacklightEpicFightAnimations.CLAW_GROUNDSPIKE) return GROUND_SPIKE;
-            if (accessor == BlacklightEpicFightAnimations.CLAW_SPRINT_ATTACK) return SPRINT_ATTACK;
-            if (accessor == BlacklightEpicFightAnimations.CLAW_DASHING_SLICE) return DASHING_SLICE;
-            if (accessor == BlacklightEpicFightAnimations.CHARGED_JUMP) return CHARGED_JUMP;
+                PlayerAction accessor) {
+            if (accessor == PlayerAction.TRANSFORM_CLAWS) return TRANSFORM;
+            if (accessor == PlayerAction.CLAW_AUTO_1) return AUTO_1;
+            if (accessor == PlayerAction.CLAW_AUTO_2) return AUTO_2;
+            if (accessor == PlayerAction.CLAW_AUTO_3) return AUTO_3;
+            if (accessor == PlayerAction.CLAW_GROUNDSPIKE) return GROUND_SPIKE;
+            if (accessor == PlayerAction.CLAW_SPRINT_ATTACK) return SPRINT_ATTACK;
+            if (accessor == PlayerAction.CLAW_DASHING_SLICE) return DASHING_SLICE;
+            if (accessor == PlayerAction.CHARGED_JUMP) return CHARGED_JUMP;
             return null;
         }
     }

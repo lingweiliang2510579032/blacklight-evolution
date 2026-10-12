@@ -1,0 +1,4155 @@
+{
+  "format": 1,
+  "authoring": "Original Minecraft cuboids and pixel atlas; articulated infection morphs, not imported game assets.",
+  "species": {
+    "minecraft:cow": "bovine",
+    "minecraft:mooshroom": "bovine",
+    "minecraft:goat": "bovine",
+    "minecraft:ravager": "bovine",
+    "minecraft:hoglin": "bovine",
+    "minecraft:zoglin": "bovine",
+    "minecraft:pig": "porcine",
+    "minecraft:sheep": "woolly",
+    "minecraft:wolf": "canine",
+    "minecraft:fox": "canine",
+    "minecraft:cat": "feline",
+    "minecraft:ocelot": "feline",
+    "minecraft:horse": "equine",
+    "minecraft:donkey": "equine",
+    "minecraft:mule": "equine",
+    "minecraft:llama": "equine",
+    "minecraft:trader_llama": "equine",
+    "minecraft:camel": "equine",
+    "minecraft:rabbit": "small_quadruped",
+    "minecraft:polar_bear": "small_quadruped",
+    "minecraft:panda": "small_quadruped",
+    "minecraft:zombie": "humanoid",
+    "minecraft:husk": "humanoid",
+    "minecraft:drowned": "humanoid",
+    "minecraft:zombie_villager": "humanoid",
+    "minecraft:skeleton": "humanoid",
+    "minecraft:stray": "humanoid",
+    "minecraft:bogged": "humanoid",
+    "minecraft:wither_skeleton": "humanoid",
+    "minecraft:villager": "humanoid",
+    "minecraft:wandering_trader": "humanoid",
+    "minecraft:pillager": "humanoid",
+    "minecraft:vindicator": "humanoid",
+    "minecraft:evoker": "humanoid",
+    "minecraft:illusioner": "humanoid",
+    "minecraft:witch": "humanoid",
+    "minecraft:piglin": "humanoid",
+    "minecraft:piglin_brute": "humanoid",
+    "minecraft:zombified_piglin": "humanoid",
+    "minecraft:enderman": "humanoid",
+    "minecraft:warden": "humanoid",
+    "minecraft:iron_golem": "construct",
+    "minecraft:snow_golem": "construct",
+    "minecraft:creeper": "creeper",
+    "minecraft:spider": "arthropod",
+    "minecraft:cave_spider": "arthropod",
+    "minecraft:silverfish": "arthropod",
+    "minecraft:endermite": "arthropod",
+    "minecraft:chicken": "winged",
+    "minecraft:parrot": "winged",
+    "minecraft:bee": "winged",
+    "minecraft:bat": "winged",
+    "minecraft:phantom": "winged",
+    "minecraft:vex": "winged",
+    "minecraft:allay": "winged",
+    "minecraft:ghast": "winged",
+    "minecraft:cod": "aquatic",
+    "minecraft:salmon": "aquatic",
+    "minecraft:tropical_fish": "aquatic",
+    "minecraft:pufferfish": "aquatic",
+    "minecraft:squid": "aquatic",
+    "minecraft:glow_squid": "aquatic",
+    "minecraft:dolphin": "aquatic",
+    "minecraft:guardian": "aquatic",
+    "minecraft:elder_guardian": "aquatic",
+    "minecraft:turtle": "shelled",
+    "minecraft:armadillo": "shelled",
+    "minecraft:frog": "amphibian",
+    "minecraft:axolotl": "amphibian",
+    "minecraft:sniffer": "amphibian",
+    "minecraft:strider": "amphibian",
+    "minecraft:slime": "soft",
+    "minecraft:magma_cube": "soft"
+  },
+  "profiles": {
+    "bovine": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            0.125,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.375,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.625,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.875,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.23,
+            0.27,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.23,
+            0.5,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.23,
+            0.73,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.27,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.5,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.73,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.5,
+            0.22,
+            1.23
+          ],
+          "size": [
+            0.84,
+            0.4,
+            0.4
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.22,
+            1.47
+          ],
+          "size": [
+            0.55,
+            0.26,
+            0.17
+          ],
+          "material": "chitin"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.92,
+            -0.15
+          ],
+          "size": [
+            0.86,
+            0.16,
+            0.42
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.25,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.75,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            -0.1,
+            0.03,
+            0.4
+          ],
+          "size": [
+            0.18,
+            0.38,
+            0.24
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            1.1,
+            0.03,
+            0.4
+          ],
+          "size": [
+            0.18,
+            0.38,
+            0.24
+          ],
+          "material": "bone"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.7,
+            0.5
+          ],
+          "size": [
+            1.18,
+            0.43,
+            1.17
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.53,
+            -0.08
+          ],
+          "size": [
+            0.42,
+            0.55,
+            0.19
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.18,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.82,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        }
+      ],
+      "tail": []
+    },
+    "porcine": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            0.16666666666666666,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.5,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.8333333333333334,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.23,
+            0.27,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.23,
+            0.5,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.23,
+            0.73,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.27,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.5,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.73,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.2,
+            0.4,
+            1.18
+          ],
+          "size": [
+            0.32,
+            0.42,
+            0.4
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.16,
+            0.4,
+            1.43
+          ],
+          "size": [
+            0.21,
+            0.26,
+            0.15
+          ],
+          "material": "chitin"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.92,
+            -0.15
+          ],
+          "size": [
+            0.86,
+            0.16,
+            0.42
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.25,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.75,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            0.67,
+            -0.26
+          ],
+          "size": [
+            0.66,
+            0.32,
+            0.34
+          ],
+          "material": "sinew"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.7,
+            0.5
+          ],
+          "size": [
+            1.18,
+            0.43,
+            1.17
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.53,
+            -0.08
+          ],
+          "size": [
+            0.42,
+            0.55,
+            0.19
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.18,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.82,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        }
+      ],
+      "tail": []
+    },
+    "woolly": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            0.18,
+            1.18
+          ],
+          "size": [
+            1.22,
+            0.34,
+            0.65
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.76,
+            1.13
+          ],
+          "size": [
+            1.18,
+            0.28,
+            0.55
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.125,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.375,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.625,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.875,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.23,
+            0.27,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.23,
+            0.5,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.23,
+            0.73,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.27,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.5,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.73,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.92,
+            -0.15
+          ],
+          "size": [
+            0.86,
+            0.16,
+            0.42
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.25,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.75,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.12,
+            0.08,
+            0.25
+          ],
+          "size": [
+            0.24,
+            0.25,
+            0.45
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.88,
+            0.08,
+            0.25
+          ],
+          "size": [
+            0.24,
+            0.25,
+            0.45
+          ],
+          "material": "chitin"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.3,
+            0.96
+          ],
+          "size": [
+            1.08,
+            0.36,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.7,
+            -0.04
+          ],
+          "size": [
+            0.35,
+            0.6,
+            0.12
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.18,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.82,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        }
+      ],
+      "tail": []
+    },
+    "canine": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            0.1,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.136,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.3,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.136,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.5,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.136,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.7,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.136,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.9,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.136,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.15,
+            0.22,
+            1.02
+          ],
+          "size": [
+            0.22,
+            0.55,
+            0.27
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.85,
+            0.22,
+            1.02
+          ],
+          "size": [
+            0.22,
+            0.55,
+            0.27
+          ],
+          "material": "sinew"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.92,
+            -0.15
+          ],
+          "size": [
+            0.86,
+            0.16,
+            0.42
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.25,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.75,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            0.79,
+            -0.4
+          ],
+          "size": [
+            0.53,
+            0.24,
+            0.55
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.74,
+            -0.7
+          ],
+          "size": [
+            0.45,
+            0.12,
+            0.16
+          ],
+          "material": "sinew"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.7,
+            0.5
+          ],
+          "size": [
+            1.18,
+            0.43,
+            1.17
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.53,
+            -0.08
+          ],
+          "size": [
+            0.42,
+            0.55,
+            0.19
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.18,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.82,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        }
+      ],
+      "tail": [
+        {
+          "center": [
+            0.5,
+            0.45,
+            0.5
+          ],
+          "size": [
+            1.16,
+            0.55,
+            1.16
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            1.02,
+            0.5
+          ],
+          "size": [
+            0.55,
+            0.22,
+            0.55
+          ],
+          "material": "bone"
+        }
+      ]
+    },
+    "feline": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            0.16666666666666666,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.5,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.8333333333333334,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.23,
+            0.27,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.23,
+            0.73,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.5,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.92,
+            -0.15
+          ],
+          "size": [
+            0.86,
+            0.16,
+            0.42
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.25,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.75,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            0.79,
+            -0.4
+          ],
+          "size": [
+            0.53,
+            0.24,
+            0.55
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.74,
+            -0.7
+          ],
+          "size": [
+            0.45,
+            0.12,
+            0.16
+          ],
+          "material": "sinew"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.7,
+            0.5
+          ],
+          "size": [
+            1.18,
+            0.43,
+            1.17
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.53,
+            -0.08
+          ],
+          "size": [
+            0.42,
+            0.55,
+            0.19
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.18,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.82,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        }
+      ],
+      "tail": [
+        {
+          "center": [
+            0.5,
+            0.45,
+            0.5
+          ],
+          "size": [
+            1.16,
+            0.55,
+            1.16
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            1.02,
+            0.5
+          ],
+          "size": [
+            0.55,
+            0.22,
+            0.55
+          ],
+          "material": "bone"
+        }
+      ]
+    },
+    "equine": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            0.08333333333333333,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.11333333333333334,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.25,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.11333333333333334,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.4166666666666667,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.11333333333333334,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.5833333333333334,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.11333333333333334,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.75,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.11333333333333334,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.9166666666666666,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.11333333333333334,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.23,
+            0.27,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.23,
+            0.5,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.23,
+            0.73,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.27,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.5,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.73,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.92,
+            -0.15
+          ],
+          "size": [
+            0.86,
+            0.16,
+            0.42
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.25,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.75,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            0.0,
+            0.6
+          ],
+          "size": [
+            0.24,
+            0.38,
+            0.3
+          ],
+          "material": "bone"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.3,
+            0.96
+          ],
+          "size": [
+            1.08,
+            0.36,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.7,
+            -0.04
+          ],
+          "size": [
+            0.35,
+            0.6,
+            0.12
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.5,
+            1.02,
+            0.3
+          ],
+          "size": [
+            1.15,
+            0.16,
+            1.28
+          ],
+          "material": "chitin"
+        }
+      ],
+      "tail": []
+    },
+    "small_quadruped": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            0.16666666666666666,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.5,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.8333333333333334,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.92,
+            -0.15
+          ],
+          "size": [
+            0.86,
+            0.16,
+            0.42
+          ],
+          "material": "sinew"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.3,
+            0.96
+          ],
+          "size": [
+            1.08,
+            0.36,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.7,
+            -0.04
+          ],
+          "size": [
+            0.35,
+            0.6,
+            0.12
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.18,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.82,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        }
+      ],
+      "tail": []
+    },
+    "humanoid": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            0.35,
+            0.1
+          ],
+          "size": [
+            1.15,
+            0.68,
+            1.08
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.42,
+            -0.5
+          ],
+          "size": [
+            0.38,
+            0.52,
+            0.14
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.5,
+            0.125,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.375,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.625,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.875,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.23,
+            0.27,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.23,
+            0.5,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.23,
+            0.73,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.27,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.5,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.73,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.92,
+            -0.15
+          ],
+          "size": [
+            0.86,
+            0.16,
+            0.42
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.25,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.75,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.18,
+            0.12,
+            0.32
+          ],
+          "size": [
+            0.25,
+            0.33,
+            0.48
+          ],
+          "material": "sinew"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.7,
+            0.5
+          ],
+          "size": [
+            1.18,
+            0.43,
+            1.17
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.53,
+            -0.08
+          ],
+          "size": [
+            0.42,
+            0.55,
+            0.19
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.18,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.82,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            0.15,
+            0.5
+          ],
+          "size": [
+            1.25,
+            0.22,
+            1.22
+          ],
+          "material": "chitin"
+        }
+      ],
+      "tail": []
+    },
+    "construct": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            0.25,
+            0.5
+          ],
+          "size": [
+            1.18,
+            0.44,
+            1.15
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.68,
+            -0.12
+          ],
+          "size": [
+            0.52,
+            0.37,
+            0.22
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.5,
+            0.16666666666666666,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.5,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.8333333333333334,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.92,
+            -0.15
+          ],
+          "size": [
+            0.86,
+            0.16,
+            0.42
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.5,
+            0.7,
+            -0.17
+          ],
+          "size": [
+            0.22,
+            0.3,
+            0.22
+          ],
+          "material": "sinew"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.7,
+            0.5
+          ],
+          "size": [
+            1.18,
+            0.43,
+            1.17
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.53,
+            -0.08
+          ],
+          "size": [
+            0.42,
+            0.55,
+            0.19
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.18,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.82,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        }
+      ],
+      "tail": []
+    },
+    "creeper": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            0.1,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.136,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.3,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.136,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.5,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.136,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.7,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.136,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.9,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.136,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.22,
+            -0.09
+          ],
+          "size": [
+            0.55,
+            0.16,
+            0.18
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.5,
+            0.47,
+            -0.09
+          ],
+          "size": [
+            0.55,
+            0.16,
+            0.18
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.5,
+            0.72,
+            -0.09
+          ],
+          "size": [
+            0.55,
+            0.16,
+            0.18
+          ],
+          "material": "sinew"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.0,
+            0.5
+          ],
+          "size": [
+            1.15,
+            0.2,
+            1.06
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.08,
+            0.6,
+            0.3
+          ],
+          "size": [
+            0.24,
+            0.82,
+            1.1
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.92,
+            0.6,
+            0.3
+          ],
+          "size": [
+            0.24,
+            0.82,
+            1.1
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.82,
+            -0.08
+          ],
+          "size": [
+            0.35,
+            0.32,
+            0.17
+          ],
+          "material": "sinew"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.56,
+            0.5
+          ],
+          "size": [
+            1.17,
+            0.84,
+            1.16
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.18,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.82,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        }
+      ],
+      "tail": []
+    },
+    "arthropod": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            -0.12,
+            0.1
+          ],
+          "size": [
+            0.3,
+            0.3,
+            0.13999999999999999
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            -0.12,
+            0.3
+          ],
+          "size": [
+            0.3,
+            0.3,
+            0.13999999999999999
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            -0.12,
+            0.5
+          ],
+          "size": [
+            0.3,
+            0.3,
+            0.13999999999999999
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            -0.12,
+            0.7
+          ],
+          "size": [
+            0.3,
+            0.3,
+            0.13999999999999999
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            -0.12,
+            0.9
+          ],
+          "size": [
+            0.3,
+            0.3,
+            0.13999999999999999
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.04,
+            0.5
+          ],
+          "size": [
+            1.08,
+            0.3,
+            1.12
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.2,
+            -0.14,
+            0.52
+          ],
+          "size": [
+            0.15,
+            0.16,
+            0.5
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.8,
+            -0.14,
+            0.52
+          ],
+          "size": [
+            0.15,
+            0.16,
+            0.5
+          ],
+          "material": "sinew"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.2,
+            0.95,
+            -0.18
+          ],
+          "size": [
+            0.18,
+            0.48,
+            0.23
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.8,
+            0.95,
+            -0.18
+          ],
+          "size": [
+            0.18,
+            0.48,
+            0.23
+          ],
+          "material": "bone"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.3,
+            0.96
+          ],
+          "size": [
+            1.08,
+            0.36,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.7,
+            -0.04
+          ],
+          "size": [
+            0.35,
+            0.6,
+            0.12
+          ],
+          "material": "sinew"
+        }
+      ],
+      "tail": []
+    },
+    "winged": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            0.16666666666666666,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.5,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.8333333333333334,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.22666666666666668,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.5,
+            -0.1
+          ],
+          "size": [
+            0.64,
+            0.6,
+            0.2
+          ],
+          "material": "sinew"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.92,
+            -0.15
+          ],
+          "size": [
+            0.86,
+            0.16,
+            0.42
+          ],
+          "material": "sinew"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.2,
+            0.5
+          ],
+          "size": [
+            1.12,
+            0.18,
+            1.1
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.65,
+            0.5
+          ],
+          "size": [
+            1.07,
+            0.12,
+            1.07
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.43,
+            0.4
+          ],
+          "size": [
+            0.2,
+            0.55,
+            0.25
+          ],
+          "material": "sinew"
+        }
+      ],
+      "tail": []
+    },
+    "aquatic": {
+      "body": [
+        {
+          "center": [
+            -0.04,
+            0.5,
+            0.5
+          ],
+          "size": [
+            0.18,
+            0.76,
+            0.86
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.04,
+            0.5,
+            0.5
+          ],
+          "size": [
+            0.18,
+            0.76,
+            0.86
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            -0.12,
+            0.16666666666666666
+          ],
+          "size": [
+            0.3,
+            0.3,
+            0.2333333333333333
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            -0.12,
+            0.5
+          ],
+          "size": [
+            0.3,
+            0.3,
+            0.2333333333333333
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            -0.12,
+            0.8333333333333334
+          ],
+          "size": [
+            0.3,
+            0.3,
+            0.2333333333333333
+          ],
+          "material": "chitin"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.92,
+            -0.15
+          ],
+          "size": [
+            0.86,
+            0.16,
+            0.42
+          ],
+          "material": "sinew"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.3,
+            0.96
+          ],
+          "size": [
+            1.08,
+            0.36,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.7,
+            -0.04
+          ],
+          "size": [
+            0.35,
+            0.6,
+            0.12
+          ],
+          "material": "sinew"
+        }
+      ],
+      "tail": [
+        {
+          "center": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "size": [
+            1.12,
+            1.1,
+            0.75
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.5,
+            1.06
+          ],
+          "size": [
+            0.4,
+            0.6,
+            0.23
+          ],
+          "material": "sinew"
+        }
+      ]
+    },
+    "shelled": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            -0.08,
+            0.5
+          ],
+          "size": [
+            0.8,
+            0.28,
+            0.9
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            -0.26,
+            0.5
+          ],
+          "size": [
+            0.45,
+            0.12,
+            0.65
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.13,
+            -0.02,
+            0.5
+          ],
+          "size": [
+            0.12,
+            0.13,
+            0.66
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.87,
+            -0.02,
+            0.5
+          ],
+          "size": [
+            0.12,
+            0.13,
+            0.66
+          ],
+          "material": "sinew"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.92,
+            -0.15
+          ],
+          "size": [
+            0.86,
+            0.16,
+            0.42
+          ],
+          "material": "sinew"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.3,
+            0.96
+          ],
+          "size": [
+            1.08,
+            0.36,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.7,
+            -0.04
+          ],
+          "size": [
+            0.35,
+            0.6,
+            0.12
+          ],
+          "material": "sinew"
+        }
+      ],
+      "tail": []
+    },
+    "amphibian": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            -0.12,
+            0.16666666666666666
+          ],
+          "size": [
+            0.3,
+            0.3,
+            0.2333333333333333
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            -0.12,
+            0.5
+          ],
+          "size": [
+            0.3,
+            0.3,
+            0.2333333333333333
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            -0.12,
+            0.8333333333333334
+          ],
+          "size": [
+            0.3,
+            0.3,
+            0.2333333333333333
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.15,
+            0.5
+          ],
+          "size": [
+            1.09,
+            0.28,
+            1.04
+          ],
+          "material": "chitin"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.92,
+            -0.15
+          ],
+          "size": [
+            0.86,
+            0.16,
+            0.42
+          ],
+          "material": "sinew"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.7,
+            0.5
+          ],
+          "size": [
+            1.18,
+            0.43,
+            1.17
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.53,
+            -0.08
+          ],
+          "size": [
+            0.42,
+            0.55,
+            0.19
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.18,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.82,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        }
+      ],
+      "tail": []
+    },
+    "soft": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            0.5
+          ],
+          "size": [
+            0.9,
+            0.35,
+            0.85
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.25,
+            0.55,
+            -0.05
+          ],
+          "size": [
+            0.2,
+            0.45,
+            0.17
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.75,
+            0.55,
+            -0.05
+          ],
+          "size": [
+            0.2,
+            0.45,
+            0.17
+          ],
+          "material": "sinew"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.3,
+            0.96
+          ],
+          "size": [
+            1.08,
+            0.36,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.7,
+            -0.04
+          ],
+          "size": [
+            0.35,
+            0.6,
+            0.12
+          ],
+          "material": "sinew"
+        }
+      ],
+      "tail": []
+    },
+    "generic": {
+      "body": [
+        {
+          "center": [
+            0.5,
+            0.35,
+            0.1
+          ],
+          "size": [
+            1.15,
+            0.68,
+            1.08
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.42,
+            -0.5
+          ],
+          "size": [
+            0.38,
+            0.52,
+            0.14
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.5,
+            0.125,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.375,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.625,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.875,
+            1.1
+          ],
+          "size": [
+            0.26,
+            0.17,
+            0.28
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.23,
+            0.27,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.23,
+            0.5,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.23,
+            0.73,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.27,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.5,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.77,
+            0.73,
+            1.02
+          ],
+          "size": [
+            0.26,
+            0.09,
+            0.16
+          ],
+          "material": "sinew"
+        }
+      ],
+      "head": [
+        {
+          "center": [
+            0.5,
+            0.15,
+            -0.08
+          ],
+          "size": [
+            0.92,
+            0.2,
+            0.2
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            -0.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            1.02,
+            0.62,
+            0.12
+          ],
+          "size": [
+            0.18,
+            0.52,
+            0.7
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.92,
+            -0.15
+          ],
+          "size": [
+            0.86,
+            0.16,
+            0.42
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.25,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.75,
+            1.06,
+            -0.26
+          ],
+          "size": [
+            0.12,
+            0.28,
+            0.16
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.18,
+            0.12,
+            0.32
+          ],
+          "size": [
+            0.25,
+            0.33,
+            0.48
+          ],
+          "material": "sinew"
+        }
+      ],
+      "limb": [
+        {
+          "center": [
+            0.5,
+            0.7,
+            0.5
+          ],
+          "size": [
+            1.18,
+            0.43,
+            1.17
+          ],
+          "material": "chitin"
+        },
+        {
+          "center": [
+            0.5,
+            0.53,
+            -0.08
+          ],
+          "size": [
+            0.42,
+            0.55,
+            0.19
+          ],
+          "material": "sinew"
+        },
+        {
+          "center": [
+            0.18,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.82,
+            1.02,
+            -0.12
+          ],
+          "size": [
+            0.21,
+            0.2,
+            0.46
+          ],
+          "material": "bone"
+        },
+        {
+          "center": [
+            0.5,
+            0.15,
+            0.5
+          ],
+          "size": [
+            1.25,
+            0.22,
+            1.22
+          ],
+          "material": "chitin"
+        }
+      ],
+      "tail": []
+    }
+  },
+  "materials": {
+    "chitin": 0,
+    "sinew": 1,
+    "bone": 2
+  }
+}
