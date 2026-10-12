@@ -1,5 +1,8 @@
 # Standalone dev.6 — native skins with approved infection geometry
 
+Integrated into dev.7 with liquid weapon morphs and the checked-in complete
+runtime profile. Normal builds now use `art/motion-profile/` without an override.
+
 Based on `origin/main` at `d43aa4b` (standalone dev.5). This change restores the
 approved species mutations without replacing the native bodies with solid-color
 copies. Player motion, camera profiles and the standalone combat engine are kept.
@@ -52,3 +55,12 @@ Build the installable candidate with the latest standalone motion directory:
 ```
 
 Both Minecraft and mod versions remain in the artifact names.
+
+## Actual client comparisons
+
+Each pair shows the native species at left and its infected host at right.
+These are Minecraft framebuffer screenshots from the 80-species renderer run.
+
+![Drowned, zombie villager, horse, bee, guardian and shulker](images/infected-models/native-plus-approved-01.png)
+![Zombie, cow, dyed sheep, wolf, spider and sniffer](images/infected-models/native-plus-approved-02.png)
+![Goat, hoglin, husk, illusioner, iron golem and llama](images/infected-models/native-plus-approved-07.png)
