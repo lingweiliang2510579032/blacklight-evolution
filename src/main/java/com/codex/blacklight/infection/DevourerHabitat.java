@@ -25,6 +25,14 @@ public final class DevourerHabitat {
         return true;
     }
 
+    public static int nodeMask(BlacklightInfectedHost host) {
+        if (!(host.level() instanceof ServerLevel level) || !suppliesLoaded(host)) return 0;
+        int mask = 0;
+        for (int i=0;i<ColossalHiveLayout.NUTRIENT_NODES.length;i++)
+            if (level.getBlockState(HiveFeedingMotion.node(DevourerFeedingSystem.home(host),i)).is(ModBlocks.NUTRIENT_NODE.get())) mask |= 1<<i;
+        return mask;
+    }
+
     public static int liveNodes(BlacklightInfectedHost host) {
         if (!(host.level() instanceof ServerLevel level) || !DevourerFeedingSystem.isDevourer(host)) return 0;
         BlockPos floor = DevourerFeedingSystem.home(host).below();

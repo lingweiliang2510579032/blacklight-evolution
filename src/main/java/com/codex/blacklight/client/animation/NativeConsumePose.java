@@ -1,29 +1,28 @@
 package com.codex.blacklight.client.animation;
 
 import com.codex.blacklight.combat.*;
-import com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations;
+import com.codex.blacklight.animation.MotionLibrary;
 import com.codex.blacklight.power.PowerForm;
 import com.codex.blacklight.registry.ModAttachments;
 import net.minecraft.world.entity.LivingEntity;
-import yesman.epicfight.api.animation.Pose;
-import yesman.epicfight.world.capabilities.EpicFightCapabilities;
-import yesman.epicfight.world.capabilities.entitypatch.LivingEntityPatch;
+import com.codex.blacklight.animation.BlacklightPose;
 
 /** Both participants sample the same synchronized server phase, including the controlling player. */
 public final class NativeConsumePose {
     private NativeConsumePose() {}
-    public static Pose sample(LivingEntity entity,ConsumeVisual visual,String role,float partial) {
+    public static BlacklightPose sample(LivingEntity entity,ConsumeVisual visual,String role,float partial) {
         if(!visual.consuming()&&!GrappleMotion.active(visual))return null;
         var form=PowerForm.values()[Math.clamp(visual.form(),0,PowerForm.values().length-1)];
         boolean mounted=ConsumeSequence.mountedStage(visual.stage());
         String type=GrappleMotion.sceneKey(entity,visual);
-        var accessor=BlacklightEpicFightAnimations.consumePose("consume_"+type+"_"+role);
+        String key="consume_"+type+"_"+role;
+        var accessor=MotionLibrary.find(key).orElse(null);
         if(accessor==null)return null;
-        var clip=accessor.get();
+        var clip=accessor;
         float time=visual.stage()==ConsumeVisual.HUNTER_CONSUME
-                ?Math.min(HunterConsume.seconds(visual,entity.level().getGameTime(),partial),Math.max(0,clip.getTotalTime()-.001F))
-                :GrappleMotion.sceneProgress(entity,visual,partial)*Math.max(0,clip.getTotalTime()-.001F);
-        Pose copy=new Pose();clip.getRawPose(time).getJointTransformData().forEach((name,transform)->copy.getJointTransformData().put(name,transform.copy()));
+                ?Math.min(HunterConsume.seconds(visual,entity.level().getGameTime(),partial),Math.max(0,clip.duration()-.001F))
+                :GrappleMotion.sceneProgress(entity,visual,partial)*Math.max(0,clip.duration()-.001F);
+        BlacklightPose copy=new BlacklightPose();MotionLibrary.pose(key,time,false).getJointTransformData().forEach((name,transform)->copy.getJointTransformData().put(name,transform.copy()));
         if(mounted&&role.equals("victim")){
             // A giant reacts at the contact site; a small receiver's whole-body toss must not tow it.
             copy.getJointTransformData().forEach((name,transform)->{
@@ -35,7 +34,7 @@ public final class NativeConsumePose {
         }
         return copy;
     }
-    public static boolean actor(LivingEntity entity,Pose pose,float partial) {
+    public static boolean actor(LivingEntity entity,BlacklightPose pose,float partial) {
         if(recovery(entity,pose,partial))return true;
         int stage=entity.getData(ModAttachments.GRAB_STAGE);
         if(stage!=ConsumeVisual.CONSUME&&stage!=ConsumeVisual.CAPTURE&&stage!=ConsumeVisual.HOLD&&!ConsumeSequence.mountedStage(stage))return false;
@@ -58,7 +57,7 @@ public final class NativeConsumePose {
             pose.orElseEmpty("Leg_R").rotation().rotateX(1.6F);
             return true;
         }
-        Pose sample=sample(entity,visual,"actor",partial);if(sample==null)return false;
+        BlacklightPose sample=sample(entity,visual,"actor",partial);if(sample==null)return false;
         boolean hunter=victims.getFirst() instanceof com.codex.blacklight.entity.BlacklightHunter;
         if(ConsumeSequence.mountedStage(stage)&&hunter)sample.orElseEmpty("Root").translation().set(0,0,0);
         if(stage==ConsumeVisual.MOUNT_CONSUME&&!hunter) {
@@ -76,22 +75,22 @@ public final class NativeConsumePose {
             sample.orElseEmpty("Leg_R").rotation().rotationXYZ(1.5F,0,0);
         }
         float enter=Math.clamp((entity.level().getGameTime()-visual.started()+partial)/4F,0,1);
-        pose.getJointTransformData().putAll(Pose.interpolatePose(pose,sample,enter).getJointTransformData());return true;
+        pose.getJointTransformData().putAll(BlacklightPose.interpolatePose(pose,sample,enter).getJointTransformData());return true;
     }
-    private static boolean recovery(LivingEntity entity,Pose pose,float partial) {
+    private static boolean recovery(LivingEntity entity,BlacklightPose pose,float partial) {
         var visual=entity.getData(ModAttachments.CONSUME_RECOVERY);
         if(!visual.active()||!entity.isAlive()||entity.getData(ModAttachments.CONSUMING)
                 ||!entity.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()
                 ||entity.getData(ModAttachments.WEAPON_VISUAL).spec()!=null)return false;
         float progress=visual.phaseProgress(entity.level().getGameTime(),partial);
         if(progress>=1)return false;
-        Pose sample=sample(entity,visual,"actor",partial);if(sample==null)return false;
+        BlacklightPose sample=sample(entity,visual,"actor",partial);if(sample==null)return false;
         float remaining=visual.duration()*(1-progress),weight=Math.clamp(remaining/3F,0,1);
         boolean moving=entity.getDeltaMovement().horizontalDistance()>.018||!entity.onGround();
         if(ConsumeSequence.mountedStage(visual.stage()))sample.orElseEmpty("Root").translation().set(0,0,0);
         // When moving, keep locomotion root and legs. The absorption torso/arms
         // continue on the original scene clock, then fade into the current gait.
-        Pose blended=Pose.interpolatePose(pose,sample,weight);
+        BlacklightPose blended=BlacklightPose.interpolatePose(pose,sample,weight);
         if(moving) {
             for(String joint:new String[]{"Torso","Chest","Head","Shoulder_R","Arm_R","Elbow_R","Hand_R","Tool_R","Shoulder_L","Arm_L","Elbow_L","Hand_L","Tool_L"})
                 pose.getJointTransformData().put(joint,blended.orElseEmpty(joint).copy());

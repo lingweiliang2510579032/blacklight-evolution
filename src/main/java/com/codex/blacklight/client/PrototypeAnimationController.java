@@ -14,8 +14,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
-import yesman.epicfight.client.world.capabilites.entitypatch.player.AbstractClientPlayerPatch;
-import yesman.epicfight.world.capabilities.EpicFightCapabilities;
 
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -62,26 +60,9 @@ public final class PrototypeAnimationController {
                     local && localSprintIntent,
                     wallMode);
             LocomotionVisualState.set(player.getId(), runtime.direction, runtime.phase,runtime.sprintGait,runtime.visualSpeed);
-            // At full jump charge ClientMovementEvents owns the exact final frame.
-            // Re-evaluating KNEEL here would construct/restart the living animation
-            // underneath that pause and make a long hold visibly loop.
-            boolean finalChargeLatched = local
-                    && ClientMovementEvents.isHoldingFinalChargePose();
-            AbstractClientPlayerPatch<?> patch = EpicFightCapabilities.getEntityPatch(
-                    player, AbstractClientPlayerPatch.class);
-            boolean weaponOwned=player.getData(ModAttachments.WEAPON_VISUAL).spec()!=null;
-            if (motionChanged || runtime.weaponOwned&&!weaponOwned) runtime.motionRefreshPending = true;
-            runtime.weaponOwned=weaponOwned;
-            // Native attacks own the full body. Defer locomotion refresh until their
-            // recovery, and never restart the paused charge or an absorption pose.
-            if (runtime.motionRefreshPending && !finalChargeLatched && patch != null
-                    && player.getData(ModAttachments.WEAPON_VISUAL).spec()==null
-                    && (!player.getData(ModAttachments.CONSUMING)||player.getData(ModAttachments.GRAB_STAGE)==com.codex.blacklight.combat.ConsumeVisual.HOLD)
-                    && (!local||!ClientClawEvents.isGroundSpikeActionActive())
-                    && (!local||!ClientMovementEvents.isChargingJump())) {
-                patch.updateMotion(true);
-                runtime.motionRefreshPending = false;
-            }
+            // The independent pose runtime samples this phase without reinstalling
+            // animation mappings or restarting a continuing stride.
+            runtime.weaponOwned=player.getData(ModAttachments.WEAPON_VISUAL).spec()!=null;
         }
     }
 
@@ -96,7 +77,7 @@ public final class PrototypeAnimationController {
     /** Free locomotion faces travel independently of the camera; action owners stay authoritative. */
     public static Float movementFacing(AbstractClientPlayer player, float partial) {
         var state=STATES.get(player);
-        return state==null||!state.freeFacing?null:net.minecraft.util.Mth.rotLerp(partial,state.previousFacing,state.facing);
+        return state==null||!(state.freeFacing||state.targetFacing)?null:net.minecraft.util.Mth.rotLerp(partial,state.previousFacing,state.facing);
     }
 
     public static LocomotionPhase phaseFor(Entity entity) {
@@ -136,9 +117,7 @@ public final class PrototypeAnimationController {
             default -> 0;
         };
         runtime.phase = landingPhase(strength);
-        AbstractClientPlayerPatch<?> patch = EpicFightCapabilities.getEntityPatch(
-                player, AbstractClientPlayerPatch.class);
-        if (patch != null) patch.updateMotion(true);
+
     }
 
     private static LocomotionPhase landingPhase(LandingImpact.Strength strength) {
@@ -165,9 +144,8 @@ public final class PrototypeAnimationController {
         private boolean moving;
         private boolean sprintGait;
         private double visualSpeed;
-        private boolean motionRefreshPending;
         private boolean weaponOwned;
-        private boolean freeFacing, facingInitialized;
+        private boolean freeFacing, targetFacing, facingInitialized;
         private float facing, previousFacing;
         private int terrainAirTicks;
         private boolean hadGroundSupport;
@@ -207,21 +185,23 @@ public final class PrototypeAnimationController {
             boolean ontoPlatform = previousWallMode != WallTraversal.Mode.NONE
                     && wallMode == WallTraversal.Mode.NONE && grounded;
             previousWallMode = wallMode;
-            var patch=EpicFightCapabilities.getEntityPatch(player,AbstractClientPlayerPatch.class);
             var weapon=player.getData(ModAttachments.WEAPON_VISUAL);
             var minecraft=Minecraft.getInstance();
             boolean local=player==minecraft.player;
-            var target=patch==null?null:patch.getTarget();
-            // getTarget() on LocalPlayerPatch is camera focus, also populated without lock-on.
-            boolean locked=target!=null&&target.isAlive()&&!target.isRemoved()
-                    &&(!local||yesman.epicfight.api.client.camera.EpicFightCameraAPI.getInstance().isLockingOnTarget());
+            var target=local?ClientTargetLock.target():player.level().getEntity(player.getData(ModAttachments.TARGET_LOCK_ID));
+            boolean locked=target!=null&&target.isAlive()&&!target.isRemoved();
+            targetFacing=locked&&weapon.spec()==null&&!player.getData(ModAttachments.CONSUMING);
             freeFacing=grounded&&!charging&&wallMode==WallTraversal.Mode.NONE
                     &&!player.isPassenger()&&!player.isSleeping()&&!player.isFallFlying()&&!player.getAbilities().flying
                     &&weapon.spec()==null&&!player.getData(ModAttachments.CONSUMING)
                     &&!locked;
             if(!facingInitialized){facing=player.yBodyRot;facingInitialized=true;}
             previousFacing=facing;
-            if(!freeFacing)facing=weapon.spec()==null?player.yBodyRot:weapon.yaw();
+            if(targetFacing){
+                var focus=target instanceof net.minecraft.world.entity.LivingEntity living?com.codex.blacklight.combat.CombatTargeting.lockPoint(player,living):target.getBoundingBox().getCenter();
+                Vec3 delta=focus.subtract(player.position());
+                facing+=(float)Math.clamp(net.minecraft.util.Mth.wrapDegrees((float)Math.toDegrees(Math.atan2(-delta.x,delta.z))-facing),-45F,45F);
+            } else if(!freeFacing)facing=weapon.spec()==null?player.yBodyRot:weapon.yaw();
             else {
                 Float intent=local?ClientMovementEvents.movementHeading(minecraft):null;
                 // Remote players don't reliably expose travel velocity; use their interpolated step.
@@ -235,7 +215,7 @@ public final class PrototypeAnimationController {
                     facing+=Math.clamp(net.minecraft.util.Mth.wrapDegrees(desired-facing),-45F,45F);
                 }
             }
-            double yaw = Math.toRadians(freeFacing?facing:player.yBodyRot);
+            double yaw = Math.toRadians(freeFacing||targetFacing?facing:player.yBodyRot);
             double forwardX = -Math.sin(yaw);
             double forwardZ = Math.cos(yaw);
             double rightX = -Math.cos(yaw);
@@ -251,7 +231,7 @@ public final class PrototypeAnimationController {
                     previousDirection.degrees(), direction.degrees()) >= 90.0D;
             if(freeFacing&&transitionPhase==LocomotionPhase.TURN)transitionTicks=0;
             if(landingTicks>0&&nowMoving) {
-                int tail=landing==LandingImpact.Strength.DEVASTATING?6:landing==LandingImpact.Strength.HEAVY?4:0;
+                int tail=landing==LandingImpact.Strength.DEVASTATING?4:landing==LandingImpact.Strength.HEAVY?4:0;
                 if(landingTicks<=tail||landing==LandingImpact.Strength.LIGHT){landingTicks=0;landing=LandingImpact.Strength.NONE;}
             }
 

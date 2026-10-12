@@ -62,6 +62,7 @@ public final class WeaponAirComboGameTest {
 
     @GameTest(template="wall_test",timeoutTicks=40)
     public static void jumpBufferedDuringAttackStartsAirCombo(GameTestHelper h){
+        MovingCombatGameTest.supportFloor(h,1);
         var p=player(h,PowerForm.CLAWS,false);WeaponCombatSystem.request(p,false);var first=move(p);
         tick(p,first.comboBufferTick());WeaponCombatSystem.request(p,false);
         WeaponCombatSystem.acceptInput(p,false,false,false,true);

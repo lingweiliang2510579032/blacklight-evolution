@@ -21,6 +21,16 @@ public final class InfectedModelPose {
     /** The feeding clock is server-authoritative and shared with the lifted receiver. */
     public static boolean devourerFeeding(com.codex.blacklight.entity.BlacklightInfectedHost host,
             String bone,float partial,PoseStack stack) {
+        if(host.devourerIdentity()&&!host.giantBoss()) {
+            float age=host.tickCount+partial;
+            float pulse=(float)Math.sin(age*.09F);
+            float fed=host.feedingStarted()<0?0:(float)Math.sin(Math.PI*ease((host.level().getGameTime()-host.feedingStarted()+partial-96)/40F));
+            if(bone.equals("chest"))rotate(stack,.055F+pulse*.018F-fed*.025F,0,0);
+            else if(bone.equals("head"))rotate(stack,.18F+pulse*.012F-fed*.06F,0,0);
+            else if(bone.startsWith("upper_arm_"))rotate(stack,.08F,0,side(bone)*.035F);
+            else if(bone.startsWith("forearm_"))rotate(stack,.12F,0,0);
+            return true;
+        }
         if(host.feedingStarted()<0)return false;
         float age=host.level().getGameTime()-host.feedingStarted()+partial;
         if(age<0||age>=96||!host.speciesId().equals("minecraft:iron_golem"))return false;

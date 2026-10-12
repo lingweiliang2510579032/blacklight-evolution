@@ -65,7 +65,7 @@ public final class CombatTravelGameTest {
             for(var input:WeaponMove.Input.values())for(boolean locked:new boolean[]{false,true}){
                 var p=MovingCombatGameTest.player(h,form);p.setPos(h.absoluteVec(new Vec3(3,180,3)));p.setOnGround(true);p.setNoGravity(true);
                 var origin=p.position();var mob=victim(h,origin.add(0,0,24));float hp=mob.getHealth();
-                var patch=yesman.epicfight.world.capabilities.EpicFightCapabilities.getServerPlayerPatch(p);if(locked)patch.setAttackTarget(mob);
+                if(locked)CombatTargeting.requestLock(p,mob.getId());
                 WeaponCombatSystem.request(p,input);var move=p.getData(ModAttachments.WEAPON_VISUAL).spec();
                 h.assertTrue(move!=null&&!CombatMotion.canApproach(move),"fixture is a grounded opener "+form+" "+input);
                 h.assertTrue(p.getData(ModAttachments.WEAPON_VISUAL).targetId()<0,"distant ground target cannot activate assist, locked="+locked);
@@ -76,7 +76,7 @@ public final class CombatTravelGameTest {
                 h.assertTrue(mob.getHealth()==hp,"ground swing cannot damage distant target "+move);
                 h.assertTrue(p.distanceToSqr(origin)<144,"only the move's own bounded displacement remains "+move);
                 h.assertTrue(!WeaponCombatSystem.busy(p),"empty ground attack finishes normally "+move);
-                WeaponCombatSystem.cancel(p);patch.setAttackTarget(null);mob.discard();
+                WeaponCombatSystem.cancel(p);CombatTargeting.requestLock(p,-1);mob.discard();
             }
         h.succeed();
     }
@@ -84,15 +84,15 @@ public final class CombatTravelGameTest {
         var p=MovingCombatGameTest.player(h,PowerForm.NONE);p.setPos(h.absoluteVec(new Vec3(3,180,3)));p.setOnGround(false);
         var near=victim(h,p.position().add(2,0,8));var far=victim(h,p.position().add(0,0,22));var behind=victim(h,p.position().add(0,0,-2));
         WeaponCombatSystem.request(p,true);h.assertTrue(p.getData(ModAttachments.WEAPON_VISUAL).targetId()==near.getId(),"nearest in front wins over crosshair-center farther target and closer rear target");WeaponCombatSystem.cancel(p);
-        var patch=yesman.epicfight.world.capabilities.EpicFightCapabilities.getServerPlayerPatch(p);patch.setAttackTarget(far);
-        WeaponCombatSystem.request(p,true);h.assertTrue(p.getData(ModAttachments.WEAPON_VISUAL).targetId()==far.getId(),"manual lock must win");WeaponCombatSystem.cancel(p);patch.setAttackTarget(null);
+        CombatTargeting.requestLock(p,far.getId());
+        WeaponCombatSystem.request(p,true);h.assertTrue(p.getData(ModAttachments.WEAPON_VISUAL).targetId()==far.getId(),"manual lock must win");WeaponCombatSystem.cancel(p);CombatTargeting.requestLock(p,-1);
         near.discard();far.discard();behind.discard();h.succeed();
     }
     @GameTest(template="wall_test",timeoutTicks=40) public static void chaseCancelsOnOcclusionRemovalAndTeleport(GameTestHelper h){
         for(int kind=0;kind<3;kind++){
             var p=MovingCombatGameTest.player(h,PowerForm.CLAWS);p.setPos(h.absoluteVec(new Vec3(3,180,3)));p.setOnGround(false);var origin=p.position();
             var mob=victim(h,origin.add(0,0,24));float hp=mob.getHealth();
-            yesman.epicfight.world.capabilities.EpicFightCapabilities.getServerPlayerPatch(p).setAttackTarget(mob);
+            CombatTargeting.requestLock(p,mob.getId());
             WeaponCombatSystem.request(p,true);
             h.assertTrue(p.getData(ModAttachments.WEAPON_VISUAL).traveling(),"negative fixture actually enters pursuit");
             if(kind==0)for(int x=1;x<=5;x++)for(int y=178;y<=185;y++)h.setBlock(x,y,8,net.minecraft.world.level.block.Blocks.STONE);
@@ -106,7 +106,7 @@ public final class CombatTravelGameTest {
     @GameTest(template="wall_test",timeoutTicks=40) public static void whipPullsOwnerToHeavyVictimBeforeHolding(GameTestHelper h){
         var p=MovingCombatGameTest.player(h,PowerForm.WHIPFIST);p.setPos(h.absoluteVec(new Vec3(3,180,3)));p.setOnGround(true);p.setNoGravity(true);
         var origin=p.position();var mob=h.spawn(EntityType.SNIFFER,3,180,13);mob.setNoAi(true);mob.setNoGravity(true);mob.setHealth(10);var targetStart=mob.position();
-        yesman.epicfight.world.capabilities.EpicFightCapabilities.getServerPlayerPatch(p).setAttackTarget(mob);
+        CombatTargeting.requestLock(p,mob.getId());
         ConsumeSystem.request(p);
         h.assertTrue(p.getData(ModAttachments.GRAB_STAGE)==ConsumeVisual.WHIP_PULL,"heavy target selects owner-pull branch");
         for(int t=0;t<160&&p.getData(ModAttachments.CONSUMING)&&!ConsumeSystem.holding(p);t++){

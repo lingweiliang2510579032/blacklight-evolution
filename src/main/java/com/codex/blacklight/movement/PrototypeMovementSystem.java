@@ -5,7 +5,8 @@ import com.codex.blacklight.client.tuning.AnimationPoseSettings;
 import com.codex.blacklight.combat.ClawCombatState;
 import com.codex.blacklight.combat.ClawDamageRules;
 import com.codex.blacklight.combat.WeaponCombatSystem;
-import com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations;
+import com.codex.blacklight.animation.PlayerAction;
+import com.codex.blacklight.animation.PlayerActions;
 import com.codex.blacklight.mode.PrototypeModeSystem;
 import com.codex.blacklight.network.ClawAnimationPayload;
 import com.codex.blacklight.network.LandingVisualPayload;
@@ -31,13 +32,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.living.LivingFallEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
-import yesman.epicfight.api.animation.AnimationManager.AnimationAccessor;
-import yesman.epicfight.api.animation.AnimationPlayer;
-import yesman.epicfight.api.animation.Animator;
-import yesman.epicfight.api.animation.types.StaticAnimation;
-import yesman.epicfight.gameasset.Animations;
-import yesman.epicfight.world.capabilities.EpicFightCapabilities;
-import yesman.epicfight.world.capabilities.entitypatch.player.ServerPlayerPatch;
 import org.joml.Vector3f;
 
 import java.util.HashMap;
@@ -111,7 +105,7 @@ public final class PrototypeMovementSystem {
         // relies on — the controlling client's living-motion hooks otherwise race
         // the ordinary animator sync packet and the action never sticks locally.
         if(!movement.runningCharge()) {
-            play(player, BlacklightEpicFightAnimations.CHARGED_JUMP);
+            play(player, PlayerAction.CHARGED_JUMP);
             PacketDistributor.sendToPlayer(player, new ClawAnimationPayload(ClawAnimationPayload.Animation.CHARGED_JUMP));
         }
         syncCharge(player,movement.chargeTicks());
@@ -134,7 +128,7 @@ public final class PrototypeMovementSystem {
                 // An interrupted charge must drop the action pose immediately instead
                 // of letting the crouch clip play out to its 2.05 s end.
                 unpauseServerAnimator(player);
-                play(player, BlacklightEpicFightAnimations.JUMP_FALL);
+                play(player, PlayerAction.JUMP_FALL);
             }
             // Infected but not in Prototype mode right now: restore vanilla stepping.
             if (blacklight.isInfected()) {
@@ -207,7 +201,7 @@ public final class PrototypeMovementSystem {
                 movement.beginLandingRecovery(strength);
                 play(player, strength==LandingImpact.Strength.LIGHT
                         &&player.getDeltaMovement().horizontalDistance()>.12
-                        ?BlacklightEpicFightAnimations.LAND_MOVING:landingAnimation(strength));
+                        ?PlayerAction.LAND_MOVING:landingAnimation(strength));
                 PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
                         new LandingVisualPayload(player.getId(), strength,
                                 player.blockPosition().below(),
@@ -239,7 +233,7 @@ public final class PrototypeMovementSystem {
                     Math.max(0.04D, player.getDeltaMovement().y),
                     dashDirection.z * MovementTuningSettings.airDashSpeed());
             player.hurtMarked = true;
-            play(player, BlacklightEpicFightAnimations.AIR_DASH);
+            play(player, PlayerAction.AIR_DASH);
             PrototypeMovementEffects.onAirDashStarted(player, dashDirection);
         }
 
@@ -335,7 +329,7 @@ public final class PrototypeMovementSystem {
                     > PrototypeLocomotion.CHARGE_GROUND_GRACE_TICKS) {
                 movement.cancelCharge();
                 unpauseServerAnimator(player);
-                play(player, BlacklightEpicFightAnimations.JUMP_FALL);
+                play(player, PlayerAction.JUMP_FALL);
                 BlacklightNeoMod.LOGGER.debug(
                         "Cancelled charged jump for {} after sustained loss of ground",
                         player.getGameProfile().getName());
@@ -384,7 +378,7 @@ public final class PrototypeMovementSystem {
         player.setDeltaMovement(velocity.x+forward.x*launch,jumpVelocity,velocity.z+forward.z*launch);
         player.setOnGround(false);
         player.hurtMarked = true;
-        play(player, BlacklightEpicFightAnimations.JUMP_RISE);
+        play(player, PlayerAction.JUMP_RISE);
         PrototypeMovementEffects.onChargedJumpReleased(player, charge);
         BlacklightNeoMod.LOGGER.debug("Released charged jump for {} at {} ticks (velocity={})",
                 player.getGameProfile().getName(), held, jumpVelocity);
@@ -431,28 +425,28 @@ public final class PrototypeMovementSystem {
                 boolean running = movement.sprinting() && movement.forwardHeld();
                 player.setSprinting(running);
                 movement.setRunningAnimation(running);
-                play(player, running ? BlacklightEpicFightAnimations.CLAW_SPRINT
-                        : movement.wallInput().moving() ? BlacklightEpicFightAnimations.CLAW_WALK
-                        : BlacklightEpicFightAnimations.CLAW_IDLE);
+                play(player, running ? PlayerAction.CLAW_SPRINT
+                        : movement.wallInput().moving() ? PlayerAction.CLAW_WALK
+                        : PlayerAction.CLAW_IDLE);
             } else {
-                play(player,BlacklightEpicFightAnimations.JUMP_FALL);
+                play(player,PlayerAction.JUMP_FALL);
             }
         }
         syncWallMotion(player,wall);
         return frame.handled();
     }
 
-    private static AnimationAccessor<? extends StaticAnimation> wallAnimation(WallTraversal.Mode mode) {
+    private static PlayerAction wallAnimation(WallTraversal.Mode mode) {
         return switch (mode) {
-            case RUN -> BlacklightEpicFightAnimations.WALL_RUN;
-            case CLING -> BlacklightEpicFightAnimations.WALL_CLING;
-            case CLIMB -> BlacklightEpicFightAnimations.WALL_CLIMB;
-            case LEAP -> BlacklightEpicFightAnimations.WALL_LEAP;
-            case MANTLE -> BlacklightEpicFightAnimations.WALL_MANTLE;
-            case VAULT -> BlacklightEpicFightAnimations.WALL_VAULT;
-            case TOP -> BlacklightEpicFightAnimations.WALL_TOP;
-            case PARKOUR -> BlacklightEpicFightAnimations.PARKOUR_SMALL;
-            default -> BlacklightEpicFightAnimations.JUMP_RISE;
+            case RUN -> PlayerAction.WALL_RUN;
+            case CLING -> PlayerAction.WALL_CLING;
+            case CLIMB -> PlayerAction.WALL_CLIMB;
+            case LEAP -> PlayerAction.WALL_LEAP;
+            case MANTLE -> PlayerAction.WALL_MANTLE;
+            case VAULT -> PlayerAction.WALL_VAULT;
+            case TOP -> PlayerAction.WALL_TOP;
+            case PARKOUR -> PlayerAction.PARKOUR_SMALL;
+            default -> PlayerAction.JUMP_RISE;
         };
     }
 
@@ -677,12 +671,12 @@ public final class PrototypeMovementSystem {
         }
     }
 
-    private static AnimationAccessor<? extends StaticAnimation> landingAnimation(
+    private static PlayerAction landingAnimation(
             LandingImpact.Strength strength) {
         return switch (strength) {
-            case LIGHT -> BlacklightEpicFightAnimations.LAND_LIGHT;
-            case HEAVY -> BlacklightEpicFightAnimations.LAND_HEAVY;
-            case DEVASTATING -> BlacklightEpicFightAnimations.LAND_DEVASTATING;
+            case LIGHT -> PlayerAction.LAND_LIGHT;
+            case HEAVY -> PlayerAction.LAND_HEAVY;
+            case DEVASTATING -> PlayerAction.LAND_DEVASTATING;
             default -> null;
         };
     }
@@ -693,7 +687,7 @@ public final class PrototypeMovementSystem {
 
     private static void finishDashPose(ServerPlayer player){
         if(!player.onGround())
-            play(player,BlacklightEpicFightAnimations.AIR_DASH_BRAKE);
+            play(player,PlayerAction.AIR_DASH_BRAKE);
     }
 
     private static void applyLandingRecovery(ServerPlayer player, MovementState movement) {
@@ -713,28 +707,13 @@ public final class PrototypeMovementSystem {
      */
     private static void holdServerChargePose(ServerPlayer player, MovementState movement,
                                              int maximum) {
-        if (BlacklightEpicFightAnimations.CHARGED_JUMP == null) return;
-        ServerPlayerPatch patch = EpicFightCapabilities.getServerPlayerPatch(player);
-        if (patch == null) return;
-        Animator animator = patch.getAnimator();
-        AnimationPlayer animationPlayer = animator.getPlayerFor(
-                BlacklightEpicFightAnimations.CHARGED_JUMP);
-        var real = animationPlayer == null ? null : animationPlayer.getRealAnimation();
-        if (real == null
-                || !(real.equals(BlacklightEpicFightAnimations.CHARGED_JUMP)
-                || real.equals(BlacklightEpicFightAnimations.CHARGED_JUMP.get()))) return;
-        float totalTime = BlacklightEpicFightAnimations.CHARGED_JUMP.get().getTotalTime();
-        float ratio = Math.min(1.0F, movement.chargeTicks() / (float) maximum);
-        float time = Math.min(totalTime * ratio, totalTime - 0.001F);
-        animationPlayer.setElapsedTime(time, time);
-        // Same blend-in rule as the client: freeze only the full-charge hold.
-        animator.setHardPause(movement.isFullyCharged(maximum));
+        PlayerActions.get().holdJumpCharge(player,
+                Math.min(1.0F, movement.chargeTicks() / (float) maximum), movement.isFullyCharged(maximum));
     }
 
-    /** Releases a server animator frozen by holdServerChargePose. */
+    /** Releases a charge pose through the selected presentation engine. */
     private static void unpauseServerAnimator(ServerPlayer player) {
-        ServerPlayerPatch patch = EpicFightCapabilities.getServerPlayerPatch(player);
-        if (patch != null) patch.getAnimator().setHardPause(false);
+        PlayerActions.get().resume(player);
     }
 
     /** Draws two animated biological helices around the legs while maximum charge is held. */
@@ -759,9 +738,8 @@ public final class PrototypeMovementSystem {
     }
 
     private static void play(ServerPlayer player,
-                             AnimationAccessor<? extends StaticAnimation> animation) {
+                             PlayerAction animation) {
         if (animation == null) return;
-        ServerPlayerPatch patch = EpicFightCapabilities.getServerPlayerPatch(player);
-        if (patch != null) patch.playAnimationSynchronized(animation, 0.08F);
+        PlayerActions.get().play(player, animation, 0.08F);
     }
 }

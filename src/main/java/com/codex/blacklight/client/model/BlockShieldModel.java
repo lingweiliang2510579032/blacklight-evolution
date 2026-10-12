@@ -49,6 +49,21 @@ public final class BlockShieldModel {
     private static Vector3f vector(com.google.gson.JsonArray a) {
         return new Vector3f(a.get(0).getAsFloat(),a.get(1).getAsFloat(),a.get(2).getAsFloat());
     }
+    /** Rebase the source grip mesh to Minecraft's builtin shield plate centre. */
+    public org.joml.Matrix4f itemFrame() {
+        var basis=new org.joml.Matrix4f().m00(right.x).m01(right.y).m02(right.z)
+                .m10(up.x).m11(up.y).m12(up.z).m20(front.x).m21(front.y).m22(front.z).invert();
+        var min=new Vector3f(Float.POSITIVE_INFINITY);var max=new Vector3f(Float.NEGATIVE_INFINITY);
+        for(var part:parts)for(var point:part.points){var local=basis.transformPosition(new Vector3f(point));min.min(local);max.max(local);}
+        var center=min.add(max).mul(.5F);
+        return new org.joml.Matrix4f().translation(0,0,-1.5F/16F).scale(1,-1,-1)
+                .translate(-center.x,-center.y,-center.z).mul(basis);
+    }
+    public com.codex.blacklight.client.animation.FirstPersonPose.Result projectedItem(org.joml.Matrix4f frame,org.joml.Matrix4f projection) {
+        float near=Float.POSITIVE_INFINITY,x=0,y=0;
+        for(var part:parts)for(var point:part.points){var p=frame.transformPosition(new Vector3f(point));near=Math.min(near,-p.z);x=Math.max(x,Math.abs(p.x*projection.m00()/-p.z));y=Math.max(y,Math.abs(p.y*projection.m11()/-p.z));}
+        return new com.codex.blacklight.client.animation.FirstPersonPose.Result(new org.joml.Matrix4f[0],near,x,y);
+    }
     public void render(AbstractClientPlayer player, PoseStack stack, MultiBufferSource buffers, int light, float partial) {
         var data=player.getData(ModAttachments.PLAYER_STATE);
         if(!player.isAlive()||!data.isInfected()||!data.isPrototypeMode()){states.remove(player);return;}

@@ -15,6 +15,7 @@ public final class ImpactControl {
     private static final Map<Mob,Control> ACTIVE=new IdentityHashMap<>();
     private ImpactControl(){}
     public static void begin(LivingEntity entity,ImpactProfile profile,float yaw){
+        if(ConsumeSystem.grappleProtected(entity)||entity.getData(ModAttachments.CONSUME_VISUAL).active())return;
         cancel(entity);
         if(!entity.isAlive()){
             publish(entity,new HitReaction(entity.level().getGameTime(),20,HitReaction.DEATH,yaw,ImpactProfile.FALL));return;

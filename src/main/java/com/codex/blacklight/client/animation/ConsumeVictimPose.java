@@ -10,10 +10,10 @@ import com.mojang.math.Axis;
 import net.minecraft.client.model.*;
 import net.minecraft.client.model.geom.*;
 import net.minecraft.world.entity.LivingEntity;
-import yesman.epicfight.api.animation.Pose;
+import com.codex.blacklight.animation.BlacklightPose;
 import java.util.*;
 
-/** Same authored reaction drives vanilla joints, Epic Fight joints, and the Hunter's Gecko rig. */
+/** Same authored reaction drives vanilla joints, Blacklight bones, and the Hunter's Gecko rig. */
 public final class ConsumeVictimPose {
     private static final Map<EntityModel<?>,Map<ModelPart,PartPose>> SAVED=new WeakHashMap<>();
     private ConsumeVictimPose() {}
@@ -49,8 +49,7 @@ public final class ConsumeVictimPose {
                     .rotateX(p.bend()*.16F).rotateZ(p.twist()*.20F).translate(0,-h*.65F,0).rotateY((float)Math.toRadians(entity.yBodyRot));
         var nativePose=NativeConsumePose.sample(entity,visual,"victim",partial);
         if(nativePose!=null && com.codex.blacklight.combat.ConsumeSequence.nativeReceiver(entity)) {
-            var patch=yesman.epicfight.world.capabilities.EpicFightCapabilities.getEntityPatch(entity,yesman.epicfight.world.capabilities.entitypatch.LivingEntityPatch.class);
-            if(patch!=null&&patch.overrideRender()&&com.codex.blacklight.combat.ConsumeSequence.humanoid(entity))return matrix;
+            if(entity instanceof net.minecraft.client.player.AbstractClientPlayer) return matrix;
             var form=PowerForm.values()[Math.clamp(visual.form(),0,PowerForm.values().length-1)];
             var projected=com.codex.blacklight.combat.ConsumePlacementTrack.projection(GrappleMotion.sceneKey(entity,visual),GrappleMotion.sceneProgress(entity,visual,partial));
             if(projected.isPresent()){
@@ -83,11 +82,10 @@ public final class ConsumeVictimPose {
         return matrix;
     }
     public static void body(LivingEntity entity,PoseStack stack,float partial) { stack.mulPose(bodyTransform(entity,partial)); }
-    /** Effects follow the posed torso even when Epic Fight already applies the pose to its mesh. */
+    /** Effects follow the posed torso even when Blacklight already applies the pose to its mesh. */
     public static org.joml.Matrix4f effectTransform(LivingEntity entity,float partial) {
         var visual=entity.getData(ModAttachments.CONSUME_VISUAL);
-        var patch=yesman.epicfight.world.capabilities.EpicFightCapabilities.getEntityPatch(entity,yesman.epicfight.world.capabilities.entitypatch.LivingEntityPatch.class);
-        if(patch==null||!patch.overrideRender()||!com.codex.blacklight.combat.ConsumeSequence.humanoid(entity)||(!visual.consuming()&&!GrappleMotion.active(visual))||com.codex.blacklight.combat.ConsumeSequence.mountedStage(visual.stage()))return bodyTransform(entity,partial);
+        if(!(entity instanceof net.minecraft.client.player.AbstractClientPlayer)||!com.codex.blacklight.combat.ConsumeSequence.humanoid(entity)||(!visual.consuming()&&!GrappleMotion.active(visual))||com.codex.blacklight.combat.ConsumeSequence.mountedStage(visual.stage()))return bodyTransform(entity,partial);
         var form=PowerForm.values()[Math.clamp(visual.form(),0,PowerForm.values().length-1)];
         float t=GrappleMotion.sceneProgress(entity,visual,partial);
         String key=GrappleMotion.sceneKey(entity,visual);
@@ -201,7 +199,7 @@ public final class ConsumeVictimPose {
     public static void restore(EntityModel<?> model) {
         var saved=SAVED.remove(model);if(saved!=null)saved.forEach(ModelPart::loadPose);
     }
-    public static void epic(LivingEntity entity,Pose pose,float partial) {
+    public static void epic(LivingEntity entity,BlacklightPose pose,float partial) {
         if(!entity.getData(ModAttachments.CONSUME_VISUAL).active()) {
             var hit=entity.getData(ModAttachments.HIT_REACTION);float w=hit.weight(entity.level().getGameTime(),partial);
             if(w>0){

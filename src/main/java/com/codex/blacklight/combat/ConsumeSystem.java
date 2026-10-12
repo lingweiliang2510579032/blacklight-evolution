@@ -1,7 +1,8 @@
 package com.codex.blacklight.combat;
 
 import com.codex.blacklight.entity.BlacklightHunter;
-import com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations;
+import com.codex.blacklight.animation.PlayerAction;
+import com.codex.blacklight.animation.PlayerActions;
 import com.codex.blacklight.registry.ModAttachments;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,8 +17,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import yesman.epicfight.world.capabilities.EpicFightCapabilities;
-import yesman.epicfight.world.capabilities.entitypatch.player.ServerPlayerPatch;
 import java.util.*;
 
 /** Server owns claims and rewards. Clients send intent only, never a target ID or reward. */
@@ -64,9 +63,8 @@ public final class ConsumeSystem {
         s.victim.syncData(ModAttachments.CONSUME_VISUAL);
         p.setData(ModAttachments.GRAB_STAGE,stage);p.syncData(ModAttachments.GRAB_STAGE);
     }
-    private static void play(ServerPlayer p,yesman.epicfight.api.animation.AnimationManager.AnimationAccessor<? extends yesman.epicfight.api.animation.types.StaticAnimation> animation) {
-        var patch=EpicFightCapabilities.getEntityPatch(p,ServerPlayerPatch.class);
-        if(patch!=null)patch.playAnimationSynchronized(animation,0);
+    private static void play(ServerPlayer player, PlayerAction action) {
+        PlayerActions.get().play(player, action, 0);
     }
     /** Right click confirms a held target. It can never acquire or auto-consume a new target. */
     public static void consume(ServerPlayer player) {
@@ -79,14 +77,14 @@ public final class ConsumeSystem {
         s.facing=player.getYRot();
         s.consumeTargetStart=s.victim.position();
         phase(player,s,s.victim instanceof BlacklightHunter?ConsumeVisual.HUNTER_CONSUME:s.large?ConsumeVisual.MOUNT_CONSUME:ConsumeVisual.CONSUME);
-        play(player,s.large?BlacklightEpicFightAnimations.consumeLarge(s.animationForm()):BlacklightEpicFightAnimations.consume(s.form));
+        play(player,s.large?PlayerAction.consumeLarge(s.animationForm()):PlayerAction.consume(s.form));
         com.codex.blacklight.BlacklightNeoMod.LOGGER.info("Consume scene started: form={} target={} large={} clip={} duration={} origin={}",s.form,s.victim.getType(),s.large,ConsumeSequence.clipKey(s.animationForm(),s.large),s.duration(),s.start);
     }
     /** E again or primary attack starts a throw; release is synchronized to the arm swing. */
     public static void throwTarget(ServerPlayer player) {
         var s=ACTIVE.get(player);if(s==null||!ConsumeVisual.holding(s.stage)||!valid(player,s))return;
         if(s.large){cancel(player);return;}
-        phase(player,s,ConsumeVisual.THROW);play(player,s.form==PowerForm.BLADE?BlacklightEpicFightAnimations.GRAB_BLADE_THROW:BlacklightEpicFightAnimations.GRAB_THROW);
+        phase(player,s,ConsumeVisual.THROW);play(player,s.form==PowerForm.BLADE?PlayerAction.GRAB_BLADE_THROW:PlayerAction.GRAB_THROW);
     }
     private static boolean valid(ServerPlayer p,Session s) {
         var v=s.victim;var state=p.getData(ModAttachments.PLAYER_STATE);
@@ -154,6 +152,7 @@ public final class ConsumeSystem {
     }
 
     public static boolean eligible(Mob mob) {
+        if(mob instanceof com.codex.blacklight.entity.HiveTendril)return false;
         return !THROWN.containsKey(mob) && mob.isAlive() && !mob.isRemoved() && !mob.isInvulnerable() && mob.getType().is(CONSUMABLE)
                 && !(mob instanceof net.minecraft.world.entity.boss.wither.WitherBoss wither && wither.getInvulnerableTicks()>0)
                 && !(mob instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon dragon && dragon.getPhaseManager().getCurrentPhase().getPhase()==net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase.DYING)
@@ -209,7 +208,7 @@ public final class ConsumeSystem {
         player.setYRot((float) Math.toDegrees(Math.atan2(-direction.x, direction.z)));
         player.setYHeadRot(player.getYRot()); player.yBodyRot = player.getYRot();
         if(!session.large){target.setYRot(player.getYRot()+180); target.setYHeadRot(target.getYRot()); target.yBodyRot=target.getYRot();}
-        play(player,form==PowerForm.BLADE?BlacklightEpicFightAnimations.GRAB_BLADE:form==PowerForm.WHIPFIST?BlacklightEpicFightAnimations.GRAB_WHIP:BlacklightEpicFightAnimations.GRAB_REACH);
+        play(player,form==PowerForm.BLADE?PlayerAction.GRAB_BLADE:form==PowerForm.WHIPFIST?PlayerAction.GRAB_WHIP:PlayerAction.GRAB_REACH);
         player.level().playSound(null, target.blockPosition(), SoundEvents.SCULK_CATALYST_BLOOM, SoundSource.PLAYERS, .9F, .65F);
     }
 
@@ -435,7 +434,7 @@ public final class ConsumeSystem {
         player.setData(ModAttachments.CONSUME_RECOVERY,recovery);player.syncData(ModAttachments.CONSUME_RECOVERY);
         // Locomotion owns the base layer; the client samples the remaining source
         // pose independently, even after the receiver entity has disappeared.
-        play(player,BlacklightEpicFightAnimations.CLAW_IDLE);
+        play(player,PlayerAction.CLAW_IDLE);
         com.codex.blacklight.power.GrowthSystem.consumed(player,target);
 
         var state = player.getData(ModAttachments.PLAYER_STATE);
@@ -468,9 +467,8 @@ public final class ConsumeSystem {
         if (session == null) return;
         release(session.victim());
         unlock(player);
-        var patch = EpicFightCapabilities.getEntityPatch(player, ServerPlayerPatch.class);
-        if (patch != null && player.isAlive() && player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode())
-            patch.playAnimationSynchronized(BlacklightEpicFightAnimations.CLAW_IDLE, 0);
+        if (player.isAlive() && player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode())
+            play(player, PlayerAction.CLAW_IDLE);
         message(player, "consume_cancelled");
     }
     private static void release(Mob victim) {

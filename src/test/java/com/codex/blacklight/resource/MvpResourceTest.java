@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MvpResourceTest {
-    private static JsonObject dependencyArmature;
     @Test
     void authoredActionsHaveCompleteNormalizedTracksAndMatchServerDurations() throws IOException {
         Map<String, Double> clips = Map.ofEntries(
@@ -63,7 +62,7 @@ class MvpResourceTest {
     }
 
     @Test
-    void everyServerTimedMvpActionHasAnEpicFightAnimation() {
+    void everyServerTimedMvpActionHasANativeBlacklightAnimation() {
         assertResource("biped/combat/claw_auto1.json");
         assertResource("biped/combat/claw_auto2.json");
         assertResource("biped/combat/claw_auto3.json");
@@ -314,7 +313,16 @@ class MvpResourceTest {
                     if (!mesh.has("Hand_"+side)) continue;
                     var hand=pose.get("Hand_"+side);
                     for(var face:mesh.getAsJsonArray("Hand_"+side)) for(var vertex:face.getAsJsonObject().getAsJsonArray("p")) {
-                        var v=vertex.getAsJsonArray();var world=point(hand,v.get(0).getAsDouble(),v.get(1).getAsDouble(),v.get(2).getAsDouble());
+                        var v=vertex.getAsJsonArray();
+                        double x=v.get(0).getAsDouble(),y=v.get(1).getAsDouble(),z=v.get(2).getAsDouble();
+                        // Default BladeShape sizing is baked by ClawArmModel before
+                        // joint attachment; measuring the raw export misses its tips.
+                        if(form.getKey().equals("blade")&&side.equals("R")) {
+                            x*=com.codex.blacklight.client.model.BladeShape.WIDTH;
+                            z*=com.codex.blacklight.client.model.BladeShape.WIDTH;
+                            y=com.codex.blacklight.client.model.BladeShape.length((float)y);
+                        }
+                        var world=point(hand,x,y,z);
                         double[] local=new double[3];
                         for(int axis=0;axis<3;axis++)for(int k=0;k<3;k++)local[axis]+=head[k][axis]*(world[k]-head[k][3]);
                         // Minecraft's 8-pixel head occupies +/- .25 around local Y=.25.
@@ -328,6 +336,59 @@ class MvpResourceTest {
             }
         }
         assertTrue(failures.isEmpty(), String.join("; ", failures));
+    }
+
+    @Test
+    void sizedBladeKeepsHeadClearanceBetweenGrabKeys() throws IOException {
+        var mesh=readJson("/assets/blacklight/models/form_blade.json").getAsJsonObject("joints");
+        for(String name:new String[]{"grab_blade","grab_blade_throw"}) {
+            var clip=readAnimation("biped/action/"+name+".json");
+            var headTimes=tracks(clip).get("Head").getAsJsonArray("time");
+            double minimum=100,closestTime=0;
+            for(int sample=0;sample<=Math.round(headTimes.get(headTimes.size()-1).getAsDouble()*200);sample++) {
+                double time=sample/200D;
+                var pose=interpolatedWorldPose(clip,time);var head=pose.get("Head");var hand=pose.get("Hand_R");
+                for(var face:mesh.getAsJsonArray("Hand_R"))for(var vertex:face.getAsJsonObject().getAsJsonArray("p")) {
+                    var v=vertex.getAsJsonArray();
+                    var world=point(hand,v.get(0).getAsDouble()*com.codex.blacklight.client.model.BladeShape.WIDTH,
+                            com.codex.blacklight.client.model.BladeShape.length(v.get(1).getAsFloat()),
+                            v.get(2).getAsDouble()*com.codex.blacklight.client.model.BladeShape.WIDTH);
+                    double[] local=new double[3];
+                    for(int axis=0;axis<3;axis++)for(int k=0;k<3;k++)local[axis]+=head[k][axis]*(world[k]-head[k][3]);
+                    double dx=Math.max(0,Math.abs(local[0])-.25),dy=Math.max(0,Math.abs(local[1]-.25)-.25),dz=Math.max(0,Math.abs(local[2])-.25);
+                    double distance=Math.sqrt(dx*dx+dy*dy+dz*dz);
+                    if(distance<minimum){minimum=distance;closestTime=time;}
+                }
+            }
+            assertTrue(minimum>=.06,name+" interpolated clearance="+minimum+" at "+closestTime);
+        }
+    }
+
+    private static Map<String,double[][]> interpolatedWorldPose(JsonObject clip,double time)throws IOException {
+        var sampled=clip.deepCopy();
+        for(var item:sampled.getAsJsonArray("animation")) {
+            var track=item.getAsJsonObject();var times=track.getAsJsonArray("time");var frames=track.getAsJsonArray("transform");
+            int upper=0;while(upper<times.size()-1&&times.get(upper).getAsDouble()<time)upper++;
+            int lower=Math.max(0,upper-1);double start=times.get(lower).getAsDouble(),end=times.get(upper).getAsDouble();
+            double t=end==start?0:Math.clamp((time-start)/(end-start),0,1);
+            var a=frames.get(lower).getAsJsonObject();var b=frames.get(upper).getAsJsonObject();var frame=new JsonObject();
+            for(String channel:new String[]{"loc","sca"}) {
+                var values=new com.google.gson.JsonArray();
+                for(int axis=0;axis<3;axis++)values.add(a.getAsJsonArray(channel).get(axis).getAsDouble()*(1-t)+b.getAsJsonArray(channel).get(axis).getAsDouble()*t);
+                frame.add(channel,values);
+            }
+            double[] qa=new double[4],qb=new double[4];double la=0,lb=0;
+            for(int axis=0;axis<4;axis++){qa[axis]=a.getAsJsonArray("rot").get(axis).getAsDouble();qb[axis]=b.getAsJsonArray("rot").get(axis).getAsDouble();la+=qa[axis]*qa[axis];lb+=qb[axis]*qb[axis];}
+            double dot=0;for(int axis=0;axis<4;axis++){qa[axis]/=Math.sqrt(la);qb[axis]/=Math.sqrt(lb);dot+=qa[axis]*qb[axis];}
+            if(dot<0){dot=-dot;for(int axis=0;axis<4;axis++)qb[axis]=-qb[axis];}
+            double wa=1-t,wb=t;
+            if(dot<.9995){double angle=Math.acos(Math.clamp(dot,-1,1));wa=Math.sin((1-t)*angle)/Math.sin(angle);wb=Math.sin(t*angle)/Math.sin(angle);}
+            double length=0;double[] q=new double[4];for(int axis=0;axis<4;axis++){q[axis]=qa[axis]*wa+qb[axis]*wb;length+=q[axis]*q[axis];}
+            var rotation=new com.google.gson.JsonArray();for(double value:q)rotation.add(value/Math.sqrt(length));frame.add("rot",rotation);
+            var sampledTimes=new com.google.gson.JsonArray();sampledTimes.add(time);var sampledFrames=new com.google.gson.JsonArray();sampledFrames.add(frame);
+            track.add("time",sampledTimes);track.add("transform",sampledFrames);
+        }
+        return worldPose(sampled,time);
     }
 
     private static double[] clawPartCenter(JsonObject mesh, String name) {
@@ -345,7 +406,7 @@ class MvpResourceTest {
     // positions rather than key indices or the sign of one quaternion component.
     private static Map<String,double[][]> worldPose(JsonObject clip,double time) throws IOException {
         Map<String,double[][]> result=new HashMap<>();
-        var skeleton=readJson("/epicfight-biped-armature.json");
+        var skeleton=readJson("/assets/blacklight/animation/player_bind.json");
         for(var root:skeleton.getAsJsonArray("hierarchy"))
             walkPose(root.getAsJsonObject(),identity(),tracks(clip),time,result);
         return result;
@@ -357,8 +418,8 @@ class MvpResourceTest {
         var tr=tracks.get(name);var times=tr.getAsJsonArray("time");int index=0;
         for(int i=1;i<times.size();i++)if(Math.abs(times.get(i).getAsDouble()-time)<Math.abs(times.get(index).getAsDouble()-time))index=i;
         var f=tr.getAsJsonArray("transform").get(index).getAsJsonObject();var q=f.getAsJsonArray("rot");
-        // The loader conjugates XYZ, and OpenMatrix4f.fromQuaternion transposes
-        // the conventional rotation matrix: the two operations cancel.
+        // Independent rest-plus-local forward kinematics keeps the exported
+        // quaternion convention identical to the native runtime.
         double w=q.get(0).getAsDouble(),x=q.get(1).getAsDouble(),y=q.get(2).getAsDouble(),z=q.get(3).getAsDouble();
         double[][] local={{1-2*(y*y+z*z),2*(x*y-z*w),2*(x*z+y*w),0},
             {2*(x*y+z*w),1-2*(x*x+z*z),2*(y*z-x*w),0},
@@ -383,20 +444,6 @@ class MvpResourceTest {
     }
 
     private static JsonObject readJson(String path) throws IOException {
-        if (path.equals("/epicfight-biped-armature.json")) {
-            if (dependencyArmature==null) {
-                String dependency=System.getProperty("blacklight.test.epicFightJar");
-                assertNotNull(dependency,"Run tests through Gradle to resolve the Epic Fight dependency");
-                try(var zip=new java.util.zip.ZipFile(dependency)) {
-                    var entry=zip.getEntry("assets/epicfight/animmodels/entity/biped.json");
-                    assertNotNull(entry,"Epic Fight biped model is required for compatibility checks");
-                    try(var reader=new InputStreamReader(zip.getInputStream(entry),StandardCharsets.UTF_8)) {
-                        dependencyArmature=JsonParser.parseReader(reader).getAsJsonObject().getAsJsonObject("armature");
-                    }
-                }
-            }
-            return dependencyArmature;
-        }
         var stream = MvpResourceTest.class.getResourceAsStream(path);
         assertNotNull(stream, path);
         try (var reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {

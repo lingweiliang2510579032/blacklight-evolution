@@ -15,9 +15,9 @@ import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
-import yesman.epicfight.api.utils.math.OpenMatrix4f;
+import org.joml.Matrix4f;
 
-/** Blender surfaces authored in the shipped Epic Fight skeleton's joint-local space. */
+/** Blender surfaces authored in the Blacklight skeleton's joint-local space. */
 public final class ClawArmModel extends Model {
     public static final ModelLayerLocation LAYER = new ModelLayerLocation(
             ResourceLocation.fromNamespaceAndPath(BlacklightNeoMod.MOD_ID, "claw_arm"), "main");
@@ -81,15 +81,15 @@ public final class ClawArmModel extends Model {
     }
 
     public void renderJoint(String joint, PoseStack stack, VertexConsumer consumer,
-                             int light, int overlay, float progress, float talonLength,OpenMatrix4f wristDelta) {
+                             int light, int overlay, float progress, float talonLength,Matrix4f wristDelta) {
         renderJoint(joint,stack,consumer,light,overlay,progress,talonLength,wristDelta,Float.POSITIVE_INFINITY);
     }
     public void renderJoint(String joint, PoseStack stack, VertexConsumer consumer,
-                             int light, int overlay, float progress, float talonLength,OpenMatrix4f wristDelta,float distalLimit) {
+                             int light, int overlay, float progress, float talonLength,Matrix4f wristDelta,float distalLimit) {
         renderJoint(joint,stack,consumer,light,overlay,progress,talonLength,wristDelta,distalLimit,null);
     }
     public void renderJoint(String joint, PoseStack stack, VertexConsumer consumer,
-                             int light, int overlay, float progress, float talonLength,OpenMatrix4f wristDelta,float distalLimit,
+                             int light, int overlay, float progress, float talonLength,Matrix4f wristDelta,float distalLimit,
                              com.codex.blacklight.combat.HammerScales.Shape hammer) {
         Triangle[] faces = joints.get(joint);
         if (faces == null) return;
@@ -124,13 +124,13 @@ public final class ClawArmModel extends Model {
                     // Blend only the wrist/palm and talons; the forearm keeps its elbow
                     // attachment. This transports the native wrist instead of posing it.
                     float w=Math.clamp((p[1]-.28F)/.10F,0,1);w=w*w*(3-2*w);
-                    float tx=wristDelta.m00*x+wristDelta.m10*y+wristDelta.m20*z+wristDelta.m30;
-                    float ty=wristDelta.m01*x+wristDelta.m11*y+wristDelta.m21*z+wristDelta.m31;
-                    float tz=wristDelta.m02*x+wristDelta.m12*y+wristDelta.m22*z+wristDelta.m32;
+                    float tx=wristDelta.m00()*x+wristDelta.m10()*y+wristDelta.m20()*z+wristDelta.m30();
+                    float ty=wristDelta.m01()*x+wristDelta.m11()*y+wristDelta.m21()*z+wristDelta.m31();
+                    float tz=wristDelta.m02()*x+wristDelta.m12()*y+wristDelta.m22()*z+wristDelta.m32();
                     x+=(tx-x)*w;y+=(ty-y)*w;z+=(tz-z)*w;
-                    float rx=wristDelta.m00*nx+wristDelta.m10*ny+wristDelta.m20*nz;
-                    float ry=wristDelta.m01*nx+wristDelta.m11*ny+wristDelta.m21*nz;
-                    float rz=wristDelta.m02*nx+wristDelta.m12*ny+wristDelta.m22*nz;
+                    float rx=wristDelta.m00()*nx+wristDelta.m10()*ny+wristDelta.m20()*nz;
+                    float ry=wristDelta.m01()*nx+wristDelta.m11()*ny+wristDelta.m21()*nz;
+                    float rz=wristDelta.m02()*nx+wristDelta.m12()*ny+wristDelta.m22()*nz;
                     nx+=(rx-nx)*w;ny+=(ry-ny)*w;nz+=(rz-nz)*w;
                     float length=(float)Math.sqrt(nx*nx+ny*ny+nz*nz);
                     if(length>1e-6F){nx/=length;ny/=length;nz/=length;}

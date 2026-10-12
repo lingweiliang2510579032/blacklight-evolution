@@ -8,10 +8,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
 import org.spongepowered.asm.mixin.Mixin;
 
-/** Run after both the vanilla setup and Epic Fight's early-return TPS setup.
- * EF's post event runs before vanilla setup in its non-TPS branch, so it cannot
- * serve as a final camera hook for every user configuration.
- */
+/** Apply the independent follow camera after vanilla has established its view. */
 @Mixin(Camera.class)
 public abstract class PrototypeChaseCameraMixin {
     @WrapMethod(method="setup")

@@ -2,8 +2,8 @@ package com.codex.blacklight.client;
 
 import com.codex.blacklight.BlacklightNeoMod;
 import com.codex.blacklight.client.screen.MovementTunerScreen;
-import com.codex.blacklight.client.tuning.AnimationPoseSettings;
-import com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations;
+import com.codex.blacklight.animation.PlayerAction;
+import com.codex.blacklight.animation.PlayerMotionController;
 import com.codex.blacklight.movement.JumpInputState;
 import com.codex.blacklight.movement.MovementTuningSettings;
 import com.codex.blacklight.movement.PrototypeLocomotion;
@@ -16,7 +16,6 @@ import com.codex.blacklight.registry.ModAttachments;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.Direction;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -25,20 +24,8 @@ import net.neoforged.neoforge.client.event.ComputeFovModifierEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
-import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.lwjgl.glfw.GLFW;
-import yesman.epicfight.api.animation.AnimationPlayer;
-import yesman.epicfight.api.animation.Animator;
-import yesman.epicfight.api.animation.LivingMotions;
-import yesman.epicfight.api.animation.LivingMotion;
-import yesman.epicfight.api.client.animation.ClientAnimator;
-import yesman.epicfight.api.client.event.EpicFightClientEventHooks;
-import yesman.epicfight.api.client.event.types.entity.ModifyPlayerLivingMotionEvent;
-import yesman.epicfight.client.world.capabilites.entitypatch.player.AbstractClientPlayerPatch;
-import yesman.epicfight.world.capabilities.EpicFightCapabilities;
 
 @EventBusSubscriber(modid = BlacklightNeoMod.MOD_ID, value = Dist.CLIENT)
 public final class ClientMovementEvents {
@@ -54,7 +41,6 @@ public final class ClientMovementEvents {
     private static boolean runningCharge;
     private static int clientOffGroundTicks;
     private static final JumpInputState JUMP_INPUT = new JumpInputState();
-    private static LivingMotion lastForcedMotion;
     private static boolean wasPrototype;
     private static boolean wasHoldingFinalChargePose;
     private static boolean chargeDriverEngaged;
@@ -69,13 +55,6 @@ public final class ClientMovementEvents {
     private static net.minecraft.client.player.LocalPlayer inputOwner;
 
 
-    static {
-        // Epic Fight events use their own EventHook system; they are not NeoForge
-        // Event subclasses and therefore must never be annotated with @SubscribeEvent.
-        EpicFightClientEventHooks.Entity.MODIFY_PLAYER_LIVING_MOTION_BASE.registerEvent(
-                ClientMovementEvents::onLivingMotion, "blacklight:prototype_movement", -1000);
-    }
-
     private ClientMovementEvents() { }
 
     @SubscribeEvent
@@ -86,8 +65,16 @@ public final class ClientMovementEvents {
     @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.LOWEST)
     public static void lockWeaponMovement(net.neoforged.neoforge.client.event.MovementInputUpdateEvent event) {
         beginWeaponMovementOwnership(event.getEntity());
-        if (event.getEntity().getData(ModAttachments.WEAPON_VISUAL).spec() == null
-                && !pendingWeaponMovement(event.getEntity())) return;
+        if(event.getEntity().getData(ModAttachments.WEAPON_VISUAL).spec()==null
+                && !pendingWeaponMovement(event.getEntity())) {
+            var mc=Minecraft.getInstance();
+            if(mc.player==event.getEntity()&&isPrototype(mc)
+                    &&com.codex.blacklight.client.camera.PrototypeChaseCamera.ownsView()
+                    &&(Math.abs(event.getInput().forwardImpulse)>1e-5F||Math.abs(event.getInput().leftImpulse)>1e-5F)
+                    &&!event.getEntity().getData(ModAttachments.CONSUMING))
+                event.getEntity().setYRot(cameraYaw(mc));
+            return;
+        }
         // Suppress vanilla walking/jumping as well as our traversal prediction.
         // Physical KeyMappings remain readable so held inputs resume after the action.
         clearWeaponTravelInput(event.getInput());
@@ -112,7 +99,7 @@ public final class ClientMovementEvents {
         PacketDistributor.sendToServer(new MovementInputPayload(lastJumpHeld,false,forward,sideways,lastSprinting,lastDetach,cameraYaw(minecraft)));
     }
 
-    /** Camera-relative intent survives Epic Fight consuming vanilla movement mappings. */
+    /** Camera-relative intent is independent of action input ownership. */
     static Float movementHeading(Minecraft minecraft) {
         if(minecraft.player==null||minecraft.screen!=null)return null;
         int forward=(mappingDown(minecraft,minecraft.options.keyUp)?1:0)-(mappingDown(minecraft,minecraft.options.keyDown)?1:0);
@@ -123,8 +110,7 @@ public final class ClientMovementEvents {
     private static float cameraYaw(Minecraft mc) {
         if(com.codex.blacklight.client.camera.PrototypeChaseCamera.ownsView())
             return com.codex.blacklight.client.camera.PrototypeChaseCamera.controlYaw();
-        var api=yesman.epicfight.api.client.camera.EpicFightCameraAPI.getInstance();
-        return api.isTPSMode()?api.getCameraYRot():mc.player.getYRot();
+        return mc.player.getYRot();
     }
 
     static boolean prepareGroundedWeaponMovement(Minecraft minecraft) {
@@ -240,8 +226,8 @@ public final class ClientMovementEvents {
         // Charge/wall latches belong to the old entity, never the next life.
         if (inputOwner != minecraft.player || minecraft.player == null || minecraft.getConnection() == null) {
             if(inputOwner!=null){
-                var oldPatch=EpicFightCapabilities.getEntityPatch(inputOwner,AbstractClientPlayerPatch.class);
-                if(oldPatch!=null)oldPatch.getAnimator().setHardPause(false);
+                if(PlayerMotionController.isPlaying(inputOwner,PlayerAction.CHARGED_JUMP))
+                    PlayerMotionController.pause(inputOwner,false);
             }
             inputOwner=minecraft.player;
             weaponMovementOwner=null;ownedWeaponVisual=null;pendingWeaponOwner=null;
@@ -254,7 +240,6 @@ public final class ClientMovementEvents {
             clientOffGroundTicks = 0;
             JUMP_INPUT.reset();
             PrototypeAnimationController.tickLevel(minecraft, false, false, false);
-            lastForcedMotion = null;
             wasPrototype = false;
             wasHoldingFinalChargePose = false;
             chargeDriverEngaged = false;
@@ -263,8 +248,8 @@ public final class ClientMovementEvents {
             resetClientWallRun();
             if (minecraft.player == null || minecraft.getConnection() == null) return;
         }
-        // Read the hardware state rather than KeyMapping.isDown(). Epic Fight's control
-        // engine is allowed to consume/reset mappings before NeoForge's post tick.
+        // Hardware state and remapped KeyMappings share one input latch so visual
+        // ownership does not lose releases during a combat or traversal action.
         if (minecraft.player.getData(ModAttachments.CONSUMING)&&com.codex.blacklight.combat.ConsumeVisual.blocksInput(minecraft.player.getData(ModAttachments.GRAB_STAGE))) {
             lastJumpHeld=false;lastForwardHeld=false;lastMovingHeld=false;lastSprinting=false;
             lastChargingAnimation=false;clientChargeTicks=0;
@@ -302,7 +287,6 @@ public final class ClientMovementEvents {
             clientOffGroundTicks = 0;
             JUMP_INPUT.reset();
             PrototypeAnimationController.tickLevel(minecraft, false, false, false);
-            lastForcedMotion = null;
             wasPrototype = false;
             resetClientWallRun();
             var movement=minecraft.player.getData(ModAttachments.MOVEMENT_STATE);
@@ -330,11 +314,8 @@ public final class ClientMovementEvents {
             chargeDriverEngaged = false;
             releaseFinalChargedJumpPose(minecraft);
         }
-        // Latch the pose at the moment charging begins. The server's movement and
-        // animation synchronization can make onGround() flicker for a frame, but a
-        // held charge must remain visually stable until release/full charge. The
-        // crouch action itself is started by the server (playAnimationSynchronized)
-        // and arrives via Epic Fight's normal animation sync.
+        // Latch charging across a brief terrain correction. The server authorizes
+        // the action and synchronizes Blacklight's clock to observers.
         if (!weaponAction && !lastChargingAnimation && !CLIENT_WALL.attached()
                 && !minecraft.player.getAbilities().flying
                 && JUMP_INPUT.consumeChargeRequest(minecraft.player)) {
@@ -351,8 +332,7 @@ public final class ClientMovementEvents {
             } else if (!jumpHeld) {
                 lastChargingAnimation = false;
                 clientChargeTicks = 0;
-                // Instant local launch feedback; the server-synchronized BIPED_JUMP
-                // (same borrowed clip) replaces it without a visible snap.
+                // Predict the launch using the same own clip as the server.
                 playLocalLaunchAnimation(minecraft);
             } else if (minecraft.player.onGround()) {
                 clientChargeTicks = Math.min(MovementTuningSettings.jumpChargeTicks(),
@@ -392,18 +372,14 @@ public final class ClientMovementEvents {
             return;
         }
 
-        // Predict wall attachment before Epic Fight resolves the living motion. This
-        // lets the same tick select CLIMB/WALL_RUN instead of briefly choosing JUMP.
+        // Resolve wall attachment before pose sampling to avoid an intermediate jump.
         boolean wallHandled = predictWallRun(minecraft, forwardInput, sidewaysInput, sprinting, jumpHeld, detach);
 
-        // Hard-pause/unpause before asking Epic Fight to re-evaluate the living
-        // motion. On key release this guarantees the newly selected motion is not
-        // born inside an animator that is still frozen by the charged-jump hold.
+        // Release the previous action hold before the next phase is sampled.
         updateFinalChargedJumpPose(minecraft);
 
-        // Resolve once per tick and confirm WALK/RUN/IDLE before changing Epic Fight's
-        // base layer. Velocity correction may flicker for one frame, but can no longer
-        // restart the transition and visibly snap the whole body.
+        // Stabilize locomotion once per tick; the pose runtime keeps a continuing
+        // stride on one clock even when terrain correction flickers for a frame.
         PrototypeAnimationController.tickLevel(minecraft, lastChargingAnimation&&!runningCharge,
                 lastMovingHeld, lastSprinting);
 
@@ -433,78 +409,30 @@ public final class ClientMovementEvents {
      * JUMP_RISE clip that the server synchronizes.
      */
     private static void playLocalLaunchAnimation(Minecraft minecraft) {
-        if (BlacklightEpicFightAnimations.JUMP_RISE == null) return;
-        AbstractClientPlayerPatch<?> patch = EpicFightCapabilities.getEntityPatch(
-                minecraft.player, AbstractClientPlayerPatch.class);
-        if (patch != null) {
-            patch.getAnimator().playAnimation(BlacklightEpicFightAnimations.JUMP_RISE, 0.08F);
-        }
+        if(minecraft.player==null)return;
+        PlayerMotionController.pause(minecraft.player,false);
+        PlayerMotionController.request(minecraft.player,PlayerAction.JUMP_RISE,0);
     }
-
     private static void updateFinalChargedJumpPose(Minecraft minecraft) {
-        int maximum = MovementTuningSettings.jumpChargeTicks();
-        if (!lastChargingAnimation || runningCharge || BlacklightEpicFightAnimations.CHARGED_JUMP == null) {
-            releaseFinalChargedJumpPose(minecraft);
-            return;
-        }
-        AbstractClientPlayerPatch<?> patch = EpicFightCapabilities.getEntityPatch(
-                minecraft.player, AbstractClientPlayerPatch.class);
-        if (patch == null) return;
-        Animator rawAnimator = patch.getAnimator();
-        if (!(rawAnimator instanceof ClientAnimator animator)) return;
-        // getPlayerFor() deliberately falls back to the base player even when its
-        // accessor does not match, so the real animation is compared explicitly
-        // (same identity pattern as the groundspike plant-pose hold).
-        AnimationPlayer player = animator.getPlayerFor(
-                BlacklightEpicFightAnimations.CHARGED_JUMP);
-        var real = player == null ? null : player.getRealAnimation();
-        if (real == null
-                || !(real.equals(BlacklightEpicFightAnimations.CHARGED_JUMP)
-                || real.equals(BlacklightEpicFightAnimations.CHARGED_JUMP.get()))) {
-            // The server-synchronized charge ACTION has not arrived yet (or already
-            // ended). Unlike the old base-layer static clip, Epic Fight never steals
-            // an ActionAnimation for IDLE, so there is nothing to re-assert here.
-            return;
-        }
-        if (!chargeDriverEngaged) {
-            chargeDriverEngaged = true;
-            BlacklightNeoMod.LOGGER.debug("Charged jump driver engaged on the action player");
-        }
-        // Drive this non-looping action from the actual charge ratio so the crouch
-        // deepens with the held time, lands on its final frame at full charge and
-        // holds there until the player releases the jump key
-        // (releaseFinalChargedJumpPose unfreezes and the server-side launch follows).
-        // Drive the action from the charge ratio every tick, but only hard-pause at
-        // FULL charge. Pausing during the ramp freezes the action's blend-in weight
-        // at ~0 (the action plays with a 0.08 s transition), which made the crouch
-        // completely invisible; the groundspike only pauses after its plant frame
-        // for the same reason. While unpaused the animator nudges the clip forward
-        // one tick before our next setElapsedTime pulls it back — imperceptible —
-        // and the epsilon clamp keeps it from ever tripping isEnd().
-        float chargeRatio = Math.min(1.0F, clientChargeTicks / (float) maximum);
-        float totalTime = BlacklightEpicFightAnimations.CHARGED_JUMP.get().getTotalTime();
-        float authoredTime = Math.min(totalTime * chargeRatio, totalTime - 0.001F);
-        player.setElapsedTime(authoredTime, authoredTime);
-        boolean fullyCharged = clientChargeTicks >= maximum;
-        animator.setHardPause(fullyCharged);
-        if (fullyCharged && !wasHoldingFinalChargePose) {
-            BlacklightNeoMod.LOGGER.debug(
-                    "Charged jump reached authored final frame and is hard-paused");
-            wasHoldingFinalChargePose = true;
-        }
+        int maximum=Math.max(1,MovementTuningSettings.jumpChargeTicks());
+        if(!lastChargingAnimation||runningCharge){releaseFinalChargedJumpPose(minecraft);return;}
+        var player=minecraft.player;
+        if(player==null||!PlayerMotionController.isPlaying(player,PlayerAction.CHARGED_JUMP))return;
+        chargeDriverEngaged=true;
+        float ratio=Math.min(1F,clientChargeTicks/(float)maximum);
+        float duration=PlayerMotionController.duration(PlayerAction.CHARGED_JUMP);
+        PlayerMotionController.seek(player,Math.max(0,Math.min(duration*ratio,duration-.001F)));
+        boolean full=clientChargeTicks>=maximum;
+        PlayerMotionController.pause(player,full);
+        wasHoldingFinalChargePose=full;
     }
-
     private static void releaseFinalChargedJumpPose(Minecraft minecraft) {
-        if (minecraft.player == null) return;
-        AbstractClientPlayerPatch<?> patch = EpicFightCapabilities.getEntityPatch(
-                minecraft.player, AbstractClientPlayerPatch.class);
-        if (patch != null) {
-            // Idempotent: unpausing every tick while not charging is harmless and
-            // guarantees the release always happens when the jump key comes up,
-            // even for a partial charge that never latched the final frame.
-            patch.getAnimator().setHardPause(false);
-        }
-        wasHoldingFinalChargePose = false;
+        var player=minecraft.player;
+        // Holds belong to individual actions. Releasing jump must not unpause a
+        // groundspike contact hold or a combat hit-stop on another action.
+        if(player!=null&&PlayerMotionController.isPlaying(player,PlayerAction.CHARGED_JUMP))
+            PlayerMotionController.pause(player,false);
+        wasHoldingFinalChargePose=false;
     }
 
     /** Prevents the locomotion controller from replacing the latched final charge pose. */
@@ -517,70 +445,6 @@ public final class ClientMovementEvents {
         return lastChargingAnimation&&!runningCharge;
     }
     public static int visualJumpCharge(){return CLIENT_WALL.attached()?CLIENT_WALL.visualChargeTicks():lastChargingAnimation?clientChargeTicks:0;}
-
-    /**
-     * Keeps traversal poses on Epic Fight's base layer instead of firing a one-shot
-     * animation that is replaced again on the following client tick.
-     */
-    public static void onLivingMotion(ModifyPlayerLivingMotionEvent.BaseLayer event) {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null) return;
-        // While the planted groundspike action occupies the base layer, living-motion
-        // updates must not replace it; otherwise the insertion animation is swapped
-        // back to RUN/WALK and the client never sees the authored plant pose.
-        if (ClientClawEvents.isGroundSpikeActionActive()) return;
-        var original = event.getPlayerPatch().getOriginal();
-        if (!com.codex.blacklight.mode.PrototypeModeSystem.isActive(original)) return;
-        // Do not replace Epic Fight's swimming motion with stale land/wall/glide poses.
-        if (original.isInWater() && !WaterRunning.onSurface(original) || original.isInLava()) return;
-        if (original.getData(ModAttachments.WEAPON_VISUAL).spec() != null) return;
-        // A fully charged jump is frozen on its final crouch frame by
-        // updateFinalChargedJumpPose. Re-asserting KNEEL here every tick would make
-        // Epic Fight restart the non-looping crouch clip, so the charge visibly
-        // replays instead of holding.
-        if (original == minecraft.player && isHoldingFinalChargePose()) return;
-        // The charge clip is played directly on the base layer by
-        // startChargedJumpAnimation and driven frame-by-frame by
-        // updateFinalChargedJumpPose. Asserting KNEEL here every tick would
-        // restart the non-looping clip, so motion updates stop for the whole
-        // charge (this is also what prevents the visible looping).
-        if (original==minecraft.player && lastChargingAnimation&&!runningCharge) return;
-        var wallMode=ClientWallMotion.modeFor(original);
-        if (wallMode!=WallTraversal.Mode.NONE) {
-            event.setMotion(WallTraversal.crossingTop(wallMode)
-                    ? LivingMotions.JUMP : LivingMotions.CLIMB);
-            return;
-        }
-        // Gliding gets its own looping clip on the FLY slot instead of the generic
-        // falling pose. The predicate mirrors the server glide physics (airborne,
-        // jump held, slow descent); FLY is otherwise unreachable in Prototype mode.
-        if (original == minecraft.player && isGliding(minecraft)) {
-            event.setMotion(LivingMotions.FLY);
-            return;
-        }
-        var state = original.getData(ModAttachments.PLAYER_STATE);
-        if (!state.isInfected() || !state.isPrototypeMode()) return;
-
-        LivingMotion forced = switch (PrototypeAnimationController.phaseFor(
-                event.getPlayerPatch().getOriginal())) {
-            case CHARGING -> LivingMotions.KNEEL;
-            case START, WALK, BRAKE, TURN -> LivingMotions.WALK;
-            case RUN -> LivingMotions.RUN;
-            case JUMP_LAUNCH, RISE -> LivingMotions.JUMP;
-            case FALL -> LivingMotions.FALL;
-            case WALL_RUN, WALL_CLIMB, WALL_LEAP -> LivingMotions.CLIMB;
-            case LAND_LIGHT, LAND_HEAVY, LAND_DEVASTATING -> LivingMotions.LANDING_RECOVERY;
-            default -> null;
-        };
-
-        if (forced != null) event.setMotion(forced);
-        if (original == minecraft.player && forced != lastForcedMotion) {
-            BlacklightNeoMod.LOGGER.debug("Prototype client base motion: {} -> {}",
-                    lastForcedMotion == null ? "default" : lastForcedMotion,
-                    forced == null ? "default" : forced);
-            lastForcedMotion = forced;
-        }
-    }
 
     @SubscribeEvent
     public static void onFov(ComputeFovModifierEvent event) {

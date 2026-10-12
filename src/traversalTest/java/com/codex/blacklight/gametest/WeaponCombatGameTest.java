@@ -82,6 +82,7 @@ public final class WeaponCombatGameTest {
     }
     @GameTest(template="wall_test",timeoutTicks=40)
     public static void comboHistoryExpiresAndCannotSurviveCancellationOrFormChange(GameTestHelper h){
+        MovingCombatGameTest.supportFloor(h,1);
         var p=FakePlayerFactory.get(h.getLevel(),new GameProfile(UUID.randomUUID(),"combo-reset"));
         p.setPos(h.absoluteVec(new Vec3(4,2,3)));p.setYRot(0);p.setOnGround(true);p.tickCount=100;
         var state=p.getData(ModAttachments.PLAYER_STATE);state.infect();state.setPrototypeMode(true);state.unlock(PowerForm.BLADE);state.unlock(PowerForm.HAMMERFISTS);state.activate(PowerForm.BLADE);
@@ -113,12 +114,11 @@ public final class WeaponCombatGameTest {
             // Attack to the shared opener. Exercise those actual input routes.
             var move=referenced==WeaponMove.MUSCLE_UPPERCUT?WeaponMove.COMBO_KNEE:
                     referenced==WeaponMove.MUSCLE_AIR?WeaponMove.AIR_AUTO1:referenced;
-            var animation=com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations.weapon(move).get();
-            boolean local=LocalWeaponMotion.find(move.id).isPresent();
-            h.assertTrue(local?animation instanceof com.codex.blacklight.integration.epicfight.LocalWeaponAnimation
-                    :animation instanceof com.codex.blacklight.integration.epicfight.AdaptedWeaponAnimation,"motion wrapper selected");
-            h.assertTrue(!(animation instanceof yesman.epicfight.api.animation.types.AttackAnimation),"dependency attack events are not inherited");
-            h.assertTrue(animation.getAnimationClip().getClipTime()>0,"motion loads on dedicated server: "+move);
+            var animation=com.codex.blacklight.animation.MotionLibrary.clip(move.id);
+            var definition=LocalWeaponMotion.find(move.id).orElseThrow();
+            h.assertTrue(animation.joints().contains("Coord")&&animation.joints().contains("Root"),"own full-body pose and physical coordinate track exist: "+move);
+            h.assertTrue(animation.duration()>0&&definition.contactStartTick()==move.start
+                    &&definition.contactEndTick()==move.end,"dedicated-server clip shares authoritative contact timing: "+move);
             var p=FakePlayerFactory.get(h.getLevel(),new GameProfile(UUID.randomUUID(),"motion-qa"));
             var home=h.absoluteVec(new Vec3(4,2,3));p.setPos(home);p.setYRot(0);p.setOnGround(true);p.tickCount=100;
             var state=p.getData(ModAttachments.PLAYER_STATE);state.infect();state.setPrototypeMode(true);state.unlock(referenced.form);state.activate(referenced.form);

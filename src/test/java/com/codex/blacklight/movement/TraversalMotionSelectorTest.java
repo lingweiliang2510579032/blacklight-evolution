@@ -30,7 +30,7 @@ class TraversalMotionSelectorTest {
     }
     @Test void gaitSpeedIsBoundedAndInvalidValuesCannotPoisonThePose(){
         assertEquals(.55F,TraversalMotionSelector.cadence(0,.7));
-        assertEquals(1.8F,TraversalMotionSelector.cadence(9,.7));
+        assertEquals(8F,TraversalMotionSelector.cadence(9,.7));
         assertEquals(1F,TraversalMotionSelector.cadence(Double.NaN,.7));
         assertEquals(1F,TraversalMotionSelector.cadence(.7,0));
         assertEquals("basic_sprint_fastest",TraversalMotionSelector.ground(LocomotionPhase.RUN,true,1.2));

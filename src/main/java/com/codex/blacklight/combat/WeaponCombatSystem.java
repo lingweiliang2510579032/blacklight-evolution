@@ -1,7 +1,8 @@
 package com.codex.blacklight.combat;
 
 import com.codex.blacklight.registry.ModAttachments;
-import com.codex.blacklight.integration.epicfight.BlacklightEpicFightAnimations;
+import com.codex.blacklight.animation.PlayerAction;
+import com.codex.blacklight.animation.PlayerActions;
 import com.codex.blacklight.network.*;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.*;
@@ -13,7 +14,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
-import yesman.epicfight.world.capabilities.EpicFightCapabilities;
 import java.util.*;
 
 /** Separate weapon actions; server owns each contact and never trusts a client target. */
@@ -126,9 +126,7 @@ public final class WeaponCombatSystem {
             heading=(float)Math.toDegrees(Math.atan2(-delta.x,delta.z));
         }
         if(p.onGround()&&(LocalWeaponMotion.find(move.id).isPresent()||WeaponMotionProfile.forMove(move)!=null)){
-            // EF stops the controlling client's inertia, but its begin hook does
-            // not own movement on ServerPlayer. Clear that side once as well so
-            // an outstanding sprint velocity packet cannot restore the old run.
+            // An attack begins from its own step curve, without inherited sprint inertia.
             p.setDeltaMovement(0,p.getDeltaMovement().y,0);p.xxa=0;p.zza=0;p.hurtMarked=true;
         }
         Session s=new Session(p,move,clipOffset,heading);s.charging=charging;s.input=input;s.releaseDirection=CombatMotion.flightDirection(s.yaw,p.getXRot());ACTIVE.put(p,s);CHAINS.remove(p);p.getData(ModAttachments.MOVEMENT_STATE).cancelLandingRecovery();
@@ -139,8 +137,7 @@ public final class WeaponCombatSystem {
         s.travelStarted=p.tickCount;s.travelBudget=CombatMotion.travelBudget(target==null?0:travelDistance(p,target),CombatMotion.speed(move,0));
         p.getData(ModAttachments.CLAW_COMBAT).begin(ClawCombatState.Action.TRANSFORM);
         p.setData(ModAttachments.WEAPON_VISUAL,new WeaponVisual(move.ordinal(),p.level().getGameTime()-Math.round(clipOffset*20),s.yaw,charging,clipOffset,target==null?-1:target.getId(),s.traveling?CombatMotion.travelPose(move):-1));p.syncData(ModAttachments.WEAPON_VISUAL);
-        var animation=charging?BlacklightEpicFightAnimations.weaponCharge(move):BlacklightEpicFightAnimations.weapon(move);var patch=EpicFightCapabilities.getServerPlayerPatch(p);
-        if(patch!=null&&animation!=null)patch.playAnimationSynchronized(animation,-clipOffset);
+        PlayerActions.get().playWeapon(p,move,charging,clipOffset);
         PacketDistributor.sendToPlayer(p,new WeaponAnimationPayload(move.ordinal(),charging,clipOffset));
     }
     private static boolean directionalInput(ServerPlayer p,WeaponMove move){
@@ -333,8 +330,7 @@ public final class WeaponCombatSystem {
                     s.landed=p.tickCount;s.clipOffset=impact;s.started=p.tickCount-Math.round(impact*20);
                     p.setDeltaMovement(0,0,0);p.hurtMarked=true;
                     p.setData(ModAttachments.WEAPON_VISUAL,new WeaponVisual(s.move.ordinal(),p.level().getGameTime()-Math.round(impact*20),s.yaw,false,impact,s.target==null?-1:s.target.getId()));p.syncData(ModAttachments.WEAPON_VISUAL);
-                    var animation=BlacklightEpicFightAnimations.weapon(s.move);var patch=EpicFightCapabilities.getServerPlayerPatch(p);
-                    if(animation!=null&&patch!=null)patch.playAnimationSynchronized(animation,-impact);
+                    PlayerActions.get().playWeapon(p,s.move,false,impact);
                     PacketDistributor.sendToPlayer(p,new WeaponAnimationPayload(s.move.ordinal(),false,impact));
                 }else return;
             }
@@ -343,6 +339,7 @@ public final class WeaponCombatSystem {
         if(!s.groundEffect&&s.move.groundImpactTick()>=0&&t>=s.move.groundImpactTick()){
             s.groundEffect=true;CombatImpactEffects.ground(p,s.move,s.direction);
         }
+        com.codex.blacklight.animation.NativeRootMotion.weapon(p, s.move, t, s.clipOffset, s.yaw);
         if(s.move!=WeaponMove.BLADE_RUSH&&LocalWeaponMotion.find(s.move.id).isEmpty()&&WeaponMotionProfile.forMove(s.move)==null&&t>=s.move.start&&t<s.move.end&&(s.move.rush()||s.move.frenzy()))p.move(MoverType.SELF,s.direction.scale(s.move.rush()?.22:.07));
         int contact=s.move.contactIndex(t);
         if(contact>=0){
@@ -365,7 +362,7 @@ public final class WeaponCombatSystem {
             cancel(p);return;
         }
         if(s.queued!=null&&t>=s.move.comboLinkTick()&&canRequest(p)){
-            // Replace the session directly: EF links from the current follow-through pose.
+            // Replace the session directly and blend from the current follow-through pose.
             // No idle animation or empty visual packet may interrupt this transition.
             var next=s.move.followUp(s.queued,s.form,!p.onGround(),p.isSprinting());
             var queued=s.queued;s.queued=null;var keys=BUTTONS.get(p);
@@ -531,8 +528,7 @@ public final class WeaponCombatSystem {
             double factor=s.hit.isEmpty()?.65:s.move==WeaponMove.AIR_PAIN?-.22:.15;
             p.setDeltaMovement(velocity.x*factor,Math.min(velocity.y,.1),velocity.z*factor);p.hurtMarked=true;
             p.setData(ModAttachments.WEAPON_VISUAL,new WeaponVisual(s.move.ordinal(),p.level().getGameTime()-s.move.end,s.yaw,false,s.clipOffset,-1));p.syncData(ModAttachments.WEAPON_VISUAL);
-            var animation=BlacklightEpicFightAnimations.weapon(s.move);var patch=EpicFightCapabilities.getServerPlayerPatch(p);
-            if(animation!=null&&patch!=null)patch.playAnimationSynchronized(animation,-s.clipOffset);
+            PlayerActions.get().playWeapon(p,s.move,false,s.clipOffset);
             PacketDistributor.sendToPlayer(p,new WeaponAnimationPayload(s.move.ordinal(),false,s.clipOffset));
         }else{
             p.setDeltaMovement(s.releaseDirection.scale(CombatMotion.speed(s.move,s.chargePower)));p.fallDistance=0;p.hurtMarked=true;
@@ -559,8 +555,7 @@ public final class WeaponCombatSystem {
             s.started=p.tickCount-Math.round(s.clipOffset*20);s.previousFeet=p.position();s.previousYaw=s.yaw;
             p.setDeltaMovement(0,0,0);p.hurtMarked=true;
             p.setData(ModAttachments.WEAPON_VISUAL,new WeaponVisual(s.move.ordinal(),p.level().getGameTime()-Math.round(s.clipOffset*20),s.yaw,false,s.clipOffset,s.target.getId()));p.syncData(ModAttachments.WEAPON_VISUAL);
-            var animation=BlacklightEpicFightAnimations.weapon(s.move);var patch=EpicFightCapabilities.getServerPlayerPatch(p);
-            if(patch!=null&&animation!=null)patch.playAnimationSynchronized(animation,-s.clipOffset);
+            PlayerActions.get().playWeapon(p,s.move,false,s.clipOffset);
             PacketDistributor.sendToPlayer(p,new WeaponAnimationPayload(s.move.ordinal(),false,s.clipOffset));return;
         }
         if(p.horizontalCollision||p.tickCount-s.travelStarted>4&&p.position().distanceToSqr(s.previousFeet)<.0001)s.stuckTicks++;else s.stuckTicks=0;
@@ -592,8 +587,7 @@ public final class WeaponCombatSystem {
             s.pounceCommitted=true;s.clipOffset=.5F;s.started=p.tickCount-10;
             p.setDeltaMovement(0,0,0);p.hurtMarked=true;
             p.setData(ModAttachments.WEAPON_VISUAL,new WeaponVisual(s.move.ordinal(),p.level().getGameTime()-10,s.yaw,false,.5F,s.target==null?-1:s.target.getId()));p.syncData(ModAttachments.WEAPON_VISUAL);
-            var animation=BlacklightEpicFightAnimations.weapon(s.move);var patch=EpicFightCapabilities.getServerPlayerPatch(p);
-            if(animation!=null&&patch!=null)patch.playAnimationSynchronized(animation,-.5F);
+            PlayerActions.get().playWeapon(p,s.move,false,.5F);
             PacketDistributor.sendToPlayer(p,new WeaponAnimationPayload(s.move.ordinal(),false,.5F));return;
         }
         if(tick>=9)s.started=p.tickCount-9;
@@ -678,15 +672,11 @@ public final class WeaponCombatSystem {
     }
     private static void finish(ServerPlayer p){
         var old=ACTIVE.remove(p);if(old==null)return;
-        var patch=EpicFightCapabilities.getServerPlayerPatch(p);
         p.getData(ModAttachments.CLAW_COMBAT).reset();p.setData(ModAttachments.WEAPON_VISUAL,WeaponVisual.EMPTY);p.syncData(ModAttachments.WEAPON_VISUAL);
-        if(patch!=null){
-            patch.getAnimator().setHardPause(false);
-            if(!p.onGround()&&!p.isInWater()&&!p.isInLava())
-                patch.playAnimationSynchronized(p.getDeltaMovement().y>.035
-                        ?BlacklightEpicFightAnimations.JUMP_RISE:BlacklightEpicFightAnimations.JUMP_FALL,.08F);
-            else patch.playAnimationSynchronized(yesman.epicfight.gameasset.Animations.BIPED_IDLE,.08F);
-        }
+        PlayerActions.get().resume(p);
+        PlayerActions.get().play(p, !p.onGround()&&!p.isInWater()&&!p.isInLava()
+                ? (p.getDeltaMovement().y>.035 ? PlayerAction.JUMP_RISE : PlayerAction.JUMP_FALL)
+                : PlayerAction.IDLE, .08F);
     }
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e){if(e.getEntity() instanceof ServerPlayer p){cancel(p);CHAINS.remove(p);BUTTONS.remove(p);AIR_HITS.remove(p);}}
     @SubscribeEvent public static void dimension(PlayerEvent.PlayerChangedDimensionEvent e){if(e.getEntity() instanceof ServerPlayer p){cancel(p);BUTTONS.remove(p);AIR_HITS.remove(p);}}

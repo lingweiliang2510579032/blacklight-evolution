@@ -1,13 +1,15 @@
 # Blacklight: Ascension
 
+> **独立开发版 `0.3.0-standalone-dev.5`。** 基于现有 RC59 工作区，核心、动作、模型、输入、镜头和服务端同步已改由黑光自身驱动，运行不再要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。无这些模组的客户端和 GameTestServer 已实际启动。当前仍在检查脱离前置后的姿态与移动回归，结果见 [独立化记录](docs/STANDALONE_MIGRATION.md)。
+
 **黑光：进化 · 作者：末者**
 Minecraft 1.21.1 / NeoForge 的黑光病毒同人 Mod，包含生物武器、抓取吸收、伪装、强化移动、感染生物与组织蜂巢。
 
 ## 当前版本与发布状态
 
-当前为 **0.2.0-rc.57，已发布预览版**：[下载原动作完整包](https://github.com/mengyuyuan/blacklight-evolution/releases/tag/v0.2.0-rc.57)。本轮完整人工验收尚未完成，项目不宣称完整复刻原游戏。
+当前为 **0.3.0-standalone-dev.5，本地独立开发版**，尚未公开发行，也未将完整人工验收标记为通过。项目按现有黑光能力与感染生存玩法收尾，不宣称完整复刻原游戏。
 
-2026-10-01 应作者要求上传 RC57 现有完整包，保留动作、镜头、HUD 与玩法，未采用已撤回的 RC58 替换动作方案。下载文件仍保留原构建的 `local-preview` 名称和文档，内容及 SHA-256 与本地候选包一致。普通源码构建产生的 `source-only` 包不含完整动作资料，不能代替完整包游玩。发布与安装的当前说明见 [RC57 发布记录](docs/RC57-PUBLISHED.md)；包内此前“未发布”等状态为历史记录。
+**公开资源方案仍是发布阻塞。** 普通源码构建不含本地解包动作；当前动画初始化又要求完整动作资料，缺失时会报错。因此 source-only 构建只用于源码编译，不能当作可直接游玩的公开成品。含私有资料的 local-preview 包仅供本地预览，授权尚未明确，不公开上传。
 
 - [安装、依赖与故障排除](docs/INSTALL_ZH.md)
 - [当前已知问题与发布阻塞](docs/KNOWN_ISSUES_AND_SLOTS_ZH.md)
@@ -23,9 +25,7 @@ Minecraft 1.21.1 / NeoForge 的黑光病毒同人 Mod，包含生物武器、抓
 | Java | 21 | 是 |
 | NeoForge | 21.1.244 | 是 |
 | GeckoLib | 4.9.2，NeoForge 1.21.1 版 | 是，单独安装 |
-| Epic Fight | 21.17.3.1，NeoForge 1.21.1 版 | 是，单独安装 |
-| ParCool / Epic ParCool | 3.4.3.3 / 21.0.0 | 可选联动 |
-| Weapons of Miracles | 2.0.178 | 可选动作联动 |
+| ParCool | 3.4.3.3 | 可选兼容；不是动作来源 |
 
 Blacklight JAR 不内置前置 Mod。请使用上表的明确版本，不以“最新版”代替；可选模组装入后也要满足兼容范围。安装包不是完整游戏或完整整合包。多人客户端和服务端需要匹配的 Mod 版本、依赖与动作资料；联机行为仍待验收。
 
@@ -98,8 +98,8 @@ gradlew.bat clean assemble --no-daemon
 
 文件保留 Minecraft 和 Mod 两个版本号：
 
-- 源码编译产物：`Blacklight-Ascension-MC1.21.1-NeoForge-0.2.0-rc.57-source-only.jar` / `.zip`。
-- 私有本地预览：`Blacklight-Ascension-MC1.21.1-NeoForge-0.2.0-rc.57-local-preview.jar` / `.zip`。
-- 原始源码快照：`Blacklight-Ascension-MC1.21.1-NeoForge-0.2.0-rc.57-sources.zip`。
+- 源码编译产物：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.5-source-only.jar` / `.zip`。
+- 私有本地预览：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.5-local-preview.jar` / `.zip`。
+- 原始源码快照：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.5-sources.zip`。
 
 这些名称区分用途，不表示已经发布。原创代码与原创资源的许可见 [LICENSE](LICENSE)；私有派生资源不随该声明取得分发授权，见 [资源来源说明](THIRD_PARTY_ASSETS.md)。[公开仓库](https://github.com/mengyuyuan/blacklight-evolution) · [贡献说明](CONTRIBUTING.md)。
