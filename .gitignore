@@ -63,3 +63,8 @@ __pycache__/
 /项目记忆/
 /JB/
 /run-data/
+
+/run-model-qa/
+/model-qa*/
+
+/run-forge-qa/

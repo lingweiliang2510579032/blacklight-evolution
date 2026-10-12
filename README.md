@@ -1,37 +1,28 @@
-# Blacklight: Ascension
+# 黑光：进化 — Minecraft 1.20.1 Forge
 
-> **Forge 1.20.1 独立维护分支，移植开发中。** 本分支由维护者负责 Minecraft 1.20.1 / Forge；末者的上游继续负责 1.21.1 / NeoForge。目标环境是 Java 17、Forge 47.4.10、GeckoLib 4.8.4。下方保留的上游开发与验收记录对应原版本；1.20.1 的编译和运行结果单独记录在 [移植状态](docs/FORGE_1_20_1_STATUS.md)。公开仓库仍缺完整动作资料，source-only 构建只能验证源码。
+**Blacklight: Ascension · Forge 1.20.1 独立维护版。** 原作者：末者；本分支维护者：雨夜。模组包含生物武器、抓取吸收、伪装、强化移动、感染生物与组织蜂巢，不要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。
 
-> **上游背景 `0.3.0-standalone-dev.5`。** 核心、动作、模型、输入、镜头和服务端同步由黑光自身驱动，不要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。[独立化记录](docs/STANDALONE_MIGRATION.md) 中的启动与玩法验收对应上游 1.21.1。
+维护版本：**0.3.0-forge-1.20.1-dev.2**，分支：`forge-1.20.1`。已接入上游 dev.7 的完整动作、镜头、HUD、液态武器变形及感染结构资料。默认构建包含 224 个运行资料文件；旧 source-only 产物及其缺动作启动失败属于 dev.1 历史，不作为本版安装包。Forge 验收结果见 [移植状态](docs/FORGE_1_20_1_STATUS.md)。
 
-**黑光：进化 · 作者：末者**
-Minecraft 1.20.1 / Forge 的黑光病毒同人 Mod，包含生物武器、抓取吸收、伪装、强化移动、感染生物与组织蜂巢。原作者末者；本分支由雨夜独立维护。
+## 目标环境
 
-## 当前版本与发布状态
-
-当前为 **0.3.0-forge-1.20.1-dev.1，Forge 源码移植开发版**，尚未公开发行，玩法验收未完成。不宣称完整复刻原游戏。
-
-**公开资源方案仍是发布阻塞。** 普通源码构建不含本地解包动作；当前动画初始化又要求完整动作资料，缺失时会报错。因此 source-only 构建只用于源码编译，不能当作可直接游玩的公开成品。含私有资料的 local-preview 包仅供本地预览，授权尚未明确，不公开上传。
-
-- [安装、依赖与故障排除](docs/INSTALL_ZH.md)
-- [当前已知问题与发布阻塞](docs/KNOWN_ISSUES_AND_SLOTS_ZH.md)
-- [0.2.0 人工验收表](docs/ACCEPTANCE_0.2.0.md)
-- [发布准备](docs/RELEASE_PREPARATION_ZH.md) · [平台计划](docs/PLATFORM_PLAN_ZH.md)
-- [截至 RC56 的完整历史记录](docs/history/README-through-RC56.md)
-
-## 安装环境
-
-| 项目 | 当前使用版本 | 是否必需 |
+| 组件 | 版本 | 用途 |
 | --- | --- | --- |
-| Minecraft Java 版 | 1.20.1 | 是 |
-| Java | 17 | 是 |
-| Forge | 47.4.10 | 是 |
-| GeckoLib | 4.8.4，Forge 1.20.1 版 | 是，单独安装 |
-| ParCool | 1.20.1-3.4.3.3 | 可选兼容；不是动作来源 |
+| Minecraft Java | 1.20.1 | 游戏版本 |
+| Java | 17 | 游戏运行与编译 |
+| Forge | 47.4.10 | 加载器 |
+| GeckoLib | 4.8.4，Forge 1.20.1 版 | 必需，单独安装 |
+| ParCool | 1.20.1-3.4.3.3 | 可选兼容 |
 
-Blacklight JAR 不内置 GeckoLib；内置的 MixinExtras 由 Forge 自动加载。请使用上表的明确版本。多人客户端和服务端需要匹配的 Mod 版本、依赖与完整动作资料；联机行为仍待验收。
+Blacklight 内嵌 MixinExtras Forge 0.4.1，由 Forge 自动加载；不内置 GeckoLib。完整安装包作为开发预发布提供：独立客户端已进入测试存档，构建与 224 个资源文件校验通过，单元测试 202/206 通过；多人、生存流程与全部视觉效果仍待验收。
 
-仅在有完整且获准使用的动作资料时，用独立 Forge 实例验证 local-preview 包。source-only JAR 不能直接试玩。具体边界见 [安装文档](docs/INSTALL_ZH.md)。
+- [下载 Forge 1.20.1 预发布安装包](https://github.com/lingweiliang2510579032/blacklight-evolution/releases/tag/v0.3.0-forge-1.20.1-dev.2)
+
+- [安装与故障排除](docs/INSTALL_ZH.md)
+- [构建、测试和运行证据](docs/FORGE_1_20_1_STATUS.md)
+- [已知问题](docs/KNOWN_ISSUES_AND_SLOTS_ZH.md)
+- [完整资料打包](docs/BUNDLED_PROFILE_DEV7.md) · [资源来源](THIRD_PARTY_ASSETS.md)
+- [贡献与独立维护](CONTRIBUTING.md)
 
 ## 生存开始
 
@@ -92,18 +83,21 @@ Blacklight JAR 不内置 GeckoLib；内置的 MixinExtras 由 Forge 自动加载
 
 军事科技、可建实验室、黑色守望与超级士兵、城市与载具、记忆网和剧情任务尚未完成。伪装只保存最近的可用身份，使用玩家碰撞体与视点，不获得目标技能。攻击裂纹和碎块主要是视觉反馈，不代表通用地形破坏。多人、性能和完整生存平衡仍待验收。
 
-## 构建与命名
+## 源码构建
 
-~~~text
-gradlew.bat clean assemble --no-daemon
-~~~
+使用 Java 17 编译目标、Gradle 8.9 和 ForgeGradle 6.0.54。Windows：
 
-默认只编译打包，不运行单元测试、碰撞测试、GameTest 或自动游戏验收。上面的 source-only 构建目前不能作为可运行成品。获准的本地资料构建使用 `-PbundleMotionDirectory=<完整资料目录>`，产物标为 local-preview。
+```powershell
+./gradlew.bat clean assemble --no-daemon
+./gradlew.bat runClient --no-daemon
+```
 
-文件保留 Minecraft 和 Mod 两个版本号：
+Linux 使用 `./gradlew`。默认从仓库 `art/motion-profile/` 打包完整资料，不需指定作者的本机目录。可用 `-PbundleMotionDirectory=<完整资料目录>` 替换整套资料，产物分类为 `external-profile`；不与仓库资料混合。
 
-- 源码编译产物：`Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.1-source-only.jar` / `.zip`。
-- 有完整资料时的私有预览：`Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.1-local-preview.jar` / `.zip`。
-- 源码快照：`Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.1-sources.zip`。
+默认安装候选：`Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.2-bundled.jar`。分发 ZIP 包含同一份 Forge 重混淆后的 Jar-in-Jar 成品、安装文档与资源声明；`bundled-slim.jar` 是中间产物，不用于安装。
 
-这些名称区分用途，不表示已经发布。原创代码与原创资源的许可见 [LICENSE](LICENSE)；私有派生资源不随该声明取得分发授权，见 [资源来源说明](THIRD_PARTY_ASSETS.md)。[公开仓库](https://github.com/mengyuyuan/blacklight-evolution) · [贡献说明](CONTRIBUTING.md)。
+`assemble` 验证独立运行边界以及最终成品的 224 文件清单、字节数和 SHA-256。完整单元测试、GameTest、客户端及联机验收分别运行和记录，构建成功不代表已全部验收。`tools/package_release.py --profile bundled` 仅收集本地候选与校验值，不上传或批准发行。
+
+## 来源与许可
+
+[维护 Fork](https://github.com/lingweiliang2510579032/blacklight-evolution/tree/forge-1.20.1) · [原作者项目](https://github.com/mengyuyuan/blacklight-evolution)。原作者上游负责 Minecraft 1.21.1 NeoForge，我们独立维护 1.20.1 Forge；保留作者署名、[GPL 代码许可](LICENSE)和[第三方资源声明](THIRD_PARTY_NOTICES.md)。上游截图与历史验收不作为本分支 Forge 实机证据。

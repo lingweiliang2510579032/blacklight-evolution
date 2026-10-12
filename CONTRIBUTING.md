@@ -12,7 +12,7 @@
 - 用户明确要求启动试玩时，使用 `./gradlew.bat runClient`；Linux/macOS 替换为 `bash ./gradlew`。
 - 第一轮构建需要网络下载依赖。不要提交 `.gradle/`、`build/`、`run/`、存档或个人账户配置。
 
-普通源码构建是 source-only，缺少完整运行所需的本地动作资料，不能直接作为可玩发行包。私有 local-preview 资料不提交到仓库，详见 `THIRD_PARTY_ASSETS.md`。
+普通构建是 bundled，包含仓库中完整的 224 个资料文件，并验证最终 Forge 重混淆成品。外部整套资料使用 external-profile；不提交个人导出、测试存档、解包原始文件或凭证。构建和完整玩法验收分开记录，资源出处见 `THIRD_PARTY_ASSETS.md`。
 
 默认构建与 CI 不运行单元测试、碰撞测试、GameTest 或游戏内验收；这些检查仅在用户明确要求时运行。编译打包成功不代表真人试玩已通过。
 

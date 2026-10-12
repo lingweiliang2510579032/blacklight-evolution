@@ -20,6 +20,14 @@ public final class FirstPersonPose {
     public static String idle(PowerForm form){return "basic_idle";}
     public static Result convertArm(Matrix4f[] source,PowerForm form,boolean plated,boolean shielded,Matrix4f shieldGrip,
                                    float width,float talons,Matrix4f projection,Matrix4f nativeArmFrame,float hammerScale,boolean left) {
+        return convertArm(source,form,plated,shielded,shieldGrip,width,talons,projection,nativeArmFrame,hammerScale,left,List.of(form),0);
+    }
+    /** All still-visible forms share this native arm frame. The depth envelope
+     * includes their outgoing geometry and bounded liquid motion, so choosing a
+     * smaller target cannot expose an old fingertip to the near clipping plane. */
+    public static Result convertArm(Matrix4f[] source,PowerForm form,boolean plated,boolean shielded,Matrix4f shieldGrip,
+                                   float width,float talons,Matrix4f projection,Matrix4f nativeArmFrame,float hammerScale,boolean left,
+                                   Collection<PowerForm> visibleBounds,float liquidMargin) {
         var rig=BlacklightSkeleton.get();String side=left?"L":"R";
         var neutral=rig.getPoseMatrices(new BlacklightPose());
         var neutralRoot=new Matrix4f(neutral[rig.rootJoint.getId()]).invert();
@@ -32,13 +40,13 @@ public final class FirstPersonPose {
         var result=new Matrix4f[source.length];for(int i=0;i<source.length;i++)result[i]=new Matrix4f(source[i]);
         for(var bone:rig.bones())if(bone.getName().endsWith("_"+side))result[bone.getId()]=new Matrix4f(mapping).mul(source[bone.getId()]);
         var vertices=new ArrayList<Vector3f>();var distal=new ArrayList<Boolean>();
-        boolean biological=form==PowerForm.CLAWS||form==PowerForm.BLADE||form==PowerForm.HAMMERFISTS||form==PowerForm.WHIPFIST||form==PowerForm.MUSCLE_MASS;
-        if(biological&&(!left||form==PowerForm.CLAWS||form==PowerForm.HAMMERFISTS||form==PowerForm.MUSCLE_MASS))
-            for(var surface:biological(form))if(surface.bone.endsWith("_"+side)) {
+        var bounds=EnumSet.of(form);if(visibleBounds!=null)for(var candidate:visibleBounds)if(candidate!=null)bounds.add(candidate);
+        for(var boundedForm:bounds)if(WeaponMorphTiming.arm(boundedForm,left))
+            for(var surface:biological(boundedForm))if(surface.bone.endsWith("_"+side)) {
                 var p=new Vector3f(surface.point);
-                if(form==PowerForm.CLAWS){p.x*=width;p.z*=width;if(surface.bone.startsWith("Hand_")&&p.y>.30F)p.y=.30F+(p.y-.30F)*talons;}
+                if(boundedForm==PowerForm.CLAWS){p.x*=width;p.z*=width;if(surface.bone.startsWith("Hand_")&&p.y>.30F)p.y=.30F+(p.y-.30F)*talons;}
                 var matrix=result[rig.searchJointByName(surface.bone).getId()];
-                if(form==PowerForm.HAMMERFISTS&&surface.bone.startsWith("Hand_")) {
+                if(boundedForm==PowerForm.HAMMERFISTS&&surface.bone.startsWith("Hand_")) {
                     for(int corner=0;corner<8;corner++) {
                         var envelope=new Vector3f((corner&1)==0?p.x:p.x*hammerScale,(corner&2)==0?p.y:p.y*hammerScale,(corner&4)==0?p.z:p.z*hammerScale);
                         vertices.add(matrix.transformPosition(envelope));distal.add(surface.distal);
@@ -49,7 +57,8 @@ public final class FirstPersonPose {
         if(left&&shielded){var grip=new Matrix4f(result[rig.searchJointByName("Tool_L").getId()]).mul(shieldGrip);for(var surface:shield()){vertices.add(grip.transformPosition(new Vector3f(surface.point)));distal.add(true);}}
         // Protect only the actual depth plane. Natural arm size and screen crops
         // remain those of Minecraft's native hand transform.
-        float shift=0;for(var p:vertices){nativeArmFrame.transformPosition(p);shift=Math.max(shift,p.z+.15F);}
+        float margin=Float.isFinite(liquidMargin)?com.codex.blacklight.util.MathCompat.clamp(liquidMargin,0,.045F):0;
+        float shift=0;for(var p:vertices){nativeArmFrame.transformPosition(p);shift=Math.max(shift,p.z+.15F+margin);}
         shift=Math.max(0,shift);
         var localShift=new Matrix4f(nativeArmFrame).invert().transformDirection(new Vector3f(0,0,-shift));
         for(var bone:rig.bones())if(bone.getName().endsWith("_"+side))result[bone.getId()]=new Matrix4f().translation(localShift).mul(result[bone.getId()]);

@@ -2,7 +2,11 @@ package com.codex.blacklight.client.renderer.layer;
 
 import com.codex.blacklight.BlacklightNeoMod;
 import com.codex.blacklight.client.model.ClawArmModel;
-import com.codex.blacklight.client.renderer.ClawMorphTracker;
+import com.codex.blacklight.client.renderer.WeaponMorphTracker;
+import com.codex.blacklight.client.renderer.LiquidBiomassMaterial;
+import com.codex.blacklight.client.animation.BiomassSurface;
+import com.codex.blacklight.client.animation.WeaponMorphTiming;
+import com.codex.blacklight.power.PowerForm;
 import com.codex.blacklight.client.tuning.ClawTransformSettings;
 import com.codex.blacklight.client.tuning.ClawTransformSettings.HandSide;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -18,7 +22,13 @@ import net.minecraft.world.InteractionHand;
 
 /** Renders directly on Blacklight's animated shoulder and elbow joints; no held-item transform is involved. */
 public final class BlacklightClawLayer extends net.minecraft.client.renderer.entity.layers.RenderLayer<AbstractClientPlayer,PlayerModel<AbstractClientPlayer>> {
-    public BlacklightClawLayer(net.minecraft.client.renderer.entity.RenderLayerParent<AbstractClientPlayer,PlayerModel<AbstractClientPlayer>> parent){super(parent);}
+    public BlacklightClawLayer(net.minecraft.client.renderer.entity.RenderLayerParent<AbstractClientPlayer,PlayerModel<AbstractClientPlayer>> parent){
+        super(parent);
+        // Parse authored surfaces during renderer setup, rather than hitching the
+        // first visible liquid frame each time a weapon is selected.
+        for(var form:PowerForm.values())if(WeaponMorphTiming.weapon(form))
+            forms.put(form,new ClawArmModel(form==PowerForm.CLAWS?"claw_blender":"form_"+form.id()));
+    }
     @Override public void render(PoseStack stack,MultiBufferSource buffer,int light,AbstractClientPlayer player,float swing,float amount,float partial,float age,float yaw,float pitch) {
         if(!(getParentModel() instanceof com.codex.blacklight.client.model.BlacklightPlayerModel parent))return;
         var poses=parent.matrices();if(poses==null)return;
@@ -30,10 +40,8 @@ public final class BlacklightClawLayer extends net.minecraft.client.renderer.ent
     }
     private static final ResourceLocation TEXTURE = new ResourceLocation(
             BlacklightNeoMod.MOD_ID, "textures/entity/claw_white.png");
-    // Lazily baked on first render instead of at field-initialization time, so the
-    // layer no longer depends on LayerDefinition registration order (Blacklight's
-    // patched-renderer hook can run before RegisterLayerDefinitions on some setups).
-    private ClawArmModel model;
+    // Load at renderer setup, after resources are available. These meshes do not
+    // depend on LayerDefinition registration order.
     private final java.util.Map<com.codex.blacklight.power.PowerForm, ClawArmModel> forms = new java.util.EnumMap<>(com.codex.blacklight.power.PowerForm.class);
     private record Coil(float intensity,float lastCharged){}
     private final java.util.Map<AbstractClientPlayer,Coil> coils=new java.util.WeakHashMap<>();
@@ -43,21 +51,7 @@ public final class BlacklightClawLayer extends net.minecraft.client.renderer.ent
         renderFirstPerson(player,stack,buffer,light,poses,partial,-1);
     }
     public void renderFirstPerson(AbstractClientPlayer player,PoseStack stack,MultiBufferSource buffer,int light,org.joml.Matrix4f[] poses,float partial,int side) {
-        var state=com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE);
-        var form=state.getActivePower();
-        boolean weapon=form==com.codex.blacklight.power.PowerForm.BLADE||form==com.codex.blacklight.power.PowerForm.WHIPFIST
-                ||form==com.codex.blacklight.power.PowerForm.HAMMERFISTS||form==com.codex.blacklight.power.PowerForm.MUSCLE_MASS;
-        float clawProgress=ClawMorphTracker.progress(player,partial);
-        float progress=weapon?1:ClawTransformSettings.preview()?1:clawProgress;
-        if(progress<=.001F)return;
-        model=forms.computeIfAbsent(weapon?form:com.codex.blacklight.power.PowerForm.CLAWS,
-                f->new ClawArmModel(f==com.codex.blacklight.power.PowerForm.CLAWS?"claw_blender":"form_"+f.id()));
-        var hammer=com.codex.blacklight.client.renderer.HammerScaleRenderer.sample(player,partial);
-        if(side!=1)renderHand(player,InteractionHand.MAIN_HAND,poses,false,stack,buffer,light,progress,
-                form==com.codex.blacklight.power.PowerForm.HAMMERFISTS?hammer[0]:null);
-        if(side!=0&&(!weapon||form==com.codex.blacklight.power.PowerForm.HAMMERFISTS||form==com.codex.blacklight.power.PowerForm.MUSCLE_MASS))
-            renderHand(player,InteractionHand.OFF_HAND,poses,true,stack,buffer,light,progress,
-                    form==com.codex.blacklight.power.PowerForm.HAMMERFISTS?hammer[1]:null);
+        renderParts(player,stack,buffer,light,poses,partial,side);
     }
 
     private void renderSkeleton(AbstractClientPlayer player,
@@ -87,8 +81,6 @@ public final class BlacklightClawLayer extends net.minecraft.client.renderer.ent
                 }
             }else coils.remove(player);
         }
-        boolean weapon = state.isPrototypeMode() && ((form == com.codex.blacklight.power.PowerForm.HAMMERFISTS || form == com.codex.blacklight.power.PowerForm.MUSCLE_MASS)
-                || form == com.codex.blacklight.power.PowerForm.BLADE || form == com.codex.blacklight.power.PowerForm.WHIPFIST);
         if(state.isPrototypeMode()&&form==com.codex.blacklight.power.PowerForm.NONE){
             for(int side=0;side<2;side++){
                 var bone=com.codex.blacklight.animation.PlayerMotionController.skeleton().searchJointByName(side==0?"Hand_R":"Hand_L");
@@ -104,21 +96,28 @@ public final class BlacklightClawLayer extends net.minecraft.client.renderer.ent
                 com.codex.blacklight.client.renderer.WeaponTrailRenderer.captureLocal(player,poseStack,side+2,.23F,.56F);poseStack.popPose();
             }
         }
-        // Keep the claw transition clock current even while another weapon is visible.
-        float clawProgress = ClawMorphTracker.progress(player, partialTicks);
-        float morphProgress = weapon ? 1 : ClawTransformSettings.preview() ? 1 : clawProgress;
-        if (morphProgress <= 0.001F) return;
+        renderParts(player,poseStack,buffer,packedLight,poses,partialTicks,-1);
+    }
 
-        if (weapon) model = forms.computeIfAbsent(form, f -> new ClawArmModel("form_" + f.id()));
-        else model = forms.computeIfAbsent(com.codex.blacklight.power.PowerForm.CLAWS, f -> new ClawArmModel("claw_blender"));
-        var hammer=com.codex.blacklight.client.renderer.HammerScaleRenderer.sample(player,partialTicks);
-        renderHand(player, InteractionHand.MAIN_HAND, poses, false,
-                poseStack, buffer, packedLight, morphProgress,form==com.codex.blacklight.power.PowerForm.HAMMERFISTS?hammer[0]:null);
-        if (weapon && form != com.codex.blacklight.power.PowerForm.HAMMERFISTS && form != com.codex.blacklight.power.PowerForm.MUSCLE_MASS) return;
-        float delayedLeftProgress = ClawTransformSettings.preview() ? 1.0F
-                : Math.max(0.0F, Math.min(1.0F, (morphProgress - 0.065F) / 0.935F));
-        renderHand(player, InteractionHand.OFF_HAND, poses, true,
-                poseStack, buffer, packedLight, delayedLeftProgress,form==com.codex.blacklight.power.PowerForm.HAMMERFISTS?hammer[1]:null);
+    private void renderParts(AbstractClientPlayer player,PoseStack stack,MultiBufferSource buffer,int light,
+                             org.joml.Matrix4f[] poses,float partial,int side) {
+        var morph=WeaponMorphTracker.sample(player,partial);
+        var parts=morph.parts();
+        if(ClawTransformSettings.preview()&&(morph.target()==PowerForm.NONE||morph.target()==PowerForm.CLAWS))
+            parts=java.util.List.of(new WeaponMorphTracker.Part(PowerForm.CLAWS,BiomassSurface.Frame.stable(1)));
+        var hammer=com.codex.blacklight.client.renderer.HammerScaleRenderer.sample(player,partial);
+        // All wave frequencies repeat after 50,000 ticks. Reduce before casting
+        // to float so old worlds retain sub-tick liquid motion.
+        float materialTime=(float)(morph.materialTime()%50_000D);
+        for(var part:parts) {
+            if(part.surface().growth()<=.001F)continue;
+            var form=part.form();var mesh=forms.computeIfAbsent(form,
+                    f->new ClawArmModel(f==PowerForm.CLAWS?"claw_blender":"form_"+f.id()));
+            if(side!=1)renderHand(player,InteractionHand.MAIN_HAND,poses,false,stack,buffer,light,mesh,form,part.surface(),partial,materialTime,
+                    form==PowerForm.HAMMERFISTS?hammer[0]:null);
+            if(side!=0&&WeaponMorphTiming.arm(form,true))renderHand(player,InteractionHand.OFF_HAND,poses,true,stack,buffer,light,mesh,form,part.surface(),partial,materialTime,
+                    form==PowerForm.HAMMERFISTS?hammer[1]:null);
+        }
     }
 
     private void renderHand(AbstractClientPlayer player,
@@ -128,38 +127,39 @@ public final class BlacklightClawLayer extends net.minecraft.client.renderer.ent
                             PoseStack poseStack,
                             MultiBufferSource buffer,
                             int packedLight,
-                            float morphProgress,com.codex.blacklight.combat.HammerScales.Shape hammer) {
+                            ClawArmModel model,PowerForm form,BiomassSurface.Frame surface,float partial,float time,
+                            com.codex.blacklight.combat.HammerScales.Shape hammer) {
+        float morphProgress=surface.growth();
         if (morphProgress <= 0.001F) return;
-        if (model == null) {
-            model = new ClawArmModel(
-                    Minecraft.getInstance().getEntityModels().bakeLayer(ClawArmModel.LAYER));
-        }
         com.codex.blacklight.animation.BlacklightSkeleton armature = com.codex.blacklight.animation.PlayerMotionController.skeleton();
         var handJoint = hand == InteractionHand.MAIN_HAND ? armature.handR : armature.handL;
         var armJoint = hand == InteractionHand.MAIN_HAND ? armature.armR : armature.armL;
         HandSide side = mirror ? HandSide.LEFT : HandSide.RIGHT;
-        boolean claw = com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower() == com.codex.blacklight.power.PowerForm.CLAWS;
+        boolean claw = form==PowerForm.CLAWS;
+        boolean authoritative=form==com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower();
         float width = claw ? (float) ClawTransformSettings.limbWidth(side) : 1;
 
         // Arm_R/L is the shoulder pivot; Hand_R/L is the actual elbow pivot.
         // Pose matrices already contain the complete animated hierarchy. Applying an
         // inverse bind-hand offset and arbitrary tuner translations detached the limb.
         // Keep both segment origins on their real joints and overlap their end rings.
-        VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
+        RenderType material=surface.liquid()?LiquidBiomassMaterial.mesh(TEXTURE):RenderType.entityCutoutNoCull(TEXTURE);
+        VertexConsumer consumer = buffer.getBuffer(material);
         poseStack.pushPose();
         applyJoint(poseStack, poses[armJoint.getId()]);
         poseStack.scale(width, 1.0F, width);
-        BiomassTendrils.render(poseStack,consumer,packedLight,morphProgress,.34F,player.tickCount);
         model.renderJoint(mirror ? "Arm_L" : "Arm_R", poseStack, consumer, packedLight,
-                OverlayTexture.NO_OVERLAY, morphProgress, 1.0F);
+                OverlayTexture.NO_OVERLAY, morphProgress, 1.0F,null,Float.POSITIVE_INFINITY,null,surface,time);
+        LiquidBiomassRenderer.render(poseStack,buffer,packedLight,surface,.34F,time,false);
         poseStack.popPose();
 
         poseStack.pushPose();
         applyJoint(poseStack, poses[handJoint.getId()]);
         poseStack.scale(width, 1.0F, width);
-        BiomassTendrils.render(poseStack,consumer,packedLight,morphProgress,.44F,player.tickCount);
+        // A different RenderType may finish the previous non-fixed buffer.
+        consumer=buffer.getBuffer(material);
         var visual=com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.WEAPON_VISUAL);
-        if(!mirror&&visual.charging()&&visual.spec()!=null&&visual.spec().form==com.codex.blacklight.power.PowerForm.BLADE){
+        if(authoritative&&!mirror&&visual.charging()&&visual.spec()!=null&&visual.spec().form==com.codex.blacklight.power.PowerForm.BLADE){
             float age=player.level().getGameTime()-visual.started();
             BiomassTendrils.charge(poseStack,consumer,packedLight,net.minecraft.util.Mth.clamp(.35F+age/18F,0,1),.68F,player.tickCount);
         }
@@ -173,19 +173,20 @@ public final class BlacklightClawLayer extends net.minecraft.client.renderer.ent
             var relative=new org.joml.Matrix4f(poses[handJoint.getId()]).invert().mul(poses[wrist.getId()]);
             wristDelta=new org.joml.Matrix4f(relative).mul(new org.joml.Matrix4f(wrist.getLocalTransform()).invert());
         }
-        boolean extendingWhip=!mirror&&com.codex.blacklight.client.renderer.WhipTetherRenderer.extended(player);
+        boolean extendingWhip=authoritative&&!mirror&&com.codex.blacklight.client.renderer.WhipTetherRenderer.extended(player);
         model.renderJoint(mirror ? "Hand_L" : "Hand_R", poseStack, consumer, packedLight,
-                 OverlayTexture.NO_OVERLAY, morphProgress, claw ? (float) ClawTransformSettings.talonLength(side) : 1,wristDelta,extendingWhip?.32F:Float.POSITIVE_INFINITY,hammer);
-        if(!mirror&&!extendingWhip&&com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower()==com.codex.blacklight.power.PowerForm.WHIPFIST)
-            model.renderJoint("Tip_R",poseStack,consumer,packedLight,OverlayTexture.NO_OVERLAY,morphProgress,1);
-        if(mirror && claw && com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.GRAB_STAGE)
+                 OverlayTexture.NO_OVERLAY, morphProgress, claw ? (float) ClawTransformSettings.talonLength(side) : 1,wristDelta,extendingWhip?.32F:Float.POSITIVE_INFINITY,hammer,surface,time);
+        if(!mirror&&!extendingWhip&&form==PowerForm.WHIPFIST)
+            model.renderJoint("Tip_R",poseStack,consumer,packedLight,OverlayTexture.NO_OVERLAY,morphProgress,1,null,Float.POSITIVE_INFINITY,null,surface,time);
+        if(authoritative&&mirror && claw && com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.GRAB_STAGE)
                 ==com.codex.blacklight.combat.ConsumeVisual.HOLD)
             com.codex.blacklight.client.renderer.WhipTetherRenderer.captureGrip(player,poseStack);
-        if(!mirror && com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower()==com.codex.blacklight.power.PowerForm.BLADE)
+        if(authoritative&&!mirror && form==PowerForm.BLADE)
             com.codex.blacklight.client.renderer.WhipTetherRenderer.captureBlade(player,poseStack);
-        if (!mirror && com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower() == com.codex.blacklight.power.PowerForm.WHIPFIST)
+        if (authoritative&&!mirror && form==PowerForm.WHIPFIST)
             com.codex.blacklight.client.renderer.WhipTetherRenderer.capture(player, poseStack);
-        com.codex.blacklight.client.renderer.WeaponTrailRenderer.capture(player,poseStack,mirror);
+        if(authoritative)com.codex.blacklight.client.renderer.WeaponTrailRenderer.capture(player,poseStack,mirror);
+        LiquidBiomassRenderer.render(poseStack,buffer,packedLight,surface,.44F,time,true);
         poseStack.popPose();
     }
 

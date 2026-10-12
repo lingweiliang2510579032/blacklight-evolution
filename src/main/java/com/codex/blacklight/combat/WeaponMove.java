@@ -242,7 +242,9 @@ public enum WeaponMove {
                 int recovery=Math.max(0,sourceTick-safe);
                 sourceTick-=Math.min(recovery,(int)Math.ceil(recovery*.15));
             }
-            return Math.min(duration,sourceTick);
+            // A reviewed source hook can still precede Minecraft's hurt-resistance
+            // boundary. Extend that hook without removing any source contact.
+            return Math.min(duration,Math.max(sourceTick,end-1+10-next.start));
         }
         // Until the source event sentinel is fully resolved, retain every active
         // contact and a short follow-through. Do not cancel into the next attack.

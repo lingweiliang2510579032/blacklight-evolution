@@ -1,40 +1,35 @@
-# Forge 1.20.1 开发版安装边界
+# 安装 Blacklight: Ascension — Forge 1.20.1
 
-适用：Blacklight: Ascension 0.3.0-forge-1.20.1-dev.1 · Minecraft 1.20.1 · Forge 47.4.10 · Java 17。
+适用版本：0.3.0-forge-1.20.1-dev.2，Minecraft Java 1.20.1、Java 17、Forge 47.4.10。
 
-当前只有 source-only 源码候选。公开仓库没有完整动作、HUD 和镜头资料；独立客户端实际加载后以 `Missing Blacklight motion: basic_idle` 停止。不能把它当作可玩版本放进整合包。结果见 [移植状态](FORGE_1_20_1_STATUS.md)。Epic Fight、Epic ParCool 和 Weapons of Miracles 不是本分支前置。
+## 文件和依赖
 
-## 安装文件
+- 安装 `Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.2-bundled.jar`；默认包含 224 个动作、镜头和 HUD 资料文件。
+- 单独安装 GeckoLib 4.8.4 的 Forge 1.20.1 版。
+- ParCool 1.20.1-3.4.3.3 可选。Epic Fight、Epic ParCool、Weapons of Miracles 均不是前置。
+- MixinExtras Forge 0.4.1 内嵌，不需要另外放入 mods。
+- `bundled-slim.jar` 是构建中间文件；旧 dev.1 source-only 包不可代替本版。
 
-- `Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.1-source-only.jar`：已重混淆的源码候选，不含完整动作资料。
-- `geckolib-forge-1.20.1-4.8.4.jar`：需要单独安装的 GeckoLib。
-- MixinExtras Forge 0.4.1：已内嵌，由 Forge 自动加载。
-- `source-only`：不含完整私有动作资料，仅用于源码编译，不是完整试玩包。
+## 独立实例验证
 
-## 获得完整且获准使用的资料后
+1. 建立 Minecraft 1.20.1 / Forge 47.4.10 独立实例，选择 Java 17。
+2. 把一个本版 bundled JAR 和 GeckoLib 放入 mods，移走旧 Blacklight 版本，避免重复模组。
+3. 先验证菜单与独立测试存档，再检查 B 模式、武器切换、吞噬、移动、HUD、镜头、感染体和存档重载。
+4. 多人需客户端与服务端使用相同模组版本、依赖和资料；联机仍需专门验证。不要直接用现有整合包存档测试开发版。
 
-1. 在本地以 `-PbundleMotionDirectory=<完整资料目录>` 构建 local-preview。保留私有资料标记，不公开上传。
-2. 建立独立 Minecraft 1.20.1 / Forge 47.4.10 实例并使用 Java 17，放入一个 Blacklight local-preview JAR 和对应 GeckoLib。
-3. 首次验证先使用独立实例或已有存档副本。不要在 RC59 常用实例中混装旧黑光、新黑光与旧动作前置。
-4. 删除旧的 `-Dblacklight.localWeaponMotions=...` 参数，除非正在有意使用完整的外部开发资料目录。该目录会替代包内资料。
-5. 检查模组菜单中的版本和控制设置，先确认普通模式、B 黑光模式、五种攻击形态、装甲、盾牌、抓取吞噬和墙面动作。
+Forge 编译、启动与玩法结果见 [验收状态](FORGE_1_20_1_STATUS.md)。以上是安装与验证步骤，不表示全部场景已经通过。
 
-这些是待执行的验收条件，不表示当前 source-only 候选可玩。ParCool 1.20.1-3.4.3.3 可选；黑光原生移动不要求安装。额外 Mod 尚未通过兼容验收。
+## 外部整套资料
 
-## 升级与回退
+源码构建默认使用仓库 `art/motion-profile/`。开发者可用 `-PbundleMotionDirectory=<目录>` 替换完整资料，生成 `external-profile`；此选项不混合两个资料目录。游戏运行时的 `blacklight.localWeaponMotions` 仍是显式开发覆盖。
 
-先备份整个世界和 config，并保留 RC59 旧包。试用独立版时使用副本；回退时一起恢复旧世界、配置和旧包。新的动作附件不表示旧存档中的动作前置内容可以由黑光替代。
+## 常见问题
 
-客户端与服务端必须使用相同黑光版本和完整动作资料。Forge 专用服务端、远程玩家、高延迟、重连、多人观战和完整生存流程尚未通过玩法验收。上游的启动记录不能替代本分支验收。
-
-## 故障排查
-
-| 表现 | 检查 |
+| 现象 | 检查 |
 | --- | --- |
-| 提示缺 GeckoLib | 必须使用 Forge 1.20.1 的 4.8.4 版本 |
-| 提示缺 Epic Fight | 是否仍在运行 RC59 旧 JAR，或存在另一个附属模组 |
-| Missing Blacklight motion / Incomplete motion profile | 是否误装 source-only，或外部动作目录不完整 |
-| E 打开背包 | 抓取与背包绑定冲突，检查控制设置 |
-| 装甲、墙跑或跑步画面异常 | 保存截图、具体动作、完整文件名及 latest.log，以同一状态复现 |
+| 缺 GeckoLib、无效模组文件 | 是否选择 Forge 1.20.1 版 GeckoLib 和本版完整 JAR |
+| 重复模组 | mods 仅保留一份 Blacklight |
+| Missing Blacklight motion / Incomplete motion profile | 是否误装旧 source-only；外部完整资料是否缺文件；成品是否通过打包清单校验 |
+| 联机或额外模组冲突 | 先在最小独立实例复现，保留脱敏日志与准确版本 |
 
-独立版 local-preview 仍包含私人 Prototype 派生资料，发行边界没有因框架独立化而改变，见 [资源说明](../THIRD_PARTY_ASSETS.md)。本地修复与公开发布是分别记录的状态。
+资源出处与许可见 [资源说明](../THIRD_PARTY_ASSETS.md)和[第三方声明](../THIRD_PARTY_NOTICES.md)。本地开发候选与正式发布分别记录。

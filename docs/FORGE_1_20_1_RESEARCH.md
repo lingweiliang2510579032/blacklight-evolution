@@ -1,5 +1,7 @@
 # Minecraft 1.20.1 Forge 移植调查
 
+> 历史调查：下文描述移植基线 dev.5。上游 9ba910f/dev.7 已公开并补齐224资料；本分支 dev.2 默认 bundled、显式外部资料 external-profile，原 source-only/local-preview 与缺资料阻塞已关闭。当前目标 Minecraft 1.20.1 Forge，实际验证见 [维护状态](FORGE_1_20_1_STATUS.md)。
+
 调查日期：2026-10-12。源码基线：上游 `main` 提交 `d43aa4bf4263ad5ebf1de799cee06f48a0f8c018`，版本 `0.3.0-standalone-dev.5`。本文是移植前调查，不代表 Forge 版已经编译、启动或通过试玩。用户已确定：我们独立维护 1.20.1 Forge，原作者继续维护 1.21.1 NeoForge，项目范围只包括这个模组，不向上游提交完整移植 PR。
 
 ## 可执行结论

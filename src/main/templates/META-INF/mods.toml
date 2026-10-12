@@ -12,7 +12,7 @@ description='''
 Blacklight: Ascension — independent Forge 1.20.1 port.
 Biological shapeshifting, consumption, disguise, movement and infected hive encounters.
 Original project by 末者. Independent fan project, not affiliated with the original game publishers.
-Source-only builds lack required runtime motions. Local-preview builds are not public releases.
+Default builds include the complete repository motion, camera and HUD profile. Forge gameplay acceptance is recorded separately.
 '''
 [[dependencies.${mod_id}]]
 modId="forge"

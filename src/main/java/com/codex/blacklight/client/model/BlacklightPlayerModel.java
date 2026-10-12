@@ -74,12 +74,11 @@ public final class BlacklightPlayerModel extends PlayerModel<AbstractClientPlaye
         var form=state.getActivePower();
         rightBiological=leftBiological=false;
         if(state.isPrototypeMode()) {
-            boolean both=form==com.codex.blacklight.power.PowerForm.HAMMERFISTS||form==com.codex.blacklight.power.PowerForm.MUSCLE_MASS;
-            boolean weapon=both||form==com.codex.blacklight.power.PowerForm.BLADE||form==com.codex.blacklight.power.PowerForm.WHIPFIST;
-            float clawProgress=com.codex.blacklight.client.renderer.ClawMorphTracker.progress(player,partial);
-            boolean claws=!weapon&&(com.codex.blacklight.client.tuning.ClawTransformSettings.preview()||clawProgress>=.72F);
-            rightBiological=both||claws||form==com.codex.blacklight.power.PowerForm.BLADE||form==com.codex.blacklight.power.PowerForm.WHIPFIST;
-            leftBiological=both||claws;
+            var morph=com.codex.blacklight.client.renderer.WeaponMorphTracker.sample(player,partial);
+            boolean preview=com.codex.blacklight.client.tuning.ClawTransformSettings.preview()
+                    &&(form==com.codex.blacklight.power.PowerForm.NONE||form==com.codex.blacklight.power.PowerForm.CLAWS);
+            rightBiological=preview||morph.coverage(false)>=.72F;
+            leftBiological=preview||morph.coverage(true)>=.72F;
             if(rightBiological){rightArm.visible=false;rightSleeve.visible=false;}
             if(leftBiological){leftArm.visible=false;leftSleeve.visible=false;}
             if(armor.covers(player,"right_arm",partial))rightBiological=false;

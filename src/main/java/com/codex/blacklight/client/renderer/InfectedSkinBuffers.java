@@ -14,7 +14,7 @@ final class InfectedSkinBuffers implements MultiBufferSource {
         if(type.isOutline()||name.contains("eyes")||name.contains("glint")||name.contains("shadow")||name.contains("infected_morphology"))return delegate.getBuffer(type);
         // Asking for another render type can flush BufferSource's current builder.
         // Never cache a consumer that may have been ended by a copied model layer.
-        return new Skin(delegate.getBuffer(type));
+        return new Skin(delegate.getBuffer(InfectedMorphology.skinType(type)));
     }
     private record Skin(VertexConsumer out) implements VertexConsumer,ConsumeAnatomy.Consumer {
         public void endVertex(){if(out!=null)out.endVertex();}
@@ -23,7 +23,7 @@ final class InfectedSkinBuffers implements MultiBufferSource {
         @Override public VertexConsumer vertex(double x,double y,double z){out.vertex(x,y,z);return this;}
         // Decay is local geometry, not an opaque dark-red coat over every species.
         // Keep sheep colours, cow spots, fish variants and village clothing readable.
-        @Override public VertexConsumer color(int r,int g,int b,int a){out.color((int)(r*.94F),(int)(g*.87F),(int)(b*.83F),a);return this;}
+        @Override public VertexConsumer color(int r,int g,int b,int a){out.color(r,g,b,a);return this;}
         @Override public VertexConsumer uv(float u,float v){out.uv(u,v);return this;}
         @Override public VertexConsumer overlayCoords(int u,int v){out.overlayCoords(u,v);return this;}
         @Override public VertexConsumer uv2(int u,int v){out.uv2(u,v);return this;}
