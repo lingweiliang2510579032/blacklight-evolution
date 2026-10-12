@@ -196,6 +196,10 @@ tasks.named('compileJava', JavaCompile) {
     outputs.files(layout.buildDirectory.file('tmp/compileJava/compileJava-refmap.json'),
             layout.buildDirectory.file('tmp/compileJava/compileJava-mappings.tsrg'))
             .withPropertyName('mixinAnnotationProcessorOutputs')
+    // MixinGradle's JAR injection also skips cache-restored compiler outputs.
+    // Until that plugin supports restoration, run main annotation processing
+    // on clean builds; other tasks retain their normal cache behavior.
+    outputs.cacheIf('MixinGradle requires fresh annotation processing for JAR injection') { false }
 }
 
 // Sets up a dependency configuration called 'localRuntime'.
