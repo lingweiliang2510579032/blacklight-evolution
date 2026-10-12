@@ -190,6 +190,14 @@ mixin {
     config 'blacklight.mixins.json'
 }
 
+// MixinGradle writes these outside JavaCompile's normal class output. Declare
+// both so clean builds restored from Gradle's cache retain runtime mappings.
+tasks.named('compileJava', JavaCompile) {
+    outputs.files(layout.buildDirectory.file('tmp/compileJava/compileJava-refmap.json'),
+            layout.buildDirectory.file('tmp/compileJava/compileJava-mappings.tsrg'))
+            .withPropertyName('mixinAnnotationProcessorOutputs')
+}
+
 // Sets up a dependency configuration called 'localRuntime'.
 // This configuration should be used instead of 'runtimeOnly' to declare
 // a dependency that will be present for runtime testing but that is
@@ -443,6 +451,13 @@ tasks.register('verifyBundledMotionResources') {
             throw new GradleException('Repository motion inventory does not match its manifest')
         def archive = new java.util.zip.ZipFile(tasks.named('jarJar', Jar).get().archiveFile.get().asFile)
         try {
+            def refmapEntry = archive.getEntry('blacklight.refmap.json')
+            if (refmapEntry == null) throw new GradleException('Missing Forge Mixin refmap in installable JAR')
+            def refmap = archive.getInputStream(refmapEntry).withCloseable {
+                new groovy.json.JsonSlurper().parse(it)
+            }
+            if (!refmap.mappings || !refmap.data?.searge)
+                throw new GradleException('Empty Forge Mixin runtime mappings')
             profile.each { input ->
                 def entry = archive.getEntry("blacklight/bundled_motions/${input.name}")
                 if (entry == null) throw new GradleException("Missing bundled motion: ${input.name}")
