@@ -10,6 +10,8 @@
 
 ## 开发环境
 
+准备贡献时可使用 [多版本快捷工具](docs/VERSION_TOOLS_ZH.md)，自动填写 PR 平台信息与同步候选，或在干净工作区建立目标版本功能分支。
+
 - Java 17，使用仓库内的 Gradle 8.9 Wrapper。
 - Minecraft 1.20.1、Forge 47.4.10、GeckoLib 4.8.4；不要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。
 - 默认只编译打包：Windows 使用 `./gradlew.bat assemble --no-daemon`；Linux/macOS 使用 `bash ./gradlew assemble --no-daemon`。
@@ -18,7 +20,7 @@
 
 普通构建是 bundled，包含仓库中完整的 224 个资料文件，并验证最终 Forge 重混淆成品。外部整套资料使用 external-profile；不提交个人导出、测试存档、解包原始文件或凭证。构建和完整玩法验收分开记录，资源出处见 `THIRD_PARTY_ASSETS.md`。
 
-默认构建与 CI 不运行单元测试、碰撞测试、GameTest 或游戏内验收；这些检查仅在用户明确要求时运行。编译打包成功不代表真人试玩已通过。
+默认构建与 Build CI 不运行游戏单元测试、碰撞测试、GameTest 或游戏内验收；这些检查仅在用户明确要求时运行。Version policy CI 只运行轻量协作工具回归和静态平台核对。编译打包成功不代表真人试玩已通过。
 
 ## 目前适合参与的工作
 

@@ -6,6 +6,8 @@
 
 跨版本功能和修复按 [多版本协作规范](docs/MULTIVERSION_WORKFLOW_ZH.md) 单独适配：本分支 PR 的 base 选 `forge-1.20.1`，NeoForge 1.21.1 的 base 选 `main`。各版本进度分别记录，不将整套平台分支互相合并。
 
+开发者可用 [多版本快捷工具](docs/VERSION_TOOLS_ZH.md) 自动准备目标分支、PR 说明和同步清单。
+
 ## 目标环境
 
 | 组件 | 版本 | 用途 |
