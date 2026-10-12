@@ -97,7 +97,9 @@ public final class NativeConsumePose {
         } else pose.getJointTransformData().putAll(blended.getJointTransformData());
         return true;
     }
-    public static float facing(LivingEntity actor,float fallback){
+    public static float facing(LivingEntity actor,float fallback,float partial){
+        if(ModAttachments.getData(actor, ModAttachments.GRAB_STAGE)==ConsumeVisual.HOLD)
+            return net.minecraft.util.Mth.rotLerp(partial,actor.yRotO,actor.getYRot());
         if(com.codex.blacklight.registry.ModAttachments.getData(actor, ModAttachments.GRAB_STAGE)!=ConsumeVisual.CONSUME)return fallback;
         var victims=actor.level().getEntitiesOfClass(LivingEntity.class,actor.getBoundingBox().inflate(18),e->com.codex.blacklight.registry.ModAttachments.getData(e, ModAttachments.CONSUME_VISUAL).consumerId()==actor.getId());
         return victims.isEmpty()?fallback:com.codex.blacklight.registry.ModAttachments.getData(victims.get(0), ModAttachments.CONSUME_VISUAL).facing();

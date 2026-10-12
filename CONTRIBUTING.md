@@ -2,7 +2,7 @@
 
 欢迎参与代码、建模、动画、特效和测试。项目目前处于原型迭代阶段，目标是制作受 Prototype 启发的 Minecraft 模组。提交功能前请先说明你要解决的问题；大型改动先讨论设计和分工，避免多人同时重做同一套动作。
 
-项目原创内容采用 [GPL-3.0-only](LICENSE)。本分支独立维护 Forge 1.20.1，协作仓库：https://github.com/lingweiliang2510579032/blacklight-evolution ，目标分支 `forge-1.20.1`。原作者在上游维护 NeoForge 1.21.1，不向上游提交整套降版 PR。第三方文件保留原有许可和署名。
+项目原创内容采用 [GPL-3.0-only](LICENSE)。主仓库 https://github.com/mengyuyuan/blacklight-evolution 按版本维护：`main` 为 NeoForge 1.21.1 / Java 21，`forge-1.20.1` 为 Forge 1.20.1 / Java 17。雨夜的 Forge 移植已通过 PR #6 接入独立版本分支；贡献者可继续在自己的 fork 开发，提交 PR 时选择对应版本分支。跨版本修复须适配加载器 API，不能把整套 Forge 分支合入 `main`。第三方文件保留原有许可和署名。
 
 ## 开发环境
 
