@@ -17,11 +17,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.*;
-import net.neoforged.fml.ModList;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.*;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.*;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.*;
+import net.minecraftforge.event.TickEvent;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -54,7 +55,8 @@ public final class StandaloneGaitSmoke {
     private static boolean active(){return initialized&&!disabled&&!completed;}
     private static boolean sprinting(){return stage==Stage.SPRINT||stage==Stage.ARMOR_SPRINT||stage==Stage.JUMP_SPRINT;}
     @SubscribeEvent(priority=EventPriority.HIGHEST)
-    public static void input(ClientTickEvent.Pre event) {
+    public static void input(TickEvent.ClientTickEvent event) {
+        if(event.phase!=TickEvent.Phase.START)return;
         if(!active())return;
         var mc=Minecraft.getInstance();
         // This fixture owns native W/sprint but must not consume the human's pointer.
@@ -93,7 +95,8 @@ public final class StandaloneGaitSmoke {
         }
     }
     @SubscribeEvent(priority=EventPriority.LOWEST)
-    public static void tick(ClientTickEvent.Post event) {
+    public static void tick(TickEvent.ClientTickEvent event) {
+        if(event.phase!=TickEvent.Phase.END)return;
         if(disabled||completed||System.getProperty(PROPERTY,"").isBlank())return;
         var mc=Minecraft.getInstance();var server=mc.getSingleplayerServer();
         if(server==null||mc.player==null||mc.level==null)return;
@@ -128,11 +131,11 @@ public final class StandaloneGaitSmoke {
                         }
                         var p=server.getPlayerList().getPlayer(uuid);if(p==null)throw new IllegalStateException("QA actor missing");
                         var state=new BlacklightState();state.infect();state.setPrototypeMode(true);state.unlock(PowerForm.NONE);state.unlock(PowerForm.ARMOR);state.activate(PowerForm.NONE);state.addBiomass(1000);
-                        p.setData(ModAttachments.PLAYER_STATE,state);p.syncData(ModAttachments.PLAYER_STATE);
-                        p.setData(ModAttachments.UTILITY_POWERS,0);p.syncData(ModAttachments.UTILITY_POWERS);
-                        p.setData(ModAttachments.UTILITY_STATE,new UtilityState(UtilityState.SHIELD_CAPACITY,0,level.getGameTime()-200,0,-1000));p.syncData(ModAttachments.UTILITY_STATE);
-                        p.setData(ModAttachments.POWER_MORPH,PowerMorph.NONE);p.syncData(ModAttachments.POWER_MORPH);
-                        p.setData(ModAttachments.WEAPON_VISUAL,com.codex.blacklight.combat.WeaponVisual.EMPTY);p.syncData(ModAttachments.WEAPON_VISUAL);
+                        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.PLAYER_STATE,state);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.PLAYER_STATE);
+                        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.UTILITY_POWERS,0);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.UTILITY_POWERS);
+                        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.UTILITY_STATE,new UtilityState(UtilityState.SHIELD_CAPACITY,0,level.getGameTime()-200,0,-1000));com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.UTILITY_STATE);
+                        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.POWER_MORPH,PowerMorph.NONE);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.POWER_MORPH);
+                        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.WEAPON_VISUAL,com.codex.blacklight.combat.WeaponVisual.EMPTY);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.WEAPON_VISUAL);
                         NativePlayerActionBackend.clear(p);com.codex.blacklight.combat.CombatTargeting.requestLock(p,-1);
                         p.getInventory().clearContent();
                         p.setGameMode(GameType.CREATIVE);p.getAbilities().flying=false;p.onUpdateAbilities();
@@ -190,7 +193,7 @@ public final class StandaloneGaitSmoke {
         row.addProperty("loop",clock.looping());row.addProperty("duration",clock.duration());row.addProperty("previousSeconds",clock.seconds(0));row.addProperty("currentSeconds",clock.current());
         row.addProperty("x",position.x);row.addProperty("y",position.y);row.addProperty("z",position.z);
         row.addProperty("playerYaw",mc.player.getYRot());row.addProperty("playerPitch",mc.player.getXRot());
-        row.addProperty("movementYaw",mc.player.getData(ModAttachments.MOVEMENT_STATE).cameraYaw(mc.player.getYRot()));
+        row.addProperty("movementYaw",com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.MOVEMENT_STATE).cameraYaw(mc.player.getYRot()));
         row.addProperty("observerYaw",mc.gameRenderer.getMainCamera().getYRot());row.addProperty("yawBeforeInputLock",yawBeforeInputLock);
         row.addProperty("chaseOwnsView",com.codex.blacklight.client.camera.PrototypeChaseCamera.ownsView());
         row.addProperty("cameraType",mc.options.getCameraType().name());
@@ -198,7 +201,7 @@ public final class StandaloneGaitSmoke {
         if(sprinting()&&com.codex.blacklight.client.camera.PrototypeChaseCamera.ownsView())violation("source chase entered isolated gait fixture at "+clock.tick());
         if(sprinting()&&(Math.abs(mc.player.getYRot())>.01F||Math.abs(row.get("movementYaw").getAsFloat())>.01F))
             violation("QA steering yaw changed at "+clock.tick());
-        var nativeAction=mc.player.getData(ModAttachments.PLAYER_ACTION);
+        var nativeAction=com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_ACTION);
         row.addProperty("nativeAction",nativeAction.clipId());row.addProperty("nativeActionSeconds",nativeAction.seconds(mc.level.getGameTime()));
         var sampled=PlayerMotionController.pose(mc.player,1);var root=sampled.get("Root");
         if(root!=null){row.addProperty("bodyRootX",root.translation().x);row.addProperty("bodyRootY",root.translation().y);row.addProperty("bodyRootZ",root.translation().z);}
@@ -243,12 +246,13 @@ public final class StandaloneGaitSmoke {
         event.setYaw((float)Math.toDegrees(Math.atan2(-look.x,look.z)));
         event.setPitch((float)-Math.toDegrees(Math.atan2(look.y,look.horizontalDistance())));event.setRoll(0);
     }
-    @SubscribeEvent public static void beforeFrame(RenderFrameEvent.Pre event) {
+    @SubscribeEvent public static void beforeFrame(TickEvent.RenderTickEvent event) {
+        if(event.phase!=TickEvent.Phase.START)return;
         if(!active()||!serverReady)return;var mc=Minecraft.getInstance();if(mc.player==null||mc.level==null)return;
         mc.mouseHandler.releaseMouse();
         try {
             recordTick(mc);var runtime=runtime(mc);if(runtime==null)return;var clock=(LocomotionClock)gaitField.get(runtime);
-            var partial=mc.getTimer().getGameTimeDeltaPartialTick(false);
+            var partial=mc.getFrameTime();
             var pose=BlacklightRenderPose.sample(mc.player,partial);var skeleton=PlayerMotionController.skeleton();
             var model=new Matrix4f().rotationY((float)Math.toRadians(180-BlacklightRenderPose.facing(mc.player,partial))).scale(.9375F*mc.player.getScale());
             var row=new JsonObject();row.addProperty("stage",stage.name());row.addProperty("stageTick",stageTicks);row.addProperty("tick",clock.tick());row.addProperty("partial",partial);
@@ -268,7 +272,8 @@ public final class StandaloneGaitSmoke {
         }catch(Exception e){fail(e);}
     }
     private static JsonArray vector(Vec3 v){var a=new JsonArray();a.add(v.x);a.add(v.y);a.add(v.z);return a;}
-    @SubscribeEvent public static void frame(RenderFrameEvent.Post event) {
+    @SubscribeEvent public static void frame(TickEvent.RenderTickEvent event) {
+        if(event.phase!=TickEvent.Phase.END)return;
         if(!active()||!capturePending)return;capturePending=false;var mc=Minecraft.getInstance();
         String name=stage.name().toLowerCase(Locale.ROOT)+"_"+stageTicks+".png";
         try {

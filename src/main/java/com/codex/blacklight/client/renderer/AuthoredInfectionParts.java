@@ -30,17 +30,20 @@ public final class AuthoredInfectionParts {
         var result=new ArrayList<Face>();
         cube.compile(new PoseStack().last(),new VertexConsumer(){
             Vector3f[] positions=new Vector3f[4];float[] us=new float[4],vs=new float[4];int index;
-            @Override public void addVertex(float x,float y,float z,int color,float u,float v,int overlay,int light,float nx,float ny,float nz){
+            @Override public void vertex(float x,float y,float z,float red,float green,float blue,float alpha,float u,float v,int overlay,int light,float nx,float ny,float nz){
                 positions[index]=new Vector3f(x*16,y*16,z*16);us[index]=u;vs[index]=v;
                 if(++index==4){result.add(new Face(positions,us,vs,new Vector3f(nx,ny,nz)));positions=new Vector3f[4];us=new float[4];vs=new float[4];index=0;}
             }
-            @Override public VertexConsumer addVertex(float x,float y,float z){throw new UnsupportedOperationException("Cube must supply complete vertices");}
-            @Override public VertexConsumer setColor(int r,int g,int b,int a){return this;}
-            @Override public VertexConsumer setUv(float u,float v){return this;}
-            @Override public VertexConsumer setUv1(int u,int v){return this;}
-            @Override public VertexConsumer setUv2(int u,int v){return this;}
-            @Override public VertexConsumer setNormal(float x,float y,float z){return this;}
-        },0,0,-1);
+            @Override public VertexConsumer vertex(double x,double y,double z){throw new UnsupportedOperationException("Cube must supply complete vertices");}
+            @Override public VertexConsumer color(int r,int g,int b,int a){return this;}
+            @Override public VertexConsumer uv(float u,float v){return this;}
+            @Override public VertexConsumer overlayCoords(int u,int v){return this;}
+            @Override public VertexConsumer uv2(int u,int v){return this;}
+            @Override public VertexConsumer normal(float x,float y,float z){return this;}
+            @Override public void endVertex(){}
+            @Override public void defaultColor(int r,int g,int b,int a){}
+            @Override public void unsetDefaultColor(){}
+        },0,0,1,1,1,1);
         return result;
     }
     private record Triangle(Vector3f a,Vector3f b,Vector3f c,Vector3f normal,int color,Face face) {}
@@ -63,7 +66,7 @@ public final class AuthoredInfectionParts {
             }
             if(replaced.isEmpty())return false;
             for(var cube:((ModelPartChildrenAccessor)(Object)part).blacklight$cubes())
-                if(!replaced.contains(cube))cube.compile(pose,out,light,overlay,color);
+                if(!replaced.contains(cube))cube.compile(pose,out,light,overlay,(color>>16&255)/255F,(color>>8&255)/255F,(color&255)/255F,(color>>>24)/255F);
             capture(part,pose,light,overlay,color);return true;
         }
         public void capture(ModelPart part,PoseStack.Pose pose,int light,int overlay,int color){
@@ -95,7 +98,7 @@ public final class AuthoredInfectionParts {
     private static Optional<JsonObject> load(String species){
         ResourceLocation id=ResourceLocation.tryParse(species);
         if(id==null||!id.getNamespace().equals("minecraft"))return Optional.empty();
-        var resource=Minecraft.getInstance().getResourceManager().getResource(ResourceLocation.fromNamespaceAndPath("blacklight","infection_parts/"+id.getPath()+".json"));
+        var resource=Minecraft.getInstance().getResourceManager().getResource(new ResourceLocation("blacklight","infection_parts/"+id.getPath()+".json"));
         if(resource.isEmpty())return Optional.empty();
         try(var r=new InputStreamReader(resource.get().open(),StandardCharsets.UTF_8)){return Optional.of(JsonParser.parseReader(r).getAsJsonObject());}
         catch(Exception e){BlacklightNeoMod.LOGGER.error("Cannot load approved infection parts for {}",species,e);return Optional.empty();}
@@ -229,8 +232,8 @@ public final class AuthoredInfectionParts {
             else if(bone.startsWith("arm_"))names.add(side+"_arm");
             else if(bone.startsWith("leg_")&&bone.split("_").length==3){
                 int n=Integer.parseInt(bone.substring(bone.lastIndexOf('_')+1));
-                if(species.endsWith(":bee"))names.add(List.of("front_legs","middle_legs","back_legs").get(Math.clamp(n,0,2)));
-                else names.add(side+List.of("_front_leg","_middle_front_leg","_middle_hind_leg","_hind_leg").get(Math.clamp(n,0,3)));
+                if(species.endsWith(":bee"))names.add(List.of("front_legs","middle_legs","back_legs").get(com.codex.blacklight.util.MathCompat.clamp(n,0,2)));
+                else names.add(side+List.of("_front_leg","_middle_front_leg","_middle_hind_leg","_hind_leg").get(com.codex.blacklight.util.MathCompat.clamp(n,0,3)));
             }else if(bone.startsWith("leg_"))names.add(side+"_leg");
             else names.add(bone);
         }
@@ -270,7 +273,7 @@ public final class AuthoredInfectionParts {
                 Vector3f ab=new Vector3f(b).sub(a),ad=new Vector3f(d).sub(a),av=new Vector3f(v).sub(a);
                 float s=av.dot(ab)/ab.lengthSquared(),r=av.dot(ad)/ad.lengthSquared();u=p.u[0]+s*(p.u[1]-p.u[0])+r*(p.u[3]-p.u[0]);w=p.v[0]+s*(p.v[1]-p.v[0])+r*(p.v[3]-p.v[0]);
             }
-            out.addVertex(pose,v.x/16,v.y/16,v.z/16).setColor(rgba).setUv(u,w).setOverlay(overlay).setLight(light).setNormal(pose,t.normal.x,t.normal.y,t.normal.z);
+            out.vertex(pose.pose(),v.x/16,v.y/16,v.z/16).color(rgba).uv(u,w).overlayCoords(overlay).uv2(light).normal(pose.normal(),t.normal.x,t.normal.y,t.normal.z).endVertex();
         }
     }
 }

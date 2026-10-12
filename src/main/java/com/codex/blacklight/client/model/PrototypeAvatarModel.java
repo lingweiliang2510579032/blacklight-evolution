@@ -6,11 +6,11 @@ import net.minecraft.resources.ResourceLocation;
 import software.bernie.geckolib.model.GeoModel;
 
 public final class PrototypeAvatarModel extends GeoModel<PrototypeAvatar> {
-    private static final ResourceLocation MODEL = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation MODEL = new ResourceLocation(
             BlacklightNeoMod.MOD_ID, "geo/prototype_avatar.geo.json");
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation TEXTURE = new ResourceLocation(
             BlacklightNeoMod.MOD_ID, "textures/entity/prototype_avatar.png");
-    private static final ResourceLocation ANIMATION = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation ANIMATION = new ResourceLocation(
             BlacklightNeoMod.MOD_ID, "animations/prototype_avatar.animation.json");
 
     @Override

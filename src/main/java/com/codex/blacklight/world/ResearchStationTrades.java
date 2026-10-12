@@ -8,16 +8,16 @@ import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.entity.npc.VillagerTrades;
 import net.minecraft.world.entity.npc.VillagerType;
 import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.saveddata.maps.MapDecorationTypes;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.village.VillagerTradesEvent;
+import net.minecraft.world.level.saveddata.maps.MapDecoration;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.village.VillagerTradesEvent;
 
 /** Replace the snowy apprentice's ocean map slot, retaining other biomes' trades. */
 public final class ResearchStationTrades {
     private static final TagKey<Structure> STATIONS = TagKey.create(Registries.STRUCTURE,
-            ResourceLocation.fromNamespaceAndPath("blacklight", "on_research_station_maps"));
+            new ResourceLocation("blacklight", "on_research_station_maps"));
     private static final VillagerTrades.ItemListing STATION_MAP = new VillagerTrades.TreasureMapForEmeralds(
-            12, STATIONS, "filled_map.blacklight.research_station", MapDecorationTypes.RED_X, 12, 5);
+            12, STATIONS, "filled_map.blacklight.research_station", MapDecoration.Type.RED_X, 12, 5);
 
     private ResearchStationTrades() {}
 

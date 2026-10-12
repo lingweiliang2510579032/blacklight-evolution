@@ -6,11 +6,11 @@ import com.mojang.blaze3d.pipeline.TextureTarget;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.PostChain;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.EventPriority;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.*;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.*;
 
 /** Depth-aware Minecraft post pass, enabled only by an original CAM DFEN track.
  * Preserves scene depth for the later sensory silhouettes and never blurs the HUD.
@@ -27,7 +27,7 @@ public final class SourceCameraDepthOfField {
         e.registerReloadListener((net.minecraft.server.packs.resources.ResourceManagerReloadListener)manager->
                 Minecraft.getInstance().execute(()->{close();failed=false;}));
     }
-    @SubscribeEvent public static void tick(ClientTickEvent.Post e) {
+    @SubscribeEvent public static void tick(net.minecraftforge.event.TickEvent.ClientTickEvent e){if(e.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
         var current=Minecraft.getInstance().level;
         if(current!=level){close();failed=false;level=current;}
     }
@@ -40,20 +40,20 @@ public final class SourceCameraDepthOfField {
         try {
             mc.renderBuffers().bufferSource().endBatch();
             if(effect==null){effect=new PostChain(mc.getTextureManager(),mc.getResourceManager(),mc.getMainRenderTarget(),
-                    ResourceLocation.fromNamespaceAndPath("blacklight","shaders/post/source_dof.json"));width=height=-1;}
+                    new ResourceLocation("blacklight","shaders/post/source_dof.json"));width=height=-1;}
             var main=mc.getMainRenderTarget();
             if(width!=main.width||height!=main.height) {
                 width=main.width;height=main.height;effect.resize(width,height);
                 if(savedDepth!=null)savedDepth.destroyBuffers();savedDepth=new TextureTarget(width,height,true,Minecraft.ON_OSX);
             }
             savedDepth.copyDepthFrom(main);copied=true;
-            effect.setUniform("Strength",(float)frame.weight());
-            effect.setUniform("FocusDistance",(float)frame.focus());
-            effect.setUniform("FocusRange",(float)frame.range());
-            effect.setUniform("Aperture",(float)frame.aperture());
-            effect.setUniform("NearPlane",PrototypeChaseCamera.nearPlane());
-            effect.setUniform("FarPlane",PrototypeChaseCamera.farPlane(mc.gameRenderer.getDepthFar()));
-            effect.process(e.getPartialTick().getGameTimeDeltaPartialTick(false));
+            com.codex.blacklight.client.ClientPostUniforms.set(effect,"Strength",(float)frame.weight());
+            com.codex.blacklight.client.ClientPostUniforms.set(effect,"FocusDistance",(float)frame.focus());
+            com.codex.blacklight.client.ClientPostUniforms.set(effect,"FocusRange",(float)frame.range());
+            com.codex.blacklight.client.ClientPostUniforms.set(effect,"Aperture",(float)frame.aperture());
+            com.codex.blacklight.client.ClientPostUniforms.set(effect,"NearPlane",PrototypeChaseCamera.nearPlane());
+            com.codex.blacklight.client.ClientPostUniforms.set(effect,"FarPlane",PrototypeChaseCamera.farPlane(mc.gameRenderer.getDepthFar()));
+            effect.process(e.getPartialTick());
         } catch(Exception ex) {
             failed=true;BlacklightNeoMod.LOGGER.error("Source cinematic depth pass unavailable; reload resources to retry",ex);
         } finally {

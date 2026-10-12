@@ -8,10 +8,10 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.*;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 import java.util.*;
 
 /** Brief broken radial cracks and pressure flashes; no permanent edits to blocks. */
@@ -33,13 +33,13 @@ public final class CombatImpactRenderer {
                 var next=surface.getLocation().add(0,.018,0);cracks.add(new Crack(prior,next,length));prior=next;
             }
         }
-        if(BURSTS.size()>=40)BURSTS.removeFirst();
+        if(BURSTS.size()>=40)BURSTS.remove(0);
         BURSTS.add(new Burst(mc.level,p,mc.level.getGameTime(),List.copyOf(cracks)));
     }
     @SubscribeEvent public static void render(RenderLevelStageEvent e){
         if(e.getStage()!=RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS)return;
         var mc=Minecraft.getInstance();if(mc.level==null){BURSTS.clear();return;}
-        double time=mc.level.getGameTime()+e.getPartialTick().getGameTimeDeltaPartialTick(false);
+        double time=mc.level.getGameTime()+e.getPartialTick();
         BURSTS.removeIf(b->b.level!=mc.level||time-b.started>(b.event.ground()?15:b.event.slash()?6:4));
         var type=RenderType.entityTranslucent(ConsumedMobVisuals.WHITE);var buffers=mc.renderBuffers().bufferSource();var out=buffers.getBuffer(type);
         var stack=e.getPoseStack();var camera=e.getCamera().getPosition();stack.pushPose();stack.translate(-camera.x,-camera.y,-camera.z);
@@ -51,7 +51,7 @@ public final class CombatImpactRenderer {
                 if(side.lengthSqr()<.001)side=along.cross(new Vec3(0,1,0)).normalize();
                 if(side.lengthSqr()<.001)side=new Vec3(1,0,0);
                 double extent=p.radius()*(.75+.18*Math.min(age,2));
-                int alpha=(int)(155*Math.clamp(1-age/6,0,1));
+                int alpha=(int)(155*net.minecraft.util.Mth.clamp(1-age/6,0,1));
                 cut(stack,out,center,along,side,extent,.095,alpha<<24|0x6b1722);
                 if(age<2){
                     int flash=(int)(235*(1-age/2));
@@ -87,7 +87,7 @@ public final class CombatImpactRenderer {
     }
     private static Vec3 point(Vec3 c,double a,double r){return c.add(Math.cos(a)*r,0,Math.sin(a)*r);}
     private static void quad(PoseStack stack,VertexConsumer out,int color,Vec3... points){
-        for(var p:points)out.addVertex(stack.last(),(float)p.x,(float)p.y,(float)p.z).setColor(color).setUv(.5F,.5F)
-            .setOverlay(OverlayTexture.NO_OVERLAY).setLight(0xf000f0).setNormal(stack.last(),0,1,0);
+        for(var p:points)out.vertex((stack.last()).pose(),(float)p.x,(float)p.y,(float)p.z).color(color).uv(.5F,.5F)
+            .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(0xf000f0).normal((stack.last()).normal(),0,1,0).endVertex();
     }
 }

@@ -11,7 +11,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.gametest.*;
+import net.minecraftforge.gametest.*;
 
 /** Isolated opt-in server tests; no player saves, commands or release assets are changed. */
 @GameTestHolder("blacklight") @PrefixGameTestTemplate(false)
@@ -68,7 +68,7 @@ public final class HiveFeedingGameTest {
         h.runAfterDelay(45,()->{
             var parts=h.getLevel().getEntitiesOfClass(HiveTendril.class,s.host.getBoundingBox().inflate(40));
             h.assertTrue(parts.size()==3,"three damageable tissue knots must exist");
-            h.assertTrue(parts.getFirst().hurt(parts.getFirst().damageSources().generic(),2),"tendril hit must be accepted");
+            h.assertTrue(parts.get(0).hurt(parts.get(0).damageSources().generic(),2),"tendril hit must be accepted");
             h.assertTrue(s.prey.isAlive()&&!s.prey.isNoGravity(),"cut cable restores living prey gravity");
             h.assertTrue(!DevourerFeedingSystem.active(s.host)&&DevourerFeedingSystem.meals(s.host)==0,"cut must release claim without rewards");
             h.assertTrue(parts.stream().allMatch(HiveTendril::isRemoved),"all temporary hitboxes must be discarded");s.cleanup();h.succeed();

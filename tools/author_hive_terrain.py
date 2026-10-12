@@ -178,7 +178,7 @@ def resources():
                    {"parent": "minecraft:block/cube_all", "textures": {"all": f"blacklight:block/{name}"}})
     for name in NEW + EXISTING:
         write_json(ASSETS / "models/item" / f"{name}.json", {"parent": f"blacklight:block/{name}"})
-        write_json(RES / "data/blacklight/loot_table/blocks" / f"{name}.json", {
+        write_json(RES / "data/blacklight/loot_tables/blocks" / f"{name}.json", {
             "type": "minecraft:block", "pools": [{"rolls": 1, "bonus_rolls": 0,
                 "conditions": [{"condition": "minecraft:survives_explosion"}],
                 "entries": [{"type": "minecraft:item", "name": f"blacklight:{name}"}]}]})

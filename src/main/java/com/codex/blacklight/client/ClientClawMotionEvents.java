@@ -5,10 +5,10 @@ import com.codex.blacklight.animation.PlayerMotionController;
 import com.codex.blacklight.mode.PrototypeModeSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.TickEvent;
 import java.util.Collections;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -18,7 +18,7 @@ import java.util.WeakHashMap;
 public final class ClientClawMotionEvents {
     private static final Set<AbstractClientPlayer> OWNED=Collections.newSetFromMap(new WeakHashMap<>());
     private ClientClawMotionEvents() {}
-    @SubscribeEvent public static void onClientTick(ClientTickEvent.Post event) {
+    @SubscribeEvent public static void onClientTick(net.minecraftforge.event.TickEvent.ClientTickEvent event){if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
         var mc=Minecraft.getInstance();
         OWNED.removeIf(player->{
             boolean remove=player.isRemoved()||player.level()!=mc.level||!PrototypeModeSystem.isActive(player);

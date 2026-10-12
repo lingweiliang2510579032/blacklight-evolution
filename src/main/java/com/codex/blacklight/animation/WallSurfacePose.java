@@ -19,7 +19,7 @@ public final class WallSurfacePose {
         // Align that actual torso axis to the wall tangent around the hips. Using
         // a fixed quarter turn rotates both the stance and its world-space origin.
         float tilt=Math.abs(axis.y)+Math.abs(axis.z)<.001F?0:(float)Math.atan2(-axis.z,axis.y);
-        tilt=Math.clamp(tilt,-(float)Math.PI/2,(float)Math.PI/2);
+        tilt=com.codex.blacklight.util.MathCompat.clamp(tilt,-(float)Math.PI/2,(float)Math.PI/2);
         var surface=new Matrix4f().translation(hip.x,hip.y,-distance/PLAYER_SCALE)
                 .rotateZ(angle).rotateX(tilt).translate(-hip.x,-hip.y,-hip.z);
         transformRoot(pose,skeleton,surface);

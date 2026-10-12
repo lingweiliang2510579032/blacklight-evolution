@@ -7,11 +7,11 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.*;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.*;
+import com.codex.blacklight.forge.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
 
 @EventBusSubscriber(modid="blacklight",value=Dist.CLIENT)
@@ -26,7 +26,7 @@ public final class DisguiseControls {
         if(SWITCH.matches(e.getKey(),e.getScanCode())&&(e.getAction()==GLFW.GLFW_PRESS||e.getAction()==GLFW.GLFW_RELEASE))
             press(e.getAction()==GLFW.GLFW_PRESS);
     }
-    @SubscribeEvent public static void tick(ClientTickEvent.Post e){
+    @SubscribeEvent public static void tick(net.minecraftforge.event.TickEvent.ClientTickEvent e){if(e.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
         var mc=Minecraft.getInstance();if(mc.getWindow()==null)return;
         if(owner!=mc.player){owner=mc.player;down=physical();}
         press(physical());
@@ -53,7 +53,7 @@ public final class DisguiseControls {
     @SubscribeEvent public static void hud(RenderGuiEvent.Post e){
         var mc=Minecraft.getInstance();
         if(mc.player==null||mc.screen!=null||mc.options.hideGui||!com.codex.blacklight.mode.PrototypeModeSystem.isActive(mc.player))return;
-        var id=mc.player.getData(ModAttachments.DISGUISE_IDENTITY);if(!id.valid())return;
+        var id=com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.DISGUISE_IDENTITY);if(!id.valid())return;
         Component text=Component.translatable(DisguiseSystem.active(mc.player)?"hud.blacklight.disguise_active":"hud.blacklight.disguise_ready",
                 id.entityType().getDescription(),SWITCH.getTranslatedKeyMessage());
         int x=Math.max(10,e.getGuiGraphics().guiWidth()-mc.font.width(text)-10);

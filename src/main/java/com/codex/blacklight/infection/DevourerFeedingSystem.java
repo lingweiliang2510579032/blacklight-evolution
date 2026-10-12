@@ -19,12 +19,12 @@ import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
-import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
-import net.neoforged.neoforge.event.server.ServerStoppingEvent;
-import net.neoforged.neoforge.event.tick.EntityTickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
+import com.codex.blacklight.combat.ForgeEntityTickEvent;
 
 import java.util.Comparator;
 import java.util.IdentityHashMap;
@@ -69,7 +69,7 @@ public final class DevourerFeedingSystem {
         if(ACTIVE.containsKey(host))return; // A captured victim always gets the full sequence.
         CompoundTag data=host.getPersistentData();long now=host.level().getGameTime();
         if(!data.contains(NEXT))return;
-        long remaining=Math.clamp(data.getLong(NEXT)-now,0,FEED_INTERVAL);
+        long remaining=com.codex.blacklight.util.MathCompat.clamp(data.getLong(NEXT)-now,0,FEED_INTERVAL);
         long scaled=(long)Math.ceil(remaining*(double)Mth.clamp(before,1,20)/Mth.clamp(after,1,20));
         data.putLong(NEXT,now+Math.min(FEED_INTERVAL,scaled));
     }
@@ -96,7 +96,7 @@ public final class DevourerFeedingSystem {
         if(!isDevourer(host)){release(host);return;}
         if(!host.getPersistentData().contains(HOME,Tag.TAG_LONG))host.getPersistentData().putLong(HOME,host.blockPosition().asLong());
         boolean disabled=!host.isAlive()||host.isNoAi()||host.isPassenger()||host.isVehicle()||host.isLeashed()
-                ||host.getData(ModAttachments.CONSUME_VISUAL).active()||ImpactControl.stunned(host);
+                ||com.codex.blacklight.registry.ModAttachments.getData(host, ModAttachments.CONSUME_VISUAL).active()||ImpactControl.stunned(host);
         if(disabled){release(host);return;}
         boolean supplied=DevourerHabitat.canFeed(host);
         host.syncNursery(home(host),DevourerHabitat.nodeMask(host),supplied&&!host.giantBoss());
@@ -131,8 +131,8 @@ public final class DevourerFeedingSystem {
     private static boolean eligible(BlacklightInfectedHost host,Mob prey,long now) {
         if(prey==host||!prey.isAlive()||prey.isRemoved()||prey.level()!=host.level()||prey.isNoAi()||prey.isInvulnerable()
                 ||prey.hasCustomName()||prey.isLeashed()||prey.isPassenger()||prey.isVehicle()
-                ||prey.getData(ModAttachments.CONSUME_VISUAL).active()||prey.getData(ModAttachments.CONSUMING)
-                ||prey.getData(ModAttachments.GRAB_STAGE)!=0||ConsumeSequence.boss(prey)
+                ||com.codex.blacklight.registry.ModAttachments.getData(prey, ModAttachments.CONSUME_VISUAL).active()||com.codex.blacklight.registry.ModAttachments.getData(prey, ModAttachments.CONSUMING)
+                ||com.codex.blacklight.registry.ModAttachments.getData(prey, ModAttachments.GRAB_STAGE)!=0||ConsumeSequence.boss(prey)
                 ||prey instanceof HiveTendril||prey instanceof BlacklightHive||prey instanceof BlacklightHunter||prey instanceof BlacklightMutant
                 ||prey instanceof BlacklightInfectedHost infected&&(infected.hasMultipartBody()||infected.hostData().getBoolean("Tamed"))
                 ||InfectedBossProfile.forSpecies(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(prey.getType()).toString())!=null
@@ -225,7 +225,7 @@ public final class DevourerFeedingSystem {
     }
     public static boolean active(BlacklightInfectedHost host) { return ACTIVE.containsKey(host); }
     private static void recoil(Mob prey,long now,float yaw) {
-        prey.setData(ModAttachments.HIT_REACTION,new HitReaction(now,19,HitReaction.HEAVY,yaw));prey.syncData(ModAttachments.HIT_REACTION);
+        com.codex.blacklight.registry.ModAttachments.setData(prey, ModAttachments.HIT_REACTION,new HitReaction(now,19,HitReaction.HEAVY,yaw));com.codex.blacklight.registry.ModAttachments.syncData(prey, ModAttachments.HIT_REACTION);
     }
     private static void complete(ServerLevel level,Session session) {
         var host=session.host;var prey=session.prey;
@@ -268,11 +268,11 @@ public final class DevourerFeedingSystem {
         if(claim.getBoolean("HadGravityFlag"))mob.setNoGravity(claim.getBoolean("NoGravity"));
         mob.getPersistentData().remove(CLAIM);mob.setDeltaMovement(Vec3.ZERO);mob.hurtMarked=true;
     }
-    @SubscribeEvent public static void freeze(EntityTickEvent.Pre event) {
+    @SubscribeEvent public static void freeze(ForgeEntityTickEvent.Pre event) {
         if(!(event.getEntity() instanceof Mob prey)||prey.level().isClientSide)return;
         Session session=CAPTURED.get(prey);if(session==null)return;
         if(!DevourerHabitat.canFeed(session.host)||(DevourerHabitat.nodeMask(session.host)&(1<<session.node))==0) {abort(session,"供养中断，已释放猎物");return;}
-        if(!session.host.isAlive()||!prey.isAlive()||prey.getData(ModAttachments.CONSUME_VISUAL).active()) {abort(session,"吞噬者或猎物死亡，或猎物已被玩家抓取");return;}
+        if(!session.host.isAlive()||!prey.isAlive()||com.codex.blacklight.registry.ModAttachments.getData(prey, ModAttachments.CONSUME_VISUAL).active()) {abort(session,"吞噬者或猎物死亡，或猎物已被玩家抓取");return;}
         // Keep interpolation endpoints current while AI/gravity are held for the paired motion.
         prey.xo=prey.getX();prey.yo=prey.getY();prey.zo=prey.getZ();
         prey.xOld=prey.getX();prey.yOld=prey.getY();prey.zOld=prey.getZ();
@@ -300,7 +300,7 @@ public final class DevourerFeedingSystem {
         if(host.giantBoss())return "巨构已完成，不再吞噬成长";
         if(!host.isAlive())return "吞噬者已死亡";
         if(host.isNoAi()||host.isPassenger()||host.isVehicle()||host.isLeashed()
-                ||host.getData(ModAttachments.CONSUME_VISUAL).active()||ImpactControl.stunned(host))return "吞噬者被控制、骑乘、拴绳或停用 AI";
+                ||com.codex.blacklight.registry.ModAttachments.getData(host, ModAttachments.CONSUME_VISUAL).active()||ImpactControl.stunned(host))return "吞噬者被控制、骑乘、拴绳或停用 AI";
         if(level.getDifficulty()==Difficulty.PEACEFUL)return "和平难度暂停进食";
         if(!DevourerHabitat.suppliesLoaded(host))return "供养节点或核心区块未加载，暂停进食";
         if(DevourerHabitat.liveNodes(host)<DevourerHabitat.REQUIRED_NODES)return "供养节点不足 2 个，暂停进食";

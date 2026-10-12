@@ -18,8 +18,8 @@ import java.util.*;
 
 /** Approved Minecraft cuboids, with private source plate-growth timing. */
 public final class BlockArmorModel {
-    public static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath("blacklight", "textures/entity/armor_block.png");
-    private static final ResourceLocation WHITE = ResourceLocation.fromNamespaceAndPath("blacklight", "textures/entity/claw_white.png");
+    public static final ResourceLocation TEXTURE = new ResourceLocation("blacklight", "textures/entity/armor_block.png");
+    private static final ResourceLocation WHITE = new ResourceLocation("blacklight", "textures/entity/claw_white.png");
     private record Part(String joint, String region, boolean core, boolean shoulder, int material, Vector3f[] points,
                         Vector3f center, Vector3f[] normals, float[] growth) { }
     private static final class Transition {
@@ -77,16 +77,16 @@ public final class BlockArmorModel {
         } catch (Exception e) { throw new IllegalStateException("Cannot load approved block armor", e); }
     }
 
-    private static float smooth(float t) { t = Math.clamp(t, 0, 1); return t * t * (3 - 2 * t); }
+    private static float smooth(float t) { t = net.minecraft.util.Mth.clamp(t, 0, 1); return t * t * (3 - 2 * t); }
     private float sample(Part part, float seconds) {
-        float f = Math.clamp(seconds * fps, 0, part.growth.length - 1);
+        float f = net.minecraft.util.Mth.clamp(seconds * fps, 0, part.growth.length - 1);
         int i = (int)f; return part.growth[i] + (part.growth[Math.min(i + 1, part.growth.length - 1)] - part.growth[i]) * (f - i);
     }
     /** A retracted form grows back from its current shape instead of snapping. */
     private Transition state(AbstractClientPlayer player, float partial) {
-        var data = player.getData(ModAttachments.PLAYER_STATE);
+        var data = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         if (!player.isAlive() || !data.isInfected() || !data.isPrototypeMode()) { transitions.remove(player); return null; }
-        var utility = player.getData(ModAttachments.UTILITY_STATE);
+        var utility = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.UTILITY_STATE);
         boolean active = UtilityPowerSystem.active(player, PowerForm.ARMOR);
         var state = transitions.get(player);
         if (state == null && !active && (utility.previousDefense() & PowerForm.ARMOR.bit()) == 0) return null;
@@ -137,8 +137,8 @@ public final class BlockArmorModel {
                     var point = part.points[faces[f][v]]; var center = part.center;
                     float u = (part.material + ((v == 1 || v == 2) ? .969F : .031F)) / materialCount;
                     float tv = v < 2 ? .031F : .969F;
-                    out.addVertex(pose, center.x + (point.x - center.x) * growth, center.y + (point.y - center.y) * growth, center.z + (point.z - center.z) * growth)
-                            .setColor(0xFFFFFFFF).setUv(u, tv).setOverlay(OverlayTexture.pack(0, player.hurtTime > 0)).setLight(light).setNormal(pose, normal.x, normal.y, normal.z);
+                    out.vertex((pose).pose(),center.x + (point.x - center.x) * growth,center.y + (point.y - center.y) * growth,center.z + (point.z - center.z) * growth)
+                            .color(0xFFFFFFFF).uv(u, tv).overlayCoords(OverlayTexture.pack(0, player.hurtTime > 0)).uv2(light).normal((pose).normal(),normal.x,normal.y,normal.z).endVertex();
                 }
             }
         }
@@ -155,8 +155,8 @@ public final class BlockArmorModel {
                 float side = v == 0 || v == 3 ? .44F : .56F;
                 Vector3f point = v < 2 ? new Vector3f(a).lerp(b, side) : new Vector3f(d).lerp(c, side);
                 point.sub(part.center).mul(g).add(part.center).fma(.0008F, normal);
-                veins.addVertex(pose, point.x, point.y, point.z).setColor(91, 24, 25, (int)(155 * Math.sin(Math.PI * g)))
-                        .setUv(.5F, .5F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, normal.x, normal.y, normal.z);
+                veins.vertex((pose).pose(),point.x,point.y,point.z).color(91, 24, 25, (int)(155 * Math.sin(Math.PI * g)))
+                        .uv(.5F, .5F).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(light).normal((pose).normal(),normal.x,normal.y,normal.z).endVertex();
             }
         }
     }

@@ -50,7 +50,7 @@ public final class BlacklightVirusVialEntity extends ThrowableItemProjectile {
         Entity owner = getOwner();
         int infected = 0;
         Entity hitEntity = result instanceof EntityHitResult hit ? hit.getEntity() : null;
-        if (hitEntity instanceof net.neoforged.neoforge.entity.PartEntity<?> part) hitEntity = part.getParent();
+        if (hitEntity instanceof net.minecraftforge.entity.PartEntity<?> part) hitEntity = part.getParent();
         LivingEntity directTarget = hitEntity instanceof LivingEntity living ? living : null;
         if (directTarget != null && BlacklightInfectionSystem.infect(directTarget, this)) infected++;
         // A direct creature hit is intentional and guaranteed when eligible.
@@ -64,8 +64,8 @@ public final class BlacklightVirusVialEntity extends ThrowableItemProjectile {
                 BlacklightInfectionSystem::canInfect)) {
             if (target == directTarget) continue;
             AABB box = target.getBoundingBox();
-            Vec3 point = new Vec3(Math.clamp(burst.x, box.minX, box.maxX),
-                    Math.clamp(burst.y, box.minY, box.maxY), Math.clamp(burst.z, box.minZ, box.maxZ));
+            Vec3 point = new Vec3(com.codex.blacklight.util.MathCompat.clamp(burst.x, box.minX, box.maxX),
+                    com.codex.blacklight.util.MathCompat.clamp(burst.y, box.minY, box.maxY), com.codex.blacklight.util.MathCompat.clamp(burst.z, box.minZ, box.maxZ));
             double distance = burst.distanceTo(point);
             if (distance > INFECTION_RADIUS) continue;
             if (serverLevel.clip(new ClipContext(burst, point, ClipContext.Block.COLLIDER,

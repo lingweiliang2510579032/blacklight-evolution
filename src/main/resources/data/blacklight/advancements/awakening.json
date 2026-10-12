@@ -1,0 +1,23 @@
+{
+  "display": {
+    "icon": {
+      "item": "blacklight:blacklight_sample"
+    },
+    "title": {
+      "translate": "advancement.blacklight.awakening"
+    },
+    "description": {
+      "translate": "advancement.blacklight.awakening.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "parent": "blacklight:sealed_sample"
+}

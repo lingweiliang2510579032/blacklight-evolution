@@ -18,10 +18,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(SlimeOuterLayer.class)
 public abstract class InfectedSlimeCoatMixin {
     @Shadow @Final private EntityModel<?> model;
-    @Inject(method="render",at=@At("HEAD"))
+    @Inject(method="render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;ILnet/minecraft/world/entity/LivingEntity;FFFFFF)V",at=@At("HEAD"))
     private void blacklight$coat(PoseStack stack,MultiBufferSource buffers,int light,LivingEntity entity,
             float swing,float amount,float partial,float age,float yaw,float pitch,CallbackInfo ci){
         InfectedMorphology.copiedSkinLayer(entity,model,
-                ResourceLocation.withDefaultNamespace("textures/entity/slime/slime.png"));
+                new ResourceLocation("textures/entity/slime/slime.png"));
     }
 }

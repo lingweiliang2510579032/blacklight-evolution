@@ -69,7 +69,7 @@ final class SourceCameraOrbit {
             }
             case "Jump" -> {
                 if(!manual) {
-                    boolean gliding=player.getData(com.codex.blacklight.registry.ModAttachments.GLIDE_UNTIL)>player.level().getGameTime()&&!player.onGround();
+                    boolean gliding=com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.GLIDE_UNTIL)>player.level().getGameTime()&&!player.onGround();
                     double weight=Mth.clamp(age/1.5,0,1)*Mth.clamp((speed-1.5)/(8-1.5),0,1);
                     if(gliding)weight=1;
                     if(age>.05&&speed>1.5)wantedYaw=yaw(velocity);

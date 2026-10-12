@@ -57,7 +57,7 @@ public final class FirstPersonPose {
         if(left&&shielded){var grip=new Matrix4f(result[rig.searchJointByName("Tool_L").getId()]).mul(shieldGrip);for(var surface:shield()){vertices.add(grip.transformPosition(new Vector3f(surface.point)));distal.add(true);}}
         // Protect only the actual depth plane. Natural arm size and screen crops
         // remain those of Minecraft's native hand transform.
-        float margin=Float.isFinite(liquidMargin)?Math.clamp(liquidMargin,0,.045F):0;
+        float margin=Float.isFinite(liquidMargin)?com.codex.blacklight.util.MathCompat.clamp(liquidMargin,0,.045F):0;
         float shift=0;for(var p:vertices){nativeArmFrame.transformPosition(p);shift=Math.max(shift,p.z+.15F+margin);}
         shift=Math.max(0,shift);
         var localShift=new Matrix4f(nativeArmFrame).invert().transformDirection(new Vector3f(0,0,-shift));

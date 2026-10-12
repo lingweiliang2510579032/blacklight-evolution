@@ -45,7 +45,7 @@ public final class ReceiverMotions {
     }
     public static float[] sample(String key,float progress){
         Clip clip=clip(key);if(clip==null)return null;
-        float at=Math.clamp(progress,0,1)*(clip.frames.size()-1);int index=(int)at;float weight=at-index;
+        float at=com.codex.blacklight.util.MathCompat.clamp(progress,0,1)*(clip.frames.size()-1);int index=(int)at;float weight=at-index;
         float[] a=clip.frames.get(index),b=clip.frames.get(Math.min(index+1,clip.frames.size()-1)),out=new float[a.length];
         for(int i=0;i<3;i++)out[i]=a[i]+(b[i]-a[i])*weight;
         for(int i=3;i<a.length;i+=4){Quaternionf q=new Quaternionf(a[i],a[i+1],a[i+2],a[i+3]).slerp(new Quaternionf(b[i],b[i+1],b[i+2],b[i+3]),weight).normalize();out[i]=q.x;out[i+1]=q.y;out[i+2]=q.z;out[i+3]=q.w;}

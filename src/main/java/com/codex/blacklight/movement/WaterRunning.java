@@ -13,14 +13,14 @@ public final class WaterRunning {
     private WaterRunning() { }
 
     public static boolean canRun(Player player) {
-        var state = player.getData(ModAttachments.PLAYER_STATE);
+        var state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         if (!state.isInfected() || !state.isPrototypeMode() || !player.isAlive()
                 || player.isSpectator() || player.isPassenger() || player.isFallFlying()
                 || player.getAbilities().flying || player.isShiftKeyDown() || player.isInLava()
-                || !(player.isSprinting() || player.getData(ModAttachments.MOVEMENT_STATE).sprinting()
-                    && player.getData(ModAttachments.MOVEMENT_STATE).forwardHeld())
-                || player.getData(ModAttachments.WEAPON_VISUAL).spec() != null
-                || player.getData(ModAttachments.CONSUMING)) return false;
+                || !(player.isSprinting() || com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.MOVEMENT_STATE).sprinting()
+                    && com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.MOVEMENT_STATE).forwardHeld())
+                || com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL).spec() != null
+                || com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUMING)) return false;
         BlockPos pos = player.blockPosition();
         FluidState fluid = player.level().getFluidState(pos);
         // Surface support starts only after swimming/riseToSurface clears the water.
@@ -31,15 +31,15 @@ public final class WaterRunning {
     /** Sprint + forward swims upward, then the normal surface collision takes over.
      * No teleport, forged ground flag or collision bypass; sneak always releases it. */
     public static boolean riseToSurface(Player player) {
-        var state=player.getData(ModAttachments.PLAYER_STATE);
-        var movement=player.getData(ModAttachments.MOVEMENT_STATE);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
+        var movement=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.MOVEMENT_STATE);
         if(!state.isInfected() || !state.isPrototypeMode() || !player.isAlive()
                 || !player.isInWater() || player.isInLava() || player.isSpectator()
                 || player.isPassenger() || player.getAbilities().flying || player.isFallFlying()
                 || player.isShiftKeyDown() || movement.wallInput().detach()
                 || !movement.sprinting() || !movement.forwardHeld()
-                || player.getData(ModAttachments.WEAPON_VISUAL).spec()!=null
-                || player.getData(ModAttachments.CONSUMING))return false;
+                || com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL).spec()!=null
+                || com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUMING))return false;
         player.setSprinting(true);
         player.setSwimming(false);
         double up=.28;

@@ -156,9 +156,9 @@ for pos, (name, props, nbt) in sorted(blocks.items(), key=lambda entry: (entry[0
     if nbt:
         block['nbt'] = (10, nbt)
     data.append(block)
-template = {'DataVersion': (3, 3955), 'size': (9, (3, [23, 21, 23])),
+template = {'DataVersion': (3, 3465), 'size': (9, (3, [23, 21, 23])),
             'palette': (9, (10, palette)), 'blocks': (9, (10, data)), 'entities': (9, (10, entities))}
-destination = ROOT / 'data/blacklight/structure/frozen_research_station.nbt'
+destination = ROOT / 'data/blacklight/structures/frozen_research_station.nbt'
 destination.parent.mkdir(parents=True, exist_ok=True)
 destination.write_bytes(gzip.compress(b'\x0a\0\0' + payload(10, template), mtime=0))
 print(f'Wrote {destination.name}: {len(data)} blocks, {len(palette)} states, {len(entities)} hosts')

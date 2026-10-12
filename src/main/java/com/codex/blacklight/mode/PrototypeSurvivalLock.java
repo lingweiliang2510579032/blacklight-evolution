@@ -3,13 +3,12 @@ package com.codex.blacklight.mode;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.common.util.TriState;
-import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
-import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerXpEvent;
-import net.neoforged.neoforge.event.level.BlockEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.entity.player.AttackEntityEvent;
+import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.entity.player.PlayerXpEvent;
+import net.minecraftforge.event.level.BlockEvent;
 
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -97,8 +96,8 @@ public final class PrototypeSurvivalLock {
     }
 
     @SubscribeEvent
-    public static void onPickupItem(ItemEntityPickupEvent.Pre event) {
-        if (isLocked(event.getPlayer())) event.setCanPickup(TriState.FALSE);
+    public static void onPickupItem(EntityItemPickupEvent event) {
+        if (isLocked(event.getEntity())) event.setCanceled(true);
     }
 
     @SubscribeEvent

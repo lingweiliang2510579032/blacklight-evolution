@@ -15,9 +15,9 @@ public final class PowerFormSystem {
         return false;
     }
     public static boolean select(ServerPlayer player, PowerForm form, boolean purchase) {
-        var state = player.getData(ModAttachments.PLAYER_STATE);
-        var combat = player.getData(ModAttachments.CLAW_COMBAT);
-        if (!state.isInfected() || !state.isPrototypeMode() || player.getData(ModAttachments.CONSUMING)
+        var state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
+        var combat = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CLAW_COMBAT);
+        if (!state.isInfected() || !state.isPrototypeMode() || com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUMING)
                 || !supported(form)) return false;
         // Stowing a weapon must take effect even during its action. Previously the
         // wheel closed while this request silently failed, leaving claws active.
@@ -40,14 +40,14 @@ public final class PowerFormSystem {
         if(UtilityPowerSystem.supported(form))UtilityPowerSystem.toggle(player,form);
         else if (!state.activate(form)) return false;
         combat.markTransformToggled(player.tickCount);
-        player.setData(ModAttachments.PLAYER_STATE, state); player.syncData(ModAttachments.PLAYER_STATE);
+        com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.PLAYER_STATE, state); com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.PLAYER_STATE);
         String message = UtilityPowerSystem.supported(form) && !UtilityPowerSystem.active(player, form)
                 ? "message.blacklight.form_disabled" : "message.blacklight.form_selected";
         player.displayClientMessage(Component.translatable(message, Component.translatable("power.blacklight." + form.id())), true);
         return true;
     }
     public static void cycle(ServerPlayer player) {
-        var state = player.getData(ModAttachments.PLAYER_STATE); int index = 0;
+        var state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE); int index = 0;
         for (int i = 0; i < FORMS.length; i++) if (FORMS[i] == state.getActivePower()) index = i;
         for (int i = 1; i <= FORMS.length; i++) {
             var next = FORMS[(index + i) % FORMS.length];

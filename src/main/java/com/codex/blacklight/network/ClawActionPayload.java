@@ -1,16 +1,16 @@
 package com.codex.blacklight.network;
 
 import com.codex.blacklight.BlacklightNeoMod;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.FriendlyByteBuf;
+import com.codex.blacklight.forge.codec.ByteBufCodecs;
+import com.codex.blacklight.forge.codec.StreamCodec;
+import com.codex.blacklight.forge.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
 public record ClawActionPayload(Action action) implements CustomPacketPayload {
     public static final Type<ClawActionPayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(BlacklightNeoMod.MOD_ID, "claw_action"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, ClawActionPayload> STREAM_CODEC = StreamCodec.composite(
+            new ResourceLocation(BlacklightNeoMod.MOD_ID, "claw_action"));
+    public static final StreamCodec<FriendlyByteBuf, ClawActionPayload> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.VAR_INT.map(Action::byId, Action::id),
             ClawActionPayload::action,
             ClawActionPayload::new

@@ -1,5 +1,10 @@
 {
-  "structures": [{ "structure": "blacklight:frozen_research_station", "weight": 1 }],
+  "structures": [
+    {
+      "structure": "blacklight:frozen_research_station",
+      "weight": 1
+    }
+  ],
   "placement": {
     "type": "minecraft:random_spread",
     "spacing": 24,

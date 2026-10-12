@@ -33,12 +33,12 @@ final class ClawBladeMesh {
             // Reuse the existing dark organic texture; lit facets define the cutting edge.
             for (int vertex = 0; vertex < 4; vertex++) {
                 int index = vertex * 3;
-                consumer.addVertex(pose, points[index] / 16, points[index + 1] / 16, points[index + 2] / 16)
-                        .setColor(0xFFFFFFFF)
-                        .setUv((32 + (vertex < 2 ? 0 : 4)) / 64.0F,
+                consumer.vertex((pose).pose(),points[index] / 16,points[index + 1] / 16,points[index + 2] / 16)
+                        .color(0xFFFFFFFF)
+                        .uv((32 + (vertex < 2 ? 0 : 4)) / 64.0F,
                                 (24 + (vertex == 0 || vertex == 3 ? 0 : 8)) / 64.0F)
-                        .setOverlay(overlay).setLight(light)
-                        .setNormal(pose, normal[0], normal[1], normal[2]);
+                        .overlayCoords(overlay).uv2(light)
+                        .normal((pose).normal(),normal[0],normal[1],normal[2]).endVertex();
             }
         }
     }

@@ -25,7 +25,7 @@ public abstract class NativeRootMovementMixin {
         if (!Double.isFinite(packet.getX(0)) || !Double.isFinite(packet.getY(0))
                 || !Double.isFinite(packet.getZ(0)) || !Float.isFinite(yaw) || !Float.isFinite(pitch)) return;
         player.setYRot(Mth.wrapDegrees(yaw));
-        player.setXRot(Math.clamp(Mth.wrapDegrees(pitch), -90, 90));
+        player.setXRot(com.codex.blacklight.util.MathCompat.clamp(Mth.wrapDegrees(pitch), -90, 90));
         player.setYHeadRot(player.getYRot());
         ci.cancel();
     }

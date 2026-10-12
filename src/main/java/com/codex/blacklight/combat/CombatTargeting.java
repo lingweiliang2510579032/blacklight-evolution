@@ -14,7 +14,7 @@ import java.util.LinkedHashSet;
 import java.util.function.Predicate;
 import net.minecraft.world.entity.Entity;
 import com.codex.blacklight.entity.BlacklightInfectedHost;
-import net.neoforged.neoforge.entity.PartEntity;
+import net.minecraftforge.entity.PartEntity;
 
 /** Selection is independent of camera pitch when the player explicitly locks a target. */
 public final class CombatTargeting {
@@ -22,7 +22,7 @@ public final class CombatTargeting {
     private CombatTargeting() {}
     /** Search loaded, visible actors. This does not enlarge a weapon's contact volume. */
     public static double viewRange(ServerPlayer player) {
-        return Math.clamp(player.serverLevel().getServer().getPlayerList().getViewDistance()*16.0,32,256);
+        return com.codex.blacklight.util.MathCompat.clamp(player.serverLevel().getServer().getPlayerList().getViewDistance()*16.0,32,256);
     }
     public static boolean inFrontView(ServerPlayer player,LivingEntity target) {
         return !target.isInvisibleTo(player)&&aimScore(player,target)>.5;
@@ -46,14 +46,14 @@ public final class CombatTargeting {
         } else {LOCKS.remove(player);syncLock(player,-1);}
     }
     private static void syncLock(ServerPlayer player,int id) {
-        if(player.getData(ModAttachments.TARGET_LOCK_ID)==id)return;
-        player.setData(ModAttachments.TARGET_LOCK_ID,id);
-        if(!player.isRemoved())player.syncData(ModAttachments.TARGET_LOCK_ID);
+        if(com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.TARGET_LOCK_ID)==id)return;
+        com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.TARGET_LOCK_ID,id);
+        if(!player.isRemoved())com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.TARGET_LOCK_ID);
     }
     public static boolean damageable(Player player, LivingEntity target) {
         return target!=null && target!=player && target.level()==player.level()
                 && target.isAlive() && !target.isRemoved() && !target.isSpectator() && !target.isInvulnerable()
-                && !player.isAlliedTo(target) && !target.getData(ModAttachments.CONSUME_VISUAL).active()
+                && !player.isAlliedTo(target) && !com.codex.blacklight.registry.ModAttachments.getData(target, ModAttachments.CONSUME_VISUAL).active()
                 && (!(target instanceof Player other) || !other.getAbilities().invulnerable && player.canHarmPlayer(other)
                     && (!(player instanceof ServerPlayer server) || server.server.isPvpAllowed()));
     }
@@ -88,8 +88,8 @@ public final class CombatTargeting {
         return new ArrayList<>(result);
     }
     public static Vec3 closestPoint(Vec3 point,AABB box) {
-        return new Vec3(Math.clamp(point.x,box.minX,box.maxX),Math.clamp(point.y,box.minY,box.maxY),
-                Math.clamp(point.z,box.minZ,box.maxZ));
+        return new Vec3(com.codex.blacklight.util.MathCompat.clamp(point.x,box.minX,box.maxX),com.codex.blacklight.util.MathCompat.clamp(point.y,box.minY,box.maxY),
+                com.codex.blacklight.util.MathCompat.clamp(point.z,box.minZ,box.maxZ));
     }
     public static Vec3 closestPoint(Vec3 point,LivingEntity target) {
         Vec3 result=target.getBoundingBox().getCenter();double best=Double.POSITIVE_INFINITY;
@@ -110,7 +110,7 @@ public final class CombatTargeting {
         return distance;
     }
     public static double distanceSquared(Vec3 point,AABB box) {
-        double x=Math.clamp(point.x,box.minX,box.maxX),y=Math.clamp(point.y,box.minY,box.maxY),z=Math.clamp(point.z,box.minZ,box.maxZ);
+        double x=com.codex.blacklight.util.MathCompat.clamp(point.x,box.minX,box.maxX),y=com.codex.blacklight.util.MathCompat.clamp(point.y,box.minY,box.maxY),z=com.codex.blacklight.util.MathCompat.clamp(point.z,box.minZ,box.maxZ);
         return point.distanceToSqr(new Vec3(x,y,z));
     }
     public static boolean inReach(ServerPlayer player,LivingEntity target,double range) {

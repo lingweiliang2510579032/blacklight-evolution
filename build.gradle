@@ -1,7 +1,8 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.143'
+    id 'net.minecraftforge.gradle' version '6.0.54'
+    id 'org.spongepowered.mixin' version '0.7.38'
     id 'idea'
 }
 
@@ -74,18 +75,21 @@ repositories {
 }
 
 base {
-    archivesName = "${mod_archive_name}-MC${minecraft_version}-NeoForge"
+    archivesName = "${mod_archive_name}-MC${minecraft_version}-Forge"
 }
+
+// Forge requires the MixinExtras runtime that NeoForge supplies by default.
+jarJar.enable()
 
 // Keep both version numbers in every release; never hand-name the install ZIP.
 def distributionZip = tasks.register('distributionZip', Zip) {
     group = 'distribution'
-    description = 'Packages the complete standalone candidate with bundled motions and notices.'
+    description = 'Packages the Forge 1.20.1 candidate with complete motions and notices.'
     archiveBaseName = base.archivesName
     archiveVersion = project.version.toString()
     archiveClassifier = releaseProfile
     destinationDirectory = layout.buildDirectory.dir('distributions')
-    from(tasks.named('jar')) { into 'mods' }
+    from(tasks.named('jarJar')) { into 'mods' }
     from('README.md')
     from(releaseNotices)
     from('docs') { into 'docs' }
@@ -94,11 +98,11 @@ def distributionZip = tasks.register('distributionZip', Zip) {
 }
 tasks.named('assemble') { dependsOn(distributionZip) }
 tasks.named('assemble') {
-    description = 'Compiles and packages a complete standalone candidate with runtime motion data.'
+    description = 'Compiles and packages the complete Forge 1.20.1 runtime candidate.'
 }
 
-// Mojang ships Java 21 to end users in 1.21.1, so mods should target Java 21.
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+// Minecraft 1.20.1 and Forge 47 target Java 17.
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 // Opt-in screenshot harness is excluded from normal builds and distributable JARs.
 if (project.hasProperty('hiveFeedingTest')) {
@@ -109,11 +113,11 @@ if (project.hasProperty('wallTraversalTest')) {
     sourceSets.main.java.srcDir('src/traversalTest/java')
     sourceSets.main.resources.srcDir('src/traversalTest/resources')
 }
-if (project.hasProperty('standaloneInfected')) {
-    sourceSets.main.java.srcDir('src/infectedVisualTest/java')
-}
 if (project.hasProperty('standaloneVisual') || project.hasProperty('standaloneGait') || project.hasProperty('standaloneLock') || project.hasProperty('standaloneMorph')) {
     sourceSets.main.java.srcDir('src/standaloneVisualTest/java')
+}
+if (project.hasProperty('standaloneInfected')) {
+    sourceSets.main.java.srcDir('src/infectedVisualTest/java')
 }
 if (project.hasProperty('standaloneTest')) {
     sourceSets.main.java.srcDir('src/standaloneTest/java')
@@ -121,131 +125,81 @@ if (project.hasProperty('standaloneTest')) {
         sourceSets.main.resources.srcDir('src/traversalTest/resources')
     }
 }
-tasks.named('jar', Jar).configure {
+tasks.withType(Jar).configureEach {
     archiveClassifier = releaseProfile
     from(releaseNotices)
-    manifest.attributes('Blacklight-Build-Profile': releaseProfile,
+    manifest.attributes('MixinConfigs': 'blacklight.mixins.json',
+            'Blacklight-Build-Profile': releaseProfile,
             'Blacklight-Motion-Source': releaseProfile == 'bundled' ? 'repository' : 'external',
             'Blacklight-Bundled-Motions': 'true',
+            'Blacklight-Public-Release-Ready': 'false',
             'Blacklight-Asset-Notice': 'THIRD_PARTY_ASSETS.md')
     exclude 'com/codex/blacklight/gametest/**'
     exclude 'com/codex/blacklight/client/Standalone*Smoke*.class'
     exclude 'com/codex/blacklight/client/InfectedCompositionSmoke*.class'
-    exclude 'data/blacklight/structure/wall_test.nbt'
+    exclude 'data/blacklight/structures/wall_test.nbt'
 }
 
-neoForge {
-    // Specify the version of NeoForge to use.
-    version = project.neo_version
-
-    parchment {
-        mappingsVersion = project.parchment_mappings_version
-        minecraftVersion = project.parchment_minecraft_version
-    }
-
-    // This line is optional. Access Transformers are automatically detected
-    // accessTransformers = project.files('src/main/resources/META-INF/accesstransformer.cfg')
-
-    // Default run configurations.
-    // These can be tweaked, removed, or duplicated as needed.
+minecraft {
+    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+    mappings channel: 'official', version: minecraft_version
+    copyIdeResources = true
     runs {
-        client {
-            client()
-            if (project.hasProperty('standaloneInfected')) {
-                systemProperty 'blacklight.test.infectedComposition', file(project.property('standaloneInfected')).absolutePath
-                programArguments.addAll '--width', '1440', '--height', '1000'
-            }
-            if (project.hasProperty('clientRunDirectory')) gameDirectory = file(project.property('clientRunDirectory'))
-            if (project.hasProperty('standaloneVisual')) {
-                systemProperty 'blacklight.test.standaloneVisual', file(project.property('standaloneVisual')).absolutePath
-                if (project.hasProperty('standaloneVisualShots')) systemProperty 'blacklight.test.standaloneVisual.shots', project.property('standaloneVisualShots').toString()
-                programArguments.addAll '--width', '1280', '--height', '900'
-            }
-            if (project.hasProperty('standaloneLock')) {
-                systemProperty 'blacklight.test.standaloneLock', file(project.property('standaloneLock')).absolutePath
-                programArguments.addAll '--width', '1280', '--height', '900'
-            }
-            if (project.hasProperty('standaloneGait')) {
-                systemProperty 'blacklight.test.standaloneGait', file(project.property('standaloneGait')).absolutePath
-                if (project.hasProperty('standaloneGaitJump')) systemProperty 'blacklight.test.standaloneGait.jumpOnly', 'true'
-                programArguments.addAll '--width', '1280', '--height', '900'
-            }
-            if (project.hasProperty('standaloneMorph')) {
-                systemProperty 'blacklight.test.standaloneMorph', file(project.property('standaloneMorph')).absolutePath
-                if (project.hasProperty('standaloneMorphCases')) systemProperty 'blacklight.test.standaloneMorph.cases', project.property('standaloneMorphCases').toString()
-                programArguments.addAll '--width', '960', '--height', '640'
-            }
-            if (project.hasProperty('localWeaponMotions')) {
-                systemProperty 'blacklight.localWeaponMotions', file(project.property('localWeaponMotions')).absolutePath
-            }
-            // This machine has 16 GB RAM shared with other tools; cap the client heap
-            // so the game JVM cannot exhaust native memory and crash (see hs_err logs).
-            jvmArgument '-Xmx3G'
-            // Optional developer shortcut: .\gradlew runClient -PquickPlayWorld=<save folder>
-            // Keeps normal launches unchanged while allowing repeatable movement tests.
-            if (project.hasProperty('quickPlayWorld')) {
-                programArguments.addAll '--quickPlaySingleplayer',
-                        project.property('quickPlayWorld').toString()
-            }
-            // Developer-only visual acceptance hook. Normal launches never set it.
-            if (project.hasProperty('openAnimationTuner')) {
-                systemProperty 'blacklight.test.openAnimationTuner', 'true'
-            }
-            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-        server {
-            server()
-            programArgument '--nogui'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-        // This run config launches GameTestServer and runs all registered gametests, then exits.
-        // By default, the server will crash when no gametests are provided.
-        // The gametest system is also enabled by default for other run configs under the /test command.
-        gameTestServer {
-            type = "gameTestServer"
-            gameDirectory = project.file(project.hasProperty('standaloneTest') && !project.hasProperty('wallTraversalTest') ? 'run-standalone-gametest' : project.hasProperty('hiveFeedingTest') ? 'run-hive-feeding-gametest' : 'run-wall-gametest')
-            jvmArgument '-Xmx2G'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-            if (project.hasProperty('localWeaponMotions')) {
-                systemProperty 'blacklight.localWeaponMotions', file(project.property('localWeaponMotions')).absolutePath
-            }
-        }
-
-        data {
-            data()
-            // example of overriding the workingDirectory set in configureEach above, uncomment if you want to use it
-            // gameDirectory = project.file('run-data')
-
-            // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
-            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
-        }
-
-        // applies to all the run configs above
         configureEach {
-            // Recommended logging data for a userdev environment
-            // The markers can be added/remove as needed separated by commas.
-            // "SCAN": For mods scan.
-            // "REGISTRIES": For firing of registry events.
-            // "REGISTRYDUMP": For getting the contents of all registries.
-            systemProperty 'forge.logging.markers', 'REGISTRIES'
-
-            // Recommended logging level for the console
-            // You can set various levels here.
-            // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
-            logLevel = org.slf4j.event.Level.DEBUG
+            workingDirectory project.file('run')
+            property 'forge.logging.console.level', 'info'
+            property 'forge.enabledGameTestNamespaces', mod_id
+            if (project.hasProperty('localWeaponMotions'))
+                property 'blacklight.localWeaponMotions', file(project.property('localWeaponMotions')).absolutePath
+            mods {
+                "${mod_id}" { source sourceSets.main }
+            }
+        }
+        client {
+            if (project.hasProperty('clientRunDirectory')) workingDirectory file(project.property('clientRunDirectory'))
+            else if (project.hasProperty('standaloneMorph')) workingDirectory project.file('run-forge-qa')
+            jvmArgs '-Xmx3G'
+            if (project.hasProperty('quickPlayWorld')) args '--quickPlaySingleplayer', project.property('quickPlayWorld').toString()
+            if (project.hasProperty('standaloneInfected')) property 'blacklight.test.infectedComposition', file(project.property('standaloneInfected')).absolutePath
+            if (project.hasProperty('standaloneMorph')) {
+                property 'blacklight.test.qaDirectory', file(project.findProperty('clientRunDirectory') ?: 'run-forge-qa').absolutePath
+                property 'blacklight.test.standaloneMorph', file(project.property('standaloneMorph')).absolutePath
+                if (project.hasProperty('standaloneMorphCases')) property 'blacklight.test.standaloneMorph.cases', project.property('standaloneMorphCases').toString()
+                args '--width', '960', '--height', '640'
+            }
+            if (project.hasProperty('openAnimationTuner')) property 'blacklight.test.openAnimationTuner', 'true'
+            ['standaloneVisual', 'standaloneGait', 'standaloneLock'].each { hook ->
+                if (project.hasProperty(hook)) property "blacklight.test.${hook}", file(project.property(hook)).absolutePath
+            }
+            if (project.hasProperty('standaloneVisualShots')) property 'blacklight.test.standaloneVisual.shots', project.property('standaloneVisualShots').toString()
+            if (project.hasProperty('standaloneGaitJump')) property 'blacklight.test.standaloneGait.jumpOnly', 'true'
+        }
+        server { args '--nogui' }
+        gameTestServer {
+            workingDirectory project.file('run-standalone-gametest')
+            jvmArgs '-Xmx2G'
+        }
+        data {
+            workingDirectory project.file('run-data')
+            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/').absolutePath, '--existing', file('src/main/resources/').absolutePath
         }
     }
+}
+mixin {
+    add sourceSets.main, 'blacklight.refmap.json'
+    config 'blacklight.mixins.json'
+}
 
-    mods {
-        // define mod <-> source bindings
-        // these are used to tell the game which sources are for which mod
-        // multi mod projects should define one per mod
-        "${mod_id}" {
-            sourceSet(sourceSets.main)
-        }
-    }
+// MixinGradle writes these outside JavaCompile's normal class output. Declare
+// both so clean builds restored from Gradle's cache retain runtime mappings.
+tasks.named('compileJava', JavaCompile) {
+    outputs.files(layout.buildDirectory.file('tmp/compileJava/compileJava-refmap.json'),
+            layout.buildDirectory.file('tmp/compileJava/compileJava-mappings.tsrg'))
+            .withPropertyName('mixinAnnotationProcessorOutputs')
+    // MixinGradle's JAR injection also skips cache-restored compiler outputs.
+    // Until that plugin supports restoration, run main annotation processing
+    // on clean builds; other tasks retain their normal cache behavior.
+    outputs.cacheIf('MixinGradle requires fresh annotation processing for JAR injection') { false }
 }
 
 // Sets up a dependency configuration called 'localRuntime'.
@@ -253,19 +207,27 @@ neoForge {
 // a dependency that will be present for runtime testing but that is
 // "optional", meaning it will not be pulled by dependents of this mod.
 configurations {
+    localRuntime
     runtimeClasspath.extendsFrom localRuntime
 }
 
 dependencies {
-    implementation "software.bernie.geckolib:geckolib-neoforge-${minecraft_version}:${geckolib_version}"
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    implementation fg.deobf("software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}")
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    compileOnly(annotationProcessor('io.github.llamalad7:mixinextras-common:0.4.1'))
+    implementation(jarJar('io.github.llamalad7:mixinextras-forge:0.4.1')) {
+        jarJar.ranged(it, '[0.4.1,)')
+        jarJar.pin(it, '0.4.1')
+    }
 
     // Optional compatibility API only. The user installs the two mods independently.
-    compileOnly "maven.modrinth:parcool:1.21.1-3.4.3.3"
+    compileOnly fg.deobf("maven.modrinth:parcool:${minecraft_version}-3.4.3.3")
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     // BlacklightState exposes a Minecraft Codec; plain JVM tests therefore need DFU too.
-    testImplementation 'com.mojang:datafixerupper:8.0.16'
+    testImplementation 'com.mojang:datafixerupper:6.0.8'
     testImplementation 'com.google.code.gson:gson:2.10.1'
     testImplementation 'org.joml:joml:1.10.5'
     testImplementation files(sourceSets.main.compileClasspath)
@@ -292,9 +254,71 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 }
 
+def forgeTestClasses = layout.buildDirectory.dir('forge-test-classes')
+def forgeTestRuntime = files(forgeTestClasses, sourceSets.test.runtimeClasspath)
+def prepareForgeCapabilityTests = tasks.register('prepareForgeCapabilityTests') {
+    dependsOn tasks.named('compileJava')
+    inputs.files(sourceSets.main.output.classesDirs, sourceSets.main.compileClasspath)
+    outputs.dir(forgeTestClasses)
+    doLast {
+        // Use Forge's real launch transformer, rather than replacing capabilities with mocks.
+        def urls = files(sourceSets.main.output.classesDirs, sourceSets.main.compileClasspath).files.collect {
+            it.toURI().toURL()
+        } as URL[]
+        def loader = new URLClassLoader(urls, ClassLoader.getPlatformClassLoader())
+        try {
+            def nodeClass = loader.loadClass('org.objectweb.asm.tree.ClassNode')
+            def readerClass = loader.loadClass('org.objectweb.asm.ClassReader')
+            def writerClass = loader.loadClass('org.objectweb.asm.ClassWriter')
+            def visitorClass = loader.loadClass('org.objectweb.asm.ClassVisitor')
+            def typeClass = loader.loadClass('org.objectweb.asm.Type')
+            def phaseClass = loader.loadClass('cpw.mods.modlauncher.serviceapi.ILaunchPluginService$Phase')
+            def transformer = loader.loadClass('net.minecraftforge.fml.common.asm.CapabilityTokenSubclass').getConstructor().newInstance()
+            def transform = transformer.class.getMethod('processClassWithFlags', phaseClass, nodeClass, typeClass, String.class)
+            ['net/minecraftforge/common/capabilities/CapabilityToken',
+             'com/codex/blacklight/forge/BlacklightAttachments$1'].each { name ->
+                byte[] original = loader.getResourceAsStream("${name}.class").withCloseable { it.readAllBytes() }
+                def node = nodeClass.getConstructor().newInstance()
+                readerClass.getConstructor(byte[].class).newInstance([original] as Object[]).accept(node, 0)
+                transform.invoke(transformer, phaseClass.getField('BEFORE').get(null), node,
+                        typeClass.getMethod('getObjectType', String.class).invoke(null, name), 'blacklight-junit')
+                def writer = writerClass.getConstructor(int.class).newInstance(1)
+                nodeClass.getMethod('accept', visitorClass).invoke(node, writer)
+                def target = new File(forgeTestClasses.get().asFile, "${name}.class")
+                target.parentFile.mkdirs()
+                target.bytes = writer.toByteArray()
+            }
+        } finally {
+            loader.close()
+        }
+    }
+}
+
 tasks.named('test', Test).configure {
+    dependsOn prepareForgeCapabilityTests
+    classpath = forgeTestRuntime
     useJUnitPlatform()
     // Native pose tests use the project-authored mathematical bind hierarchy.
+}
+
+// Java 17 on Windows reads launcher argument files in the system code page.
+// An ASCII-path manifest JAR preserves UTF-8 project paths through URI encoding.
+if (System.getProperty('os.name').startsWith('Windows') && projectDir.absolutePath.any { (int) it > 127 }) {
+    def testClasspathJar = tasks.register('testClasspathJar', Jar) {
+        dependsOn prepareForgeCapabilityTests, tasks.named('testClasses')
+        inputs.files(forgeTestRuntime)
+        archiveFileName = "blacklight-tests-${Integer.toUnsignedString(projectDir.absolutePath.hashCode())}.jar"
+        destinationDirectory = file("${gradle.gradleUserHomeDir}/blacklight-test-classpaths")
+        doFirst {
+            manifest.attributes('Class-Path': forgeTestRuntime.files.collect {
+                it.toURI().toASCIIString()
+            }.join(' '))
+        }
+    }
+    tasks.named('test', Test) {
+        dependsOn testClasspathJar
+        classpath = files(testClasspathJar)
+    }
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -303,7 +327,8 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
     var replaceProperties = [
             minecraft_version      : minecraft_version,
             minecraft_version_range: minecraft_version_range,
-            neo_version            : neo_version,
+            forge_version          : forge_version,
+            geckolib_version       : geckolib_version,
             loader_version_range   : loader_version_range,
             mod_id                 : mod_id,
             mod_name               : mod_name,
@@ -319,7 +344,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
 // this works with both building through Gradle and the IDE.
 sourceSets.main.resources.srcDir generateModMetadata
 // To avoid having to run "generateModMetadata" manually, make it run on every project reload
-neoForge.ideSyncTask generateModMetadata
+tasks.named('processResources') { dependsOn generateModMetadata }
 
 // Example configuration to allow publishing using the maven-publish plugin
 publishing {
@@ -334,15 +359,16 @@ publishing {
         }
     }
 }
-// No Maven publication target has been configured for this development repo.
+// Publication is a separate step after the Forge runtime candidate is accepted.
 tasks.withType(org.gradle.api.publish.maven.tasks.AbstractPublishToMaven).configureEach {
     doFirst {
-        throw new GradleException('Maven publication is not configured. Use the GitHub JAR/ZIP artifacts.')
+        throw new GradleException("Publishing is disabled for ${releaseProfile}: the Forge candidate has not been approved for publication.")
     }
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+    options.compilerArgs += ['-Xmaxerrs', '1000']
 }
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
@@ -358,7 +384,7 @@ sourceSets {
     standaloneMotion {
         java {
             srcDirs = ['src/main/java', 'tools']
-            include 'com/codex/blacklight/animation/MatrixMotionClip.java', 'StandaloneMotionProbe.java'
+            include 'com/codex/blacklight/animation/MatrixMotionClip.java', 'com/codex/blacklight/util/MathCompat.java', 'StandaloneMotionProbe.java'
         }
     }
 }
@@ -375,7 +401,7 @@ tasks.register('verifyStandaloneMotionAssets', JavaExec) {
     maxHeapSize = '1G'
     doFirst {
         def archive = providers.gradleProperty('motionProbeArchive')
-        if (!archive.isPresent()) throw new GradleException('Supply -PmotionProbeArchive=<standalone bundled jar>')
+        if (!archive.isPresent()) throw new GradleException('Supply -PmotionProbeArchive=<Forge 1.20.1 bundled jar>')
         args = [archive.get()]
     }
 }
@@ -405,11 +431,19 @@ tasks.register('verifyStandaloneBoundary') {
 
 // Every installable artifact must pass the independent runtime boundary.
 tasks.named('jar') { dependsOn tasks.named('verifyStandaloneBoundary') }
+tasks.named('jarJar') { dependsOn tasks.named('verifyStandaloneBoundary') }
+
+// Forge runtime JARs must be reobfuscated before distribution.
+tasks.named('jar') { finalizedBy 'reobfJar' }
+tasks.named('jar') { archiveClassifier = "${releaseProfile}-slim" }
+reobf { jarJar {} }
+tasks.named('jarJar') { finalizedBy 'reobfJarJar' }
+tasks.named('distributionZip') { dependsOn 'reobfJarJar' }
 
 // CI and a fresh clone must never produce another motion-less installable JAR.
 tasks.register('verifyBundledMotionResources') {
     group = 'verification'
-    dependsOn tasks.named('jar')
+    dependsOn tasks.named('reobfJarJar')
     doLast {
         def source = file(bundledMotionDirectory.get())
         def profile = fileTree(source).matching { include '*.json', '*.data' }.files
@@ -419,8 +453,15 @@ tasks.register('verifyBundledMotionResources') {
                 ? new groovy.json.JsonSlurper().parse(file('art/motion-profile-manifest.json')).files : null
         if (manifest != null && profile.collect { it.name }.toSet() != manifest.keySet())
             throw new GradleException('Repository motion inventory does not match its manifest')
-        def archive = new java.util.zip.ZipFile(tasks.named('jar', Jar).get().archiveFile.get().asFile)
+        def archive = new java.util.zip.ZipFile(tasks.named('jarJar', Jar).get().archiveFile.get().asFile)
         try {
+            def refmapEntry = archive.getEntry('blacklight.refmap.json')
+            if (refmapEntry == null) throw new GradleException('Missing Forge Mixin refmap in installable JAR')
+            def refmap = archive.getInputStream(refmapEntry).withCloseable {
+                new groovy.json.JsonSlurper().parse(it)
+            }
+            if (!refmap.mappings || !refmap.data?.searge)
+                throw new GradleException('Empty Forge Mixin runtime mappings')
             profile.each { input ->
                 def entry = archive.getEntry("blacklight/bundled_motions/${input.name}")
                 if (entry == null) throw new GradleException("Missing bundled motion: ${input.name}")
@@ -429,7 +470,7 @@ tasks.register('verifyBundledMotionResources') {
                     throw new GradleException("Bundled motion changed: ${input.name}")
                 if (manifest != null) {
                     def hash = java.security.MessageDigest.getInstance('SHA-256').digest(packed).encodeHex().toString()
-                    if (hash != manifest[input.name].sha256)
+                    if (hash != manifest[input.name].sha256 || packed.length != manifest[input.name].bytes)
                         throw new GradleException("Motion manifest mismatch: ${input.name}")
                 }
             }

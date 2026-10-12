@@ -9,9 +9,9 @@ public final class GrabPlacement {
     private GrabPlacement() {}
     /** Center of the body intersects the continuous right blade, not the empty left palm. */
     public static Vec3 bladeContact(Vec3 player,float yaw,float pitch,float consumeProgress) {
-        double radians=Math.toRadians(Math.clamp(pitch,-65,65));
+        double radians=Math.toRadians(com.codex.blacklight.util.MathCompat.clamp(pitch,-65,65));
         var forward=Vec3.directionFromRotation(0,yaw);
-        double pull=Math.clamp(consumeProgress,0,1);pull=pull*pull*(3-2*pull);
+        double pull=com.codex.blacklight.util.MathCompat.clamp(consumeProgress,0,1);pull=pull*pull*(3-2*pull);
         double right=BLADE_RIGHT-.10*pull;
         return player.add(forward.scale((BLADE_FORWARD-.16*pull)*Math.cos(radians)))
                 .add(-forward.z*right,BLADE_HEIGHT-Math.sin(radians)*.38,-forward.x*-right);
@@ -25,7 +25,7 @@ public final class GrabPlacement {
         return anchor(player,yaw,0,width,height);
     }
     public static Vec3 palm(Vec3 player,float yaw,float pitch) {
-        double radians=Math.toRadians(Math.clamp(pitch,-90,90));
+        double radians=Math.toRadians(com.codex.blacklight.util.MathCompat.clamp(pitch,-90,90));
         var forward=Vec3.directionFromRotation(0,yaw);
         return player.add(forward.scale(FORWARD*Math.max(.55,Math.cos(radians))))
                 .add(forward.z*LEFT,HEIGHT-Math.sin(radians)*.42,-forward.x*LEFT);

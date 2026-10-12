@@ -22,7 +22,7 @@ import org.joml.Matrix4f;
 /** Blender surfaces authored in the Blacklight skeleton's joint-local space. */
 public final class ClawArmModel extends Model {
     public static final ModelLayerLocation LAYER = new ModelLayerLocation(
-            ResourceLocation.fromNamespaceAndPath(BlacklightNeoMod.MOD_ID, "claw_arm"), "main");
+            new ResourceLocation(BlacklightNeoMod.MOD_ID, "claw_arm"), "main");
     private record Triangle(float[][] points, float[][] normals, int color, int[] vertices) { }
     private record Position(int x, int y, int z) {
         Position(float[] p) { this(Float.floatToIntBits(p[0]), Float.floatToIntBits(p[1]), Float.floatToIntBits(p[2])); }
@@ -146,7 +146,7 @@ public final class ClawArmModel extends Model {
         float time = 0;
         if (liquid != null && liquid.liquid()) {
             var minecraft = net.minecraft.client.Minecraft.getInstance();
-            if (minecraft.level != null) time = minecraft.level.getGameTime() + minecraft.getTimer().getGameTimeDeltaPartialTick(false);
+            if (minecraft.level != null) time = minecraft.level.getGameTime() + minecraft.getFrameTime();
         }
         renderJoint(joint,stack,consumer,light,overlay,progress,talonLength,wristDelta,distalLimit,hammer,liquid,time);
     }
@@ -156,7 +156,7 @@ public final class ClawArmModel extends Model {
         Triangle[] faces = joints.get(joint);
         if (faces == null || progress <= .001F || liquid != null && !liquid.visible()) return;
         if (liquid == null) liquid = BiomassSurface.Frame.stable(progress);
-        float t=Math.clamp(progress,0,1);
+        float t=com.codex.blacklight.util.MathCompat.clamp(progress,0,1);
         float sheath=com.codex.blacklight.infection.InfectionTimeline.stage(t,.05F,.70F);
         float blade=com.codex.blacklight.infection.InfectionTimeline.stage(t,.48F,1);
         float width=.08F+.92F*sheath;
@@ -206,7 +206,7 @@ public final class ClawArmModel extends Model {
                 if(wristDelta!=null&&forearm){
                     // Blend only the wrist/palm and talons; the forearm keeps its elbow
                     // attachment. This transports the native wrist instead of posing it.
-                    float w=Math.clamp((p[1]-.28F)/.10F,0,1);w=w*w*(3-2*w);
+                    float w=net.minecraft.util.Mth.clamp((p[1]-.28F)/.10F,0,1);w=w*w*(3-2*w);
                     float tx=wristDelta.m00()*x+wristDelta.m10()*y+wristDelta.m20()*z+wristDelta.m30();
                     float ty=wristDelta.m01()*x+wristDelta.m11()*y+wristDelta.m21()*z+wristDelta.m31();
                     float tz=wristDelta.m02()*x+wristDelta.m12()*y+wristDelta.m22()*z+wristDelta.m32();
@@ -220,14 +220,14 @@ public final class ClawArmModel extends Model {
                 }
                 int color = BiomassSurface.color(face.color, wet, posed[offset+4], posed[offset+5]);
                 color=(Math.round(surface.opacity[index]*255)<<24)|(color&0xFFFFFF);
-                consumer.addVertex(pose,x,y,z).setColor(color)
-                        .setUv(liquid.liquid()?wet:.5F,.5F).setOverlay(overlay).setLight(light)
-                        .setNormal(pose,nx,ny,nz);
+                consumer.vertex(pose.pose(),x,y,z).color(color)
+                        .uv(liquid.liquid()?wet:.5F,.5F).overlayCoords(overlay).uv2(light)
+                        .normal(pose.normal(),nx,ny,nz).endVertex();
             }
         }
     }
 
-    private static float smooth(float t){t=Math.clamp(t,0,1);return t*t*(3-2*t);}
+    private static float smooth(float t){t=net.minecraft.util.Mth.clamp(t,0,1);return t*t*(3-2*t);}
     private static float slope(float value,float width){float t=value/width;return t<=0||t>=1?0:6*t*(1-t)/width;}
     private static float integral(float value,float width){
         if(value<=0)return 0;if(value>=width)return value-width*.5F;
@@ -235,7 +235,7 @@ public final class ClawArmModel extends Model {
     }
 
     @Override
-    public void renderToBuffer(PoseStack stack, VertexConsumer consumer, int light, int overlay, int color) {
+    public void renderToBuffer(PoseStack stack, VertexConsumer consumer, int light, int overlay, float red,float green,float blue,float alpha) {
         renderJoint("Hand_R",stack,consumer,light,overlay,1,1);
     }
 }

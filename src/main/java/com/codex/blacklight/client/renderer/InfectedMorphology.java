@@ -16,7 +16,7 @@ import net.minecraft.world.entity.LivingEntity;
 
 /** Authored Minecraft cuboids attached to actual posed host parts. */
 public final class InfectedMorphology implements AutoCloseable {
-    public static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath("blacklight","textures/entity/infected_morphology.png");
+    public static final ResourceLocation TEXTURE = new ResourceLocation("blacklight","textures/entity/infected_morphology.png");
     private static final RenderType TYPE = RenderType.entityCutoutNoCull(TEXTURE);
     private static final ThreadLocal<InfectedMorphology> ACTIVE = new ThreadLocal<>();
     private static final Map<EntityModel<?>,Map<String,Map<ModelPart,Attachment>>> CACHE = new WeakHashMap<>();
@@ -202,7 +202,7 @@ public final class InfectedMorphology implements AutoCloseable {
         if(attachment==null||attachment.wound==null)return false;
         for(var cube:((ModelPartChildrenAccessor)(Object)part).blacklight$cubes()){
             if(cube==attachment.wound.cube)attachment.wound.compile(pose,out,light,overlay,color);
-            else cube.compile(pose,out,light,overlay,color);
+            else cube.compile(pose,out,light,overlay,((color>>16)&255)/255F,((color>>8)&255)/255F,(color&255)/255F,((color>>>24)&255)/255F);
         }
         // Cancelling ModelPart.compile skips its TAIL hook; record the exact same posed
         // attachment here so wound walls still participate in absorption/fracture.
@@ -252,9 +252,9 @@ public final class InfectedMorphology implements AutoCloseable {
         float u=(b.material*16+.25F)/64F,v=.25F/64F,span=15.5F/64F;
         for(int face=0;face<6;face++)for(int corner=0;corner<4;corner++){
             int[] c=CORNERS[FACES[face][corner]];float[] n=NORMALS[face];
-            out.addVertex(p.pose,(b.x+c[0]*b.w*.5F)/16,(b.y+c[1]*b.h*.5F)/16,(b.z+c[2]*b.d*.5F)/16)
-                    .setColor(p.color).setUv(u+(corner>=2?span:0),v+(corner==0||corner==3?span:0))
-                    .setOverlay(p.overlay).setLight(p.light).setNormal(p.pose,n[0],n[1],n[2]);
+            out.vertex((p.pose).pose(),(b.x+c[0]*b.w*.5F)/16,(b.y+c[1]*b.h*.5F)/16,(b.z+c[2]*b.d*.5F)/16)
+                    .color(p.color).uv(u+(corner>=2?span:0),v+(corner==0||corner==3?span:0))
+                    .overlayCoords(p.overlay).uv2(p.light).normal((p.pose).normal(),n[0],n[1],n[2]).endVertex();
         }
     }
 }

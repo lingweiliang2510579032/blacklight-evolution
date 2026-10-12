@@ -8,36 +8,33 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.registries.DeferredHolder;
-import net.neoforged.neoforge.registries.DeferredItem;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.registries.RegistryObject;
+
+import net.minecraftforge.registries.DeferredRegister;
 
 public final class ModItems {
-    private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(BlacklightNeoMod.MOD_ID);
+    private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(net.minecraftforge.registries.ForgeRegistries.ITEMS, BlacklightNeoMod.MOD_ID);
     private static final DeferredRegister<CreativeModeTab> TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, BlacklightNeoMod.MOD_ID);
 
-    public static final DeferredItem<BlacklightSampleItem> BLACKLIGHT_SAMPLE = ITEMS.registerItem(
-            "blacklight_sample", BlacklightSampleItem::new,
-            new Item.Properties().stacksTo(4).rarity(Rarity.EPIC).fireResistant());
+    public static final RegistryObject<BlacklightSampleItem> BLACKLIGHT_SAMPLE = ITEMS.register("blacklight_sample", () -> new BlacklightSampleItem(new Item.Properties().stacksTo(4).rarity(Rarity.EPIC).fireResistant()));
 
-    public static final DeferredItem<net.neoforged.neoforge.common.DeferredSpawnEggItem> HUNTER_SPAWN_EGG = ITEMS.registerItem(
-            "blacklight_hunter_spawn_egg", props -> new net.neoforged.neoforge.common.DeferredSpawnEggItem(
-                    ModEntities.BLACKLIGHT_HUNTER, 0x242626, 0x9d302b, props), new Item.Properties());
+    public static final RegistryObject<net.minecraftforge.common.ForgeSpawnEggItem> HUNTER_SPAWN_EGG = ITEMS.register("blacklight_hunter_spawn_egg", () -> new net.minecraftforge.common.ForgeSpawnEggItem(
+                    ModEntities.BLACKLIGHT_HUNTER, 0x242626, 0x9d302b, new Item.Properties()));
 
-    public static final DeferredItem<BlockItem> HIVE_FLESH = ITEMS.registerSimpleBlockItem(ModBlocks.HIVE_FLESH);
-    public static final DeferredItem<BlockItem> HIVE_CARAPACE = ITEMS.registerSimpleBlockItem(ModBlocks.HIVE_CARAPACE);
-    public static final DeferredItem<BlockItem> HIVE_SAC = ITEMS.registerSimpleBlockItem(ModBlocks.HIVE_SAC);
-    public static final DeferredItem<BlockItem> INFECTED_SOIL = ITEMS.registerSimpleBlockItem(ModBlocks.INFECTED_SOIL);
-    public static final DeferredItem<BlockItem> INFECTED_STONE = ITEMS.registerSimpleBlockItem(ModBlocks.INFECTED_STONE);
-    public static final DeferredItem<BlockItem> TISSUE_FIBER = ITEMS.registerSimpleBlockItem(ModBlocks.TISSUE_FIBER);
-    public static final DeferredItem<BlockItem> HIVE_VEIN = ITEMS.registerSimpleBlockItem(ModBlocks.HIVE_VEIN);
-    public static final DeferredItem<BlockItem> HIVE_MEMBRANE = ITEMS.registerSimpleBlockItem(ModBlocks.HIVE_MEMBRANE);
-    public static final DeferredItem<BlockItem> HIVE_BONE = ITEMS.registerSimpleBlockItem(ModBlocks.HIVE_BONE);
-    public static final DeferredItem<BlockItem> NUTRIENT_NODE = ITEMS.registerSimpleBlockItem(ModBlocks.NUTRIENT_NODE);
+    public static final RegistryObject<BlockItem> HIVE_FLESH = ITEMS.register("hive_flesh", () -> new BlockItem(ModBlocks.HIVE_FLESH.get(), new Item.Properties()));
+    public static final RegistryObject<BlockItem> HIVE_CARAPACE = ITEMS.register("hive_carapace", () -> new BlockItem(ModBlocks.HIVE_CARAPACE.get(), new Item.Properties()));
+    public static final RegistryObject<BlockItem> HIVE_SAC = ITEMS.register("hive_sac", () -> new BlockItem(ModBlocks.HIVE_SAC.get(), new Item.Properties()));
+    public static final RegistryObject<BlockItem> INFECTED_SOIL = ITEMS.register("infected_soil", () -> new BlockItem(ModBlocks.INFECTED_SOIL.get(), new Item.Properties()));
+    public static final RegistryObject<BlockItem> INFECTED_STONE = ITEMS.register("infected_stone", () -> new BlockItem(ModBlocks.INFECTED_STONE.get(), new Item.Properties()));
+    public static final RegistryObject<BlockItem> TISSUE_FIBER = ITEMS.register("tissue_fiber", () -> new BlockItem(ModBlocks.TISSUE_FIBER.get(), new Item.Properties()));
+    public static final RegistryObject<BlockItem> HIVE_VEIN = ITEMS.register("hive_vein", () -> new BlockItem(ModBlocks.HIVE_VEIN.get(), new Item.Properties()));
+    public static final RegistryObject<BlockItem> HIVE_MEMBRANE = ITEMS.register("hive_membrane", () -> new BlockItem(ModBlocks.HIVE_MEMBRANE.get(), new Item.Properties()));
+    public static final RegistryObject<BlockItem> HIVE_BONE = ITEMS.register("hive_bone", () -> new BlockItem(ModBlocks.HIVE_BONE.get(), new Item.Properties()));
+    public static final RegistryObject<BlockItem> NUTRIENT_NODE = ITEMS.register("nutrient_node", () -> new BlockItem(ModBlocks.NUTRIENT_NODE.get(), new Item.Properties()));
 
-    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = TABS.register(
+    public static final RegistryObject<CreativeModeTab> TAB = TABS.register(
             "blacklight", () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.blacklight"))
                     .icon(() -> BLACKLIGHT_SAMPLE.get().getDefaultInstance())
@@ -57,5 +54,15 @@ public final class ModItems {
     public static void register(IEventBus bus) {
         ITEMS.register(bus);
         TABS.register(bus);
+        bus.addListener((net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent event) -> event.enqueueWork(() ->
+                net.minecraft.world.level.block.DispenserBlock.registerBehavior(BLACKLIGHT_SAMPLE.get(),
+                        new net.minecraft.core.dispenser.AbstractProjectileDispenseBehavior() {
+                            @Override protected net.minecraft.world.entity.projectile.Projectile getProjectile(
+                                    net.minecraft.world.level.Level level,net.minecraft.core.Position position,net.minecraft.world.item.ItemStack stack) {
+                                var vial=new com.codex.blacklight.entity.BlacklightVirusVialEntity(level,position.x(),position.y(),position.z());
+                                vial.setItem(stack);
+                                return vial;
+                            }
+                        })));
     }
 }

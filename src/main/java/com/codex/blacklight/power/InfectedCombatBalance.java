@@ -8,10 +8,10 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.bus.api.EventPriority;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 
 /** Threat budgets for an infected 100-HP protagonist, independent of health growth.
  * Adjust original damage units before shield, armor and CombatScale's conversion.
@@ -20,9 +20,9 @@ import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 public final class InfectedCombatBalance {
     private InfectedCombatBalance() {}
     @SubscribeEvent(priority=EventPriority.HIGH)
-    public static void incoming(LivingIncomingDamageEvent event){
+    public static void incoming(LivingHurtEvent event){
         if(!(event.getEntity() instanceof Player player)||player.level().isClientSide
-                ||!player.getData(ModAttachments.PLAYER_STATE).isInfected()
+                ||!com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).isInfected()
                 ||event.getAmount()<=0||event.isCanceled())return;
         var source=event.getSource();
         // Projectile DamageSources retain their mob owner. Player attacks, void,

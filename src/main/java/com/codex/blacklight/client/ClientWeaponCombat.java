@@ -6,7 +6,7 @@ import com.codex.blacklight.network.*;
 import com.codex.blacklight.animation.PlayerMotionController;
 import com.codex.blacklight.combat.LocalWeaponMotion;
 import net.minecraft.client.Minecraft;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.codex.blacklight.forge.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
 
 public final class ClientWeaponCombat {
@@ -18,8 +18,8 @@ public final class ClientWeaponCombat {
     private ClientWeaponCombat(){}
     public static boolean active(){
         var mc=Minecraft.getInstance();if(mc.player==null||mc.screen!=null)return false;
-        var state=mc.player.getData(ModAttachments.PLAYER_STATE);
-        return state.isPrototypeMode()&&state.isInfected()&&WeaponMove.controls(state.getActivePower(),mc.player.getMainHandItem().isEmpty()&&mc.player.getOffhandItem().isEmpty())&&!mc.player.getData(ModAttachments.CONSUMING);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE);
+        return state.isPrototypeMode()&&state.isInfected()&&WeaponMove.controls(state.getActivePower(),mc.player.getMainHandItem().isEmpty()&&mc.player.getOffhandItem().isEmpty())&&!com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.CONSUMING);
     }
     public static void poll(){
         var mc=Minecraft.getInstance();if(mc.getWindow()==null)return;
@@ -37,7 +37,7 @@ public final class ClientWeaponCombat {
             controlling=false;left=l;right=r;action=a;jump=j;requireLeftRelease=l;requireRightRelease=r;return;
         }
         if(active()){
-            var form=mc.player.getData(ModAttachments.PLAYER_STATE).getActivePower();
+            var form=com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE).getActivePower();
             if(inputForm!=null&&inputForm!=form){
                 PacketDistributor.sendToServer(new WeaponInputPayload(false,false,true));
                 requireLeftRelease=l;requireRightRelease=r;
@@ -60,10 +60,10 @@ public final class ClientWeaponCombat {
     static boolean prepareSpecialMovement(){
         var mc=Minecraft.getInstance();
         if(!active()||!mc.player.isAlive()||mc.player.isSpectator()||mc.player.isPassenger()
-                ||!mc.player.onGround()||!mc.player.getData(ModAttachments.PLAYER_STATE).isInfected()
-                ||mc.player.getData(ModAttachments.PLAYER_STATE).getActivePower()!=com.codex.blacklight.power.PowerForm.BLADE
-                ||mc.player.getData(ModAttachments.WEAPON_VISUAL).spec()!=null
-                ||mc.player.getData(ModAttachments.CLAW_COMBAT).action()!=com.codex.blacklight.combat.ClawCombatState.Action.IDLE
+                ||!mc.player.onGround()||!com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE).isInfected()
+                ||com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE).getActivePower()!=com.codex.blacklight.power.PowerForm.BLADE
+                ||com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.WEAPON_VISUAL).spec()!=null
+                ||com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.CLAW_COMBAT).action()!=com.codex.blacklight.combat.ClawCombatState.Action.IDLE
                 ||ClientMovementEvents.isChargingJump()||ClientMovementEvents.isWallRunning())return false;
         return ClientMovementEvents.prepareGroundedWeaponMovement(mc);
     }

@@ -1,5 +1,8 @@
 # Resource inventory and third-party assets
 
+Target platform of this maintenance fork: Minecraft 1.20.1 Forge. The author
+continues to maintain the upstream platform separately.
+
 ## Repository runtime profile
 
 At the author's request, standalone dev.7 includes the previously local complete

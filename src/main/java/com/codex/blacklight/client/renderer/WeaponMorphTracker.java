@@ -7,10 +7,10 @@ import com.codex.blacklight.power.PowerForm;
 import com.codex.blacklight.registry.ModAttachments;
 import java.util.*;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.TickEvent;
 
 /** One game-time material clock for both native hands and the world renderer. */
 @EventBusSubscriber(modid="blacklight",value=Dist.CLIENT)
@@ -42,7 +42,7 @@ public final class WeaponMorphTracker {
     private WeaponMorphTracker() { }
     public static Sample sample(AbstractClientPlayer player,float partial) {
         double now=player.level().getGameTime()+partial;
-        var state=player.getData(ModAttachments.PLAYER_STATE);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         boolean enabled=state.isInfected()&&state.isPrototypeMode()&&player.isAlive()&&!player.isSpectator();
         var form=enabled&&WeaponMorphTiming.weapon(state.getActivePower())?state.getActivePower():PowerForm.NONE;
         var observed=STATES.get(player);
@@ -55,7 +55,7 @@ public final class WeaponMorphTracker {
         // catch up instead of reversing growth or restarting visible material.
         now=Math.max(now,observed.lastTime);
         observed.lastTime=now;
-        var morph=player.getData(ModAttachments.POWER_MORPH);
+        var morph=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.POWER_MORPH);
         boolean longVisible=enabled&&WeaponMorphTiming.weapon(form)&&morph.formId()==form.ordinal()&&morph.visible(player,partial);
         boolean changed=observed.timeline.target()!=form;
         boolean newLong=longVisible&&observed.lastLong!=morph.started();
@@ -76,7 +76,8 @@ public final class WeaponMorphTracker {
             parts.add(new Part(candidate,new BiomassSurface.Frame(weights[candidate.ordinal()],phase,flow,candidate!=form)));
         return new Sample(timeline.from(),form,phase,flow,timeline.transitioning(now),timeline.longTransform(),List.copyOf(parts),now);
     }
-    @SubscribeEvent public static void tick(ClientTickEvent.Post event) {
+    @SubscribeEvent public static void tick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
         var mc=net.minecraft.client.Minecraft.getInstance();if(mc.player!=null)sample(mc.player,0);
     }
 }

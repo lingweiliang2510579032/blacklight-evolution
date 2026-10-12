@@ -18,12 +18,12 @@ final class PlayerAttributesView {
     static List<Entry> entries(){
         var p=Minecraft.getInstance().player;
         if(p==null)return List.of();
-        var state=p.getData(ModAttachments.PLAYER_STATE);var form=state.getActivePower();
+        var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);var form=state.getActivePower();
         var values=new ArrayList<Entry>();
         add(values,"health",Component.literal(number(p.getHealth())+" / "+number(p.getMaxHealth())));
         add(values,"absorption",Component.literal(number(p.getAbsorptionAmount())));
         add(values,"form",Component.translatable("power.blacklight."+form.id()));
-        if(state.hasUnlocked(PowerForm.SHIELD))add(values,"shield",Component.literal(number(p.getData(ModAttachments.UTILITY_STATE).shield())+" / "+number(UtilityState.SHIELD_CAPACITY)));
+        if(state.hasUnlocked(PowerForm.SHIELD))add(values,"shield",Component.literal(number(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.UTILITY_STATE).shield())+" / "+number(UtilityState.SHIELD_CAPACITY)));
         var move=WeaponMove.choose(form,WeaponMove.Input.ATTACK,false,false,false);
         add(values,"damage",move==null?Component.literal("—"):Component.literal(number(move.damageFor(form)*CombatScale.UNITS)));
         add(values,"attack_speed",Component.translatable("screen.blacklight.stats.per_second",number(p.getAttributeValue(Attributes.ATTACK_SPEED))));

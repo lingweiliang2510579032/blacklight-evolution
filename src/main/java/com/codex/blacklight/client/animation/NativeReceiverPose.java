@@ -6,7 +6,7 @@ import com.codex.blacklight.registry.ModAttachments;
 import net.minecraft.world.entity.LivingEntity;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import software.bernie.geckolib.cache.object.GeoBone;
+import software.bernie.geckolib.core.animatable.model.CoreGeoBone;
 import software.bernie.geckolib.model.GeoModel;
 import net.minecraft.client.model.*;
 import net.minecraft.client.model.geom.*;
@@ -18,12 +18,12 @@ public final class NativeReceiverPose {
     private NativeReceiverPose() {}
     public static boolean available(LivingEntity entity,float partial){
         if(entity instanceof BlacklightHunter h&&h.isConsumeRemains())return ReceiverMotions.clip("hunter_consume")!=null;
-        var v=entity.getData(ModAttachments.CONSUME_VISUAL);
+        var v=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL);
         if(v.active())return entity instanceof BlacklightHunter&&ReceiverMotions.clip(v.consuming()?"hunter_consume":"hunter_grab")!=null;
-        var hit=entity.getData(ModAttachments.HIT_REACTION);return hit.weight(entity.level().getGameTime(),partial)>0&&ReceiverMotions.clip(ReceiverMotions.hitKey(entity,hit.kind(),hit.motion()))!=null;
+        var hit=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.HIT_REACTION);return hit.weight(entity.level().getGameTime(),partial)>0&&ReceiverMotions.clip(ReceiverMotions.hitKey(entity,hit.kind(),hit.motion()))!=null;
     }
     public static boolean apply(GeoModel<?> model,LivingEntity entity,float partial){
-        var visual=entity.getData(ModAttachments.CONSUME_VISUAL);String key;float progress,weight;
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL);String key;float progress,weight;
         if(entity instanceof BlacklightHunter hunter&&hunter.isConsumeRemains()) {
             key="hunter_consume";weight=1;
             var clip=ReceiverMotions.clip(key);if(clip==null)return false;
@@ -33,13 +33,13 @@ public final class NativeReceiverPose {
             key=visual.consuming()?"hunter_consume":"hunter_grab";
             progress=visual.consuming()?visual.motionProgress(entity.level().getGameTime(),partial):
                     visual.stage()==ConsumeVisual.MOUNT_HOLD?1:visual.phaseProgress(entity.level().getGameTime(),partial);
-            weight=Math.clamp((entity.level().getGameTime()-visual.started()+partial)/3F,0,1);
+            weight=net.minecraft.util.Mth.clamp((entity.level().getGameTime()-visual.started()+partial)/3F,0,1);
             var clip=ReceiverMotions.clip(key);
             if(clip!=null&&visual.consuming())progress=visual.stage()==ConsumeVisual.HUNTER_CONSUME
-                    ?Math.clamp(HunterConsume.seconds(visual,entity.level().getGameTime(),partial)/clip.seconds(),0,1)
-                    :Math.clamp(progress*(visual.duration()-1)/(20*clip.seconds()),0,1);
+                    ?net.minecraft.util.Mth.clamp(HunterConsume.seconds(visual,entity.level().getGameTime(),partial)/clip.seconds(),0,1)
+                    :net.minecraft.util.Mth.clamp(progress*(visual.duration()-1)/(20*clip.seconds()),0,1);
         }else{
-            var hit=entity.getData(ModAttachments.HIT_REACTION);weight=hit.weight(entity.level().getGameTime(),partial);if(weight<=0)return false;
+            var hit=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.HIT_REACTION);weight=hit.weight(entity.level().getGameTime(),partial);if(weight<=0)return false;
             key=ReceiverMotions.hitKey(entity,hit.kind(),hit.motion());progress=hit.progress(entity.level().getGameTime(),partial);
         }
         float[] row=ReceiverMotions.sample(key,progress);if(row==null)return false;
@@ -52,20 +52,20 @@ public final class NativeReceiverPose {
         String key=entity.committedAttack()?"hunter_swipe":entity.walkAnimation.speed()>.04F
                 ?entity.walkAnimation.speed()>.16F?"hunter_run":"hunter_walk":"hunter_idle";
         var clip=ReceiverMotions.clip(key);if(clip==null)return;
-        float progress=entity.committedAttack()?Math.clamp((24-entity.attackTicksRemaining()+partial)/24F,0,1)
+        float progress=entity.committedAttack()?net.minecraft.util.Mth.clamp((24-entity.attackTicksRemaining()+partial)/24F,0,1)
                 :((entity.tickCount+partial)/20F)%clip.seconds()/clip.seconds();
         float[] row=ReceiverMotions.sample(key,progress);if(row!=null)applyRow(model,row,1);
     }
     private static void applyRow(GeoModel<?> model,float[] row,float weight){
-        Map<GeoBone,Quaternionf> desired=new IdentityHashMap<>();
+        Map<CoreGeoBone,Quaternionf> desired=new IdentityHashMap<>();
         for(int i=0;i<ReceiverMotions.BONES.length;i++){
-            GeoBone bone=model.getAnimationProcessor().getBone(ReceiverMotions.BONES[i]);
+            CoreGeoBone bone=model.getAnimationProcessor().getBone(ReceiverMotions.BONES[i]);
             if(bone==null){String alias=switch(ReceiverMotions.BONES[i]){case "torso"->"body";case "right_thigh"->"right_leg";case "left_thigh"->"left_leg";default->"";};if(!alias.isEmpty())bone=model.getAnimationProcessor().getBone(alias);}
             if(bone==null)continue;
             int k=3+i*4;desired.put(bone,new Quaternionf(row[k],row[k+1],row[k+2],row[k+3]).mul(bindWorld(bone)));
         }
         for(var entry:desired.entrySet()){
-            GeoBone bone=entry.getKey(),parent=bone.getParent();
+            CoreGeoBone bone=entry.getKey(),parent=bone.getParent();
             Quaternionf parentWorld=parent==null?new Quaternionf():desired.getOrDefault(parent,bindWorld(parent));
             Quaternionf local=new Quaternionf(parentWorld).invert().mul(entry.getValue());
             Quaternionf old=new Quaternionf().rotationZYX(bone.getRotZ(),bone.getRotY(),bone.getRotX());
@@ -74,7 +74,7 @@ public final class NativeReceiverPose {
     }
     public static void resetRoot(GeoModel<?> model){var root=model.getAnimationProcessor().getBone("root");if(root!=null){root.setPosX(0);root.setPosY(0);root.setPosZ(0);}}
     public static boolean vanilla(EntityModel<?> model,LivingEntity entity,float partial,Map<ModelPart,PartPose> saved){
-        var hit=entity.getData(ModAttachments.HIT_REACTION);float weight=hit.weight(entity.level().getGameTime(),partial);if(weight<=0)return false;
+        var hit=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.HIT_REACTION);float weight=hit.weight(entity.level().getGameTime(),partial);if(weight<=0)return false;
         float[] row=ReceiverMotions.sample(ReceiverMotions.hitKey(entity,hit.kind(),hit.motion()),hit.progress(entity.level().getGameTime(),partial));if(row==null)return false;
         if(model instanceof HumanoidModel<?> h){
             part(h.head,3,row,weight,saved);part(h.hat,3,row,weight,saved);part(h.body,2,row,weight,saved);
@@ -99,5 +99,5 @@ public final class NativeReceiverPose {
         q.mul(new Quaternionf().rotationZYX(bind.zRot,bind.yRot,bind.xRot));
         Vector3f angles=new Quaternionf().rotationZYX(p.zRot,p.yRot,p.xRot).slerp(q,weight).getEulerAnglesZYX(new Vector3f());p.xRot=angles.x;p.yRot=angles.y;p.zRot=angles.z;
     }
-    private static Quaternionf bindWorld(GeoBone bone){var bind=bone.getInitialSnapshot();var q=new Quaternionf().rotationZYX(bind.getRotZ(),bind.getRotY(),bind.getRotX());return bone.getParent()==null?q:bindWorld(bone.getParent()).mul(q);}
+    private static Quaternionf bindWorld(CoreGeoBone bone){var bind=bone.getInitialSnapshot();var q=new Quaternionf().rotationZYX(bind.getRotZ(),bind.getRotY(),bind.getRotX());return bone.getParent()==null?q:bindWorld(bone.getParent()).mul(q);}
 }

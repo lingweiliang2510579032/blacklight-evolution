@@ -16,9 +16,9 @@ final class DisguiseAwareness {
         var persistent=player.getPersistentData();
         if(!persistent.contains(KEY)) {
             var value=new CompoundTag();value.putUUID("Life",UUID.randomUUID());
-            int alert=player.getData(ModAttachments.PLAYER_STATE).getAlert();
+            int alert=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).getAlert();
             value.putInt("Base",alert);value.putInt("Identity",alert);
-            value.putBoolean("LastForm",player.getData(ModAttachments.PLAYER_STATE).isDisguised());persistent.put(KEY,value);
+            value.putBoolean("LastForm",com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).isDisguised());persistent.put(KEY,value);
         }
         CompoundTag data=persistent.getCompound(KEY);
         if(!data.hasUUID("Life"))data.putUUID("Life",UUID.randomUUID());
@@ -32,7 +32,7 @@ final class DisguiseAwareness {
     static void newIdentity(Player player) { data(player).putInt("Identity",0);advanceEpoch(player); }
     static void advanceEpoch(Player player) {
         var value=data(player);value.putLong("Epoch",value.getLong("Epoch")+1);
-        value.putBoolean("LastForm",player.getData(ModAttachments.PLAYER_STATE).isDisguised());
+        value.putBoolean("LastForm",com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).isDisguised());
     }
     static void decay(Player player) {
         var value=data(player);value.putInt("Base",Math.max(0,exposure(player,false)-5));

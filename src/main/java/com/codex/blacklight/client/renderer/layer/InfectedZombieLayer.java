@@ -18,7 +18,7 @@ import net.minecraft.world.entity.monster.Zombie;
 import org.joml.Matrix4f;
 
 public final class InfectedZombieLayer extends RenderLayer<Zombie,ZombieModel<Zombie>> {
-    private static final ResourceLocation WHITE=ResourceLocation.fromNamespaceAndPath("blacklight","textures/entity/claw_white.png");
+    private static final ResourceLocation WHITE=new ResourceLocation("blacklight","textures/entity/claw_white.png");
     private InfectedZombieMesh model;
     public InfectedZombieLayer(RenderLayerParent<Zombie,ZombieModel<Zombie>> parent){super(parent);}
     @Override public void render(PoseStack stack,MultiBufferSource buffer,int light,Zombie zombie,float swing,float amount,float partial,float age,float yaw,float pitch) {

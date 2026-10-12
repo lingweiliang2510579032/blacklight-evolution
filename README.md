@@ -1,40 +1,32 @@
-# Blacklight: Ascension
+# 黑光：进化 — Minecraft 1.20.1 Forge
 
-> **独立开发版 `0.3.0-standalone-dev.7`。** 基于现有 RC59 工作区，核心、动作、模型、输入、镜头和服务端同步已改由黑光自身驱动，运行不再要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。无这些模组的客户端和 GameTestServer 已实际启动。当前仍在检查脱离前置后的姿态与移动回归，结果见 [独立化记录](docs/STANDALONE_MIGRATION.md)。
+**Blacklight: Ascension · Forge 1.20.1 独立维护版。** 原作者：末者；本分支维护者：雨夜。模组包含生物武器、抓取吸收、伪装、强化移动、感染生物与组织蜂巢，不要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。
 
-**黑光：进化 · 作者：末者**
-Minecraft 1.21.1 / NeoForge 的黑光病毒同人 Mod，包含生物武器、抓取吸收、伪装、强化移动、感染生物与组织蜂巢。
+维护版本：**0.3.0-forge-1.20.1-dev.2**，分支：`forge-1.20.1`。已接入上游 dev.7 的完整动作、镜头、HUD、液态武器变形及感染结构资料。默认构建包含 224 个运行资料文件；旧 source-only 产物及其缺动作启动失败属于 dev.1 历史，不作为本版安装包。Forge 验收结果见 [移植状态](docs/FORGE_1_20_1_STATUS.md)。
 
-## 当前版本与发布状态
+## 目标环境
 
-当前为 **0.3.0-standalone-dev.7，独立开发版**，尚未公开发行，也未将完整人工验收标记为通过。项目按现有黑光能力与感染生存玩法收尾，不宣称完整复刻原游戏。
-
-**dev.7 已将完整运行资料纳入源码。** `art/motion-profile/` 包含 224 个动作、装甲、受害者、镜头与 HUD 文件，默认构建会完整打包；无需本机外部资料目录。所有文件保持此前试玩版内容，构建会检查包内文件与仓库 SHA-256 清单一致。此版整合 dev.6 液态武器变形和 80 种原版贴图结合感染结构的修复。
-
-- [dev.7 完整资料与感染模型](docs/BUNDLED_PROFILE_DEV7.md)
-- [安装、依赖与故障排除](docs/INSTALL_ZH.md)
-- [液态武器变形的源依据与适配范围](docs/LIQUID_WEAPON_MORPH_SOURCE.md)
-- [dev.6 液态变形实机检查](docs/LIQUID_WEAPON_MORPH_QA.md)
-- [当前已知问题与发布阻塞](docs/KNOWN_ISSUES_AND_SLOTS_ZH.md)
-- [0.2.0 人工验收表](docs/ACCEPTANCE_0.2.0.md)
-- [发布准备](docs/RELEASE_PREPARATION_ZH.md) · [平台计划](docs/PLATFORM_PLAN_ZH.md)
-- [截至 RC56 的完整历史记录](docs/history/README-through-RC56.md)
-
-## 安装环境
-
-| 项目 | 当前使用版本 | 是否必需 |
+| 组件 | 版本 | 用途 |
 | --- | --- | --- |
-| Minecraft Java 版 | 1.21.1 | 是 |
-| Java | 21 | 是 |
-| NeoForge | 21.1.244 | 是 |
-| GeckoLib | 4.9.2，NeoForge 1.21.1 版 | 是，单独安装 |
-| ParCool | 3.4.3.3 | 可选兼容；不是动作来源 |
+| Minecraft Java | 1.20.1 | 游戏版本 |
+| Java | 17 | 游戏运行与编译 |
+| Forge | 47.4.10 | 加载器 |
+| GeckoLib | 4.8.4，Forge 1.20.1 版 | 必需，单独安装 |
+| ParCool | 1.20.1-3.4.3.3 | 可选兼容 |
 
-Blacklight JAR 不内置前置 Mod。请使用上表的明确版本，不以“最新版”代替；可选模组装入后也要满足兼容范围。安装包不是完整游戏或完整整合包。多人客户端和服务端需要匹配的 Mod 版本、依赖与动作资料；联机行为仍待验收。
+Blacklight 内嵌 MixinExtras Forge 0.4.1，由 Forge 自动加载；不内置 GeckoLib。完整安装包作为开发预发布提供：独立客户端已进入测试存档，构建与 224 个资源文件校验通过，单元测试 202/206 通过；多人、生存流程与全部视觉效果仍待验收。
 
-退出游戏并备份存档、配置，把对应 NeoForge 版本的依赖与 Blacklight JAR 放入实例的 mods 目录，移除旧的 Blacklight JAR，只保留一份。当前构建使用资料完整的 bundled 包。具体步骤见 [安装文档](docs/INSTALL_ZH.md)。
+- [下载 Forge 1.20.1 预发布安装包](https://github.com/lingweiliang2510579032/blacklight-evolution/releases/tag/v0.3.0-forge-1.20.1-dev.2)
+
+- [安装与故障排除](docs/INSTALL_ZH.md)
+- [构建、测试和运行证据](docs/FORGE_1_20_1_STATUS.md)
+- [已知问题](docs/KNOWN_ISSUES_AND_SLOTS_ZH.md)
+- [完整资料打包](docs/BUNDLED_PROFILE_DEV7.md) · [资源来源](THIRD_PARTY_ASSETS.md)
+- [贡献与独立维护](CONTRIBUTING.md)
 
 ## 生存开始
+
+以下能力说明来自上游；Forge 分支的完整玩法验收尚未完成。
 
 1. 寻找雪地村庄的制图师，升至学徒，取得冰下研究站地图。已生成交易的旧村民不会自动换表；研究站只在符合条件的新区域生成。
 2. 按地图探索研究站，在冷藏箱取得病毒安瓿。附近没有可定位的研究站时，制图师可能仍售原版地图。
@@ -85,26 +77,27 @@ Blacklight JAR 不内置前置 Mod。请使用上表的明确版本，不以“�
 
 ## 当前内容与边界
 
-已接入利爪、刀锋、拳套、鞭拳、肌肉增强及空手战斗，抓取吸收与受害者表现，护盾、装甲、两种感知，强化移动，最近吸收身份切换，研究站开局、感染传播、巨型组织蜂巢与实际吞噬成长。包内资料提供当前接入的动作、镜头与 HUD；这些实现不代表原游戏全部机制已移植。
+已接入利爪、刀锋、拳套、鞭拳、肌肉增强及空手战斗，抓取吸收与受害者表现，护盾、装甲、两种感知，强化移动，最近吸收身份切换，研究站开局、感染传播、巨型组织蜂巢与实际吞噬成长。完整私有资料可提供当前接入的原作派生动作、镜头与 HUD；这些实现不代表原游戏全部机制已移植。
 
-dev.6 为五种攻击武器加入液态变形，以第三人称为主要展示：组织沿手臂推进，波形几何鼓动并逐渐塑形，附着四股组织流，湿材质随光照和观察角度产生细微反光。第一人称沿用现有原版手部位置。这是依据本地原作资料重建的效果，尚未一比一还原原版全部碎片、蓄势和爆发特效，详见 [源依据与适配范围](docs/LIQUID_WEAPON_MORPH_SOURCE.md)。
-
-80 种普通感染体将已确认的感染结构、啃食缺口和局部腐败血痕结合到原版模型及变种贴图，保留原版像素风格。四类巨构及其成长形态使用专属模型、基础动作与分段判定，**完整破茧演出和巨构专属战斗连招尚未完成**。
+感染僵尸保留专属模型；其他普通感染体主要是在原生物外形上叠加破损、啃食和组织变化。四类巨构及其成长形态使用专属模型、基础动作与分段判定，**完整破茧演出和巨构专属战斗连招尚未完成**。
 
 军事科技、可建实验室、黑色守望与超级士兵、城市与载具、记忆网和剧情任务尚未完成。伪装只保存最近的可用身份，使用玩家碰撞体与视点，不获得目标技能。攻击裂纹和碎块主要是视觉反馈，不代表通用地形破坏。多人、性能和完整生存平衡仍待验收。
 
-## 构建与命名
+## 源码构建
 
-~~~text
-gradlew.bat clean assemble --no-daemon
-~~~
+使用 Java 17 编译目标、Gradle 8.9 和 ForgeGradle 6.0.54。Windows：
 
-默认编译打包并检查独立运行边界及完整动作资料，不运行单元测试、碰撞测试、GameTest 或自动游戏验收。需要替换整套开发资料时可使用 `-PbundleMotionDirectory=<完整资料目录>`，产物标为 external-profile。
+```powershell
+./gradlew.bat clean assemble --no-daemon
+./gradlew.bat runClient --no-daemon
+```
 
-文件保留 Minecraft 和 Mod 两个版本号：
+Linux 使用 `./gradlew`。默认从仓库 `art/motion-profile/` 打包完整资料，不需指定作者的本机目录。可用 `-PbundleMotionDirectory=<完整资料目录>` 替换整套资料，产物分类为 `external-profile`；不与仓库资料混合。
 
-- 默认完整构建：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.7-bundled.jar` / `.zip`。
-- 外部开发资料构建：对应 `-external-profile.jar` / `.zip`。
-- 原始源码快照：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.7-sources.zip`。
+默认安装候选：`Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.2-bundled.jar`。分发 ZIP 包含同一份 Forge 重混淆后的 Jar-in-Jar 成品、安装文档与资源声明；`bundled-slim.jar` 是中间产物，不用于安装。
 
-这些名称区分用途，不表示完成全部玩法验收。代码许可见 [LICENSE](LICENSE)，资源记录见 [资源来源说明](THIRD_PARTY_ASSETS.md)。[公开仓库](https://github.com/mengyuyuan/blacklight-evolution) · [贡献说明](CONTRIBUTING.md)。
+`assemble` 验证独立运行边界以及最终成品的 224 文件清单、字节数和 SHA-256。完整单元测试、GameTest、客户端及联机验收分别运行和记录，构建成功不代表已全部验收。`tools/package_release.py --profile bundled` 仅收集本地候选与校验值，不上传或批准发行。
+
+## 来源与许可
+
+[维护 Fork](https://github.com/lingweiliang2510579032/blacklight-evolution/tree/forge-1.20.1) · [原作者项目](https://github.com/mengyuyuan/blacklight-evolution)。原作者上游负责 Minecraft 1.21.1 NeoForge，我们独立维护 1.20.1 Forge；保留作者署名、[GPL 代码许可](LICENSE)和[第三方资源声明](THIRD_PARTY_NOTICES.md)。上游截图与历史验收不作为本分支 Forge 实机证据。

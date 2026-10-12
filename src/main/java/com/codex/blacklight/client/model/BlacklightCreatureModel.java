@@ -7,17 +7,17 @@ import java.util.function.Function;
 public final class BlacklightCreatureModel<T extends LivingEntity & GeoEntity> extends GeoModel<T> {
     private final Function<T,String> asset;
     public BlacklightCreatureModel(Function<T,String> asset){this.asset=asset;}
-    private ResourceLocation id(String path){return ResourceLocation.fromNamespaceAndPath("blacklight",path);}
+    private ResourceLocation id(String path){return new ResourceLocation("blacklight",path);}
     @Override public ResourceLocation getModelResource(T entity){return id("geo/"+asset.apply(entity)+".geo.json");}
     @Override public ResourceLocation getTextureResource(T entity){return id("textures/entity/infected_species.png");}
     @Override public ResourceLocation getAnimationResource(T entity){return id("animations/"+asset.apply(entity)+".animation.json");}
-    @Override public void setCustomAnimations(T entity,long instance,software.bernie.geckolib.animation.AnimationState<T> state){
+    @Override public void setCustomAnimations(T entity,long instance,software.bernie.geckolib.core.animation.AnimationState<T> state){
         super.setCustomAnimations(entity,instance,state);
         com.codex.blacklight.client.animation.NativeReceiverPose.resetRoot(this);
         if(com.codex.blacklight.client.animation.NativeReceiverPose.apply(this,entity,state.getPartialTick()))return;
-        var visual=entity.getData(com.codex.blacklight.registry.ModAttachments.CONSUME_VISUAL);
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(entity, com.codex.blacklight.registry.ModAttachments.CONSUME_VISUAL);
         if(!visual.active()){
-            var hit=entity.getData(com.codex.blacklight.registry.ModAttachments.HIT_REACTION);
+            var hit=com.codex.blacklight.registry.ModAttachments.getData(entity, com.codex.blacklight.registry.ModAttachments.HIT_REACTION);
             float w=hit.weight(entity.level().getGameTime(),state.getPartialTick());if(w<=0)return;
             var head=getAnimationProcessor().getBone("head");if(head!=null)head.setRotX(head.getRotX()-.25F*w);
             for(String side:new String[]{"right","left"}){

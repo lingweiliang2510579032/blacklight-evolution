@@ -13,7 +13,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.codex.blacklight.forge.PacketDistributor;
 import org.joml.Vector3f;
 
 /** Directional biomass, impact and camera feedback for authoritative claw actions. */
@@ -116,7 +116,7 @@ public final class ClawPhysicalEffects {
                         0, Math.cos(angle) * 0.18D, 0.22D + ring * 0.045D,
                         Math.sin(angle) * 0.18D, 1.0D);
                 if (point % 6 == 0) {
-                    level.sendParticles(ParticleTypes.DUST_PLUME,
+                    level.sendParticles(ParticleTypes.POOF,
                             x, center.y + 0.09D, z, 1,
                             0.07D, 0.035D, 0.07D, 0.025D);
                 }
@@ -134,7 +134,7 @@ public final class ClawPhysicalEffects {
                 radius * 0.18D, 0.12D, radius * 0.18D, 0.025D);
         level.playSound(null, surface, SoundEvents.SCULK_CATALYST_BLOOM,
                 SoundSource.PLAYERS, 1.0F, 0.46F);
-        level.playSound(null, surface, SoundEvents.MACE_SMASH_GROUND_HEAVY,
+        level.playSound(null, surface, SoundEvents.GENERIC_EXPLODE,
                 SoundSource.PLAYERS, 1.25F, 0.62F);
         level.playSound(null, surface, SoundEvents.WARDEN_SONIC_BOOM,
                 SoundSource.PLAYERS, 0.24F, 0.72F);

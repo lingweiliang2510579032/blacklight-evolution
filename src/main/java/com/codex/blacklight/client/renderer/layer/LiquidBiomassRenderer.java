@@ -11,7 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 /** A few thick streams travel on the joint itself. They use the same clock as
  * the deforming surface and are never emitted as delayed world particles. */
 public final class LiquidBiomassRenderer {
-    private static final ResourceLocation WHITE = ResourceLocation.fromNamespaceAndPath("blacklight", "textures/entity/claw_white.png");
+    private static final ResourceLocation WHITE = new ResourceLocation("blacklight", "textures/entity/claw_white.png");
     private static final int SEGMENTS = 12;
     private static final int STREAMS = 4;
     private LiquidBiomassRenderer() { }
@@ -76,13 +76,13 @@ public final class LiquidBiomassRenderer {
         float z = rz * (radius + radial * width * .30F) + rx * tangent * width;
         float nx=rx*radial-rz*tangent*.30F,nz=rz*radial+rx*tangent*.30F;
         float normalLength=(float)Math.sqrt(nx*nx+nz*nz);
-        out.addVertex(pose, x, y, z).setColor(color).setUv(.8F, .5F).setOverlay(OverlayTexture.NO_OVERLAY)
-                .setLight(light).setNormal(pose, nx/normalLength, 0, nz/normalLength);
+        out.vertex(pose.pose(), x, y, z).color(color).uv(.8F, .5F).overlayCoords(OverlayTexture.NO_OVERLAY)
+                .uv2(light).normal(pose.normal(), nx/normalLength, 0, nz/normalLength).endVertex();
     }
     private static void ridgeVertex(VertexConsumer out, PoseStack.Pose pose, float rx, float rz,
                                     float radius, float y, float width, int color, int light) {
-        out.addVertex(pose, rx * radius - rz * width, y, rz * radius + rx * width)
-                .setColor(color).setUv(1F, .5F).setOverlay(OverlayTexture.NO_OVERLAY)
-                .setLight(light).setNormal(pose, rx, 0, rz);
+        out.vertex(pose.pose(), rx * radius - rz * width, y, rz * radius + rx * width)
+                .color(color).uv(1F, .5F).overlayCoords(OverlayTexture.NO_OVERLAY)
+                .uv2(light).normal(pose.normal(), rx, 0, rz).endVertex();
     }
 }

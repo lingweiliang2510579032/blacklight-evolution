@@ -6,19 +6,19 @@ import com.codex.blacklight.registry.ModAttachments;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.TickEvent;
 
 /** Held bodies share the carrier's interpolation instead of lagging several network ticks behind. */
 @EventBusSubscriber(modid="blacklight",value=Dist.CLIENT)
 public final class ClientCarryPlacement {
-    @SubscribeEvent public static void tick(ClientTickEvent.Post event){
+    @SubscribeEvent public static void tick(net.minecraftforge.event.TickEvent.ClientTickEvent event){if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
         var mc=Minecraft.getInstance();if(mc.level==null||mc.player==null)return;
         for(var entity:mc.level.entitiesForRendering()){
             if(!(entity instanceof LivingEntity victim))continue;
-            var visual=victim.getData(ModAttachments.CONSUME_VISUAL);
+            var visual=com.codex.blacklight.registry.ModAttachments.getData(victim, ModAttachments.CONSUME_VISUAL);
             if(visual.stage()==ConsumeVisual.CONSUME){
                 victim.setYRot(visual.facing());victim.yRotO=visual.facing();
                 victim.setYHeadRot(visual.facing());victim.yHeadRotO=visual.facing();victim.yBodyRot=visual.facing();victim.yBodyRotO=visual.facing();
@@ -40,10 +40,10 @@ public final class ClientCarryPlacement {
     }
     /** Render-time pairing avoids the receiver's network interpolation trailing the actor. */
     public static Vec3 consumeOffset(LivingEntity victim,float partial){
-        var visual=victim.getData(ModAttachments.CONSUME_VISUAL);
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(victim, ModAttachments.CONSUME_VISUAL);
         if(visual.stage()!=ConsumeVisual.CONSUME)return Vec3.ZERO;
         var owner=victim.level().getEntity(visual.consumerId());if(owner==null)return Vec3.ZERO;
-        var form=PowerForm.values()[Math.clamp(visual.form(),0,PowerForm.values().length-1)];
+        var form=PowerForm.values()[net.minecraft.util.Mth.clamp(visual.form(),0,PowerForm.values().length-1)];
         Vec3 current=victim.getPosition(partial);
         Vec3 goal=ConsumePlacementTrack.anchor(visual.origin(),visual.facing(),victim,form,visual.motionProgress(victim.level().getGameTime(),partial)).orElse(current);
         float motion=visual.motionProgress(victim.level().getGameTime(),partial);
@@ -52,7 +52,7 @@ public final class ClientCarryPlacement {
         Vec3 delta=goal.subtract(current);if(delta.lengthSqr()>4)return Vec3.ZERO;
         var hit=victim.level().clip(new net.minecraft.world.level.ClipContext(current.add(0,victim.getBbHeight()*.5,0),goal.add(0,victim.getBbHeight()*.5,0),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,victim));
         if(hit.getType()!=net.minecraft.world.phys.HitResult.Type.MISS)return Vec3.ZERO;
-        float enter=Math.clamp((victim.level().getGameTime()-visual.started()+partial)/4F,0,1);
+        float enter=net.minecraft.util.Mth.clamp((victim.level().getGameTime()-visual.started()+partial)/4F,0,1);
         return delta.scale(enter);
     }
     private static Vec3 anchor(Vec3 feet,float yaw,float pitch,LivingEntity victim,int form){

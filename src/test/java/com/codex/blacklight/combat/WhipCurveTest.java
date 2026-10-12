@@ -23,7 +23,7 @@ class WhipCurveTest {
         assertEquals(new WhipCurve.Point(0, 1, 2), curve.sample(-1).get(1));
         assertEquals(new WhipCurve.Point(1, 1, 16), curve.sample(2).get(1));
         assertThrows(UnsupportedOperationException.class, () -> curve.samples().clear());
-        assertThrows(UnsupportedOperationException.class, () -> curve.samples().getFirst().points().clear());
+        assertThrows(UnsupportedOperationException.class, () -> curve.samples().get(0).points().clear());
         assertThrows(IllegalArgumentException.class, () -> curve.sample(Double.NaN));
         json.getAsJsonArray("samples").get(1).getAsJsonObject().getAsJsonArray("points").get(1)
                 .getAsJsonArray().set(2, new JsonPrimitive(30));

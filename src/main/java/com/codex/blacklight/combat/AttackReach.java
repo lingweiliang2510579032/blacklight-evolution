@@ -10,7 +10,7 @@ import net.minecraft.world.phys.Vec3;
 public final class AttackReach {
     private AttackReach(){}
     public static int tier(Player p){
-        var growth=p.getData(ModAttachments.GROWTH);
+        var growth=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.GROWTH);
         return growth.owns(GrowthUpgrade.REACH_III)?3:growth.owns(GrowthUpgrade.REACH_II)?2:growth.owns(GrowthUpgrade.REACH_I)?1:0;
     }
     public static double scale(Entity actor){return actor instanceof Player p?1.25+.10*tier(p):1;}

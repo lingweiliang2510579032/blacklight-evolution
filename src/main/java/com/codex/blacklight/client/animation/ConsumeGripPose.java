@@ -12,15 +12,15 @@ import com.codex.blacklight.animation.BoneTransform;
 public final class ConsumeGripPose {
     private ConsumeGripPose() {}
     public static void apply(LivingEntity actor, com.codex.blacklight.animation.BlacklightSkeleton armature, BlacklightPose pose, float partial) {
-        if(actor.getData(ModAttachments.GRAB_STAGE)!=ConsumeVisual.CONSUME)return;
+        if(com.codex.blacklight.registry.ModAttachments.getData(actor, ModAttachments.GRAB_STAGE)!=ConsumeVisual.CONSUME)return;
         var victims=actor.level().getEntitiesOfClass(LivingEntity.class,actor.getBoundingBox().inflate(5),v->{
-            var scene=v.getData(ModAttachments.CONSUME_VISUAL);
+            var scene=com.codex.blacklight.registry.ModAttachments.getData(v, ModAttachments.CONSUME_VISUAL);
             return scene.consumerId()==actor.getId()&&scene.stage()==ConsumeVisual.CONSUME&&scene.form()==PowerForm.CLAWS.ordinal();
         });
         if(victims.isEmpty())return;
-        var victim=victims.getFirst();var visual=victim.getData(ModAttachments.CONSUME_VISUAL);
+        var victim=victims.get(0);var visual=com.codex.blacklight.registry.ModAttachments.getData(victim, ModAttachments.CONSUME_VISUAL);
         float time=visual.motionProgress(actor.level().getGameTime(),partial),end=ConsumePlacementTrack.gripEnd(PowerForm.CLAWS);
-        float weight=Math.clamp((actor.level().getGameTime()-visual.started()+partial)/4F,0,1)*Math.clamp((end-time)/.06F,0,1);
+        float weight=net.minecraft.util.Mth.clamp((actor.level().getGameTime()-visual.started()+partial)/4F,0,1)*net.minecraft.util.Mth.clamp((end-time)/.06F,0,1);
         if(weight<=0)return;
         Vec3 forward=Vec3.directionFromRotation(0,visual.facing()),left=new Vec3(forward.z,0,-forward.x);
         boolean quad=ConsumeSequence.quadruped(victim);
@@ -32,7 +32,7 @@ public final class ConsumeGripPose {
         for(String side:new String[]{"R","L"}){
             var arm=armature.searchJointByName("Arm_"+side);var wrist=armature.searchJointByName("Tool_"+side);
             if(arm==null||wrist==null)continue;
-            Vec3 contact=target.add(left.scale((side.equals("L")?1:-1)*Math.clamp(victim.getBbWidth()*.22,.09,.22)));
+            Vec3 contact=target.add(left.scale((side.equals("L")?1:-1)*net.minecraft.util.Mth.clamp(victim.getBbWidth()*.22,.09,.22)));
             org.joml.Vector3f desired=new org.joml.Vector3f((float)(-contact.dot(left)/.9375),(float)(contact.y/.9375),(float)(-contact.dot(forward)/.9375));
             var palm=new org.joml.Vector3f(side.equals("L")?.00267F:-.00267F,.32362F,.07666F);
             var endpoint=new org.joml.Matrix4f(wrist.getLocalTransform()).invert().transformPosition(palm);

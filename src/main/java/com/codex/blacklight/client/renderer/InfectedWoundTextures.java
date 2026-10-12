@@ -21,11 +21,11 @@ public final class InfectedWoundTextures {
         try(var stream=resource.get().open();var original=NativeImage.read(stream)){
             int width=original.getWidth(),height=original.getHeight();
             NativeImage image=new NativeImage(width,height,false);image.copyFrom(original);
-            int radius=Math.clamp(width/64,1,16),limit=2*radius+1;
+            int radius=com.codex.blacklight.util.MathCompat.clamp(width/64,1,16),limit=2*radius+1;
             int[] distances=new int[width*height];Arrays.fill(distances,limit);
             for(var wound:wounds){
-                int x0=Math.clamp((int)Math.floor((wound.u()-wound.width()*.5)*width),0,width-1),x1=Math.clamp((int)Math.ceil((wound.u()+wound.width()*.5)*width),0,width);
-                int y0=Math.clamp((int)Math.floor((wound.v()-wound.height()*.5)*height),0,height-1),y1=Math.clamp((int)Math.ceil((wound.v()+wound.height()*.5)*height),0,height);
+                int x0=com.codex.blacklight.util.MathCompat.clamp((int)Math.floor((wound.u()-wound.width()*.5)*width),0,width-1),x1=com.codex.blacklight.util.MathCompat.clamp((int)Math.ceil((wound.u()+wound.width()*.5)*width),0,width);
+                int y0=com.codex.blacklight.util.MathCompat.clamp((int)Math.floor((wound.v()-wound.height()*.5)*height),0,height-1),y1=com.codex.blacklight.util.MathCompat.clamp((int)Math.ceil((wound.v()+wound.height()*.5)*height),0,height);
                 for(int y=y0;y<y1;y++)for(int x=x0;x<x1;x++)distances[y*width+x]=0;
             }
             // Two linear passes avoid a per-pixel radius search on high-resolution packs.

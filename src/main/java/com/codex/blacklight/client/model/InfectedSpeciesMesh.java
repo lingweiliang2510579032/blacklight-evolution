@@ -9,10 +9,10 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -76,9 +76,9 @@ public final class InfectedSpeciesMesh {
                 // source triangulation, lighting and fracture collectors compatible.
                 for (int corner = 0; corner < 4; corner++) {
                     int v = triangles[i + Math.min(corner, 2)] * 3;
-                    out.addVertex(pose, vertices[v], vertices[v + 1], vertices[v + 2]).setColor(color)
-                            .setUv(.5F, .5F).setOverlay(overlay).setLight(light)
-                            .setNormal(pose, normals[n], normals[n + 1], normals[n + 2]);
+                    out.vertex((pose).pose(),vertices[v],vertices[v + 1],vertices[v + 2]).color(color)
+                            .uv(.5F, .5F).overlayCoords(overlay).uv2(light)
+                            .normal((pose).normal(),normals[n],normals[n + 1],normals[n + 2]).endVertex();
                 }
             }
         }
@@ -125,7 +125,7 @@ public final class InfectedSpeciesMesh {
         ResourceLocation id = ResourceLocation.tryParse(species);
         if (id == null || !id.getNamespace().equals("minecraft")) return Optional.empty();
         var resource = Minecraft.getInstance().getResourceManager().getResource(
-                ResourceLocation.fromNamespaceAndPath("blacklight", "infected_models/" + id.getPath() + ".json"));
+                new ResourceLocation("blacklight", "infected_models/" + id.getPath() + ".json"));
         if (resource.isEmpty()) return Optional.empty();
         try (var reader = new InputStreamReader(resource.get().open(), StandardCharsets.UTF_8)) {
             return Optional.of(new InfectedSpeciesMesh(JsonParser.parseReader(reader).getAsJsonObject()));

@@ -6,7 +6,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.Pose;
-import net.neoforged.neoforge.entity.PartEntity;
+import net.minecraftforge.entity.PartEntity;
 
 /** Damage surfaces, not solid terrain collision or separately saved entities. */
 public final class InfectedHostPart extends PartEntity<BlacklightInfectedHost> {
@@ -23,7 +23,7 @@ public final class InfectedHostPart extends PartEntity<BlacklightInfectedHost> {
     }
     public boolean active() { return active; }
     public String partName() { return partName; }
-    @Override protected void defineSynchedData(SynchedEntityData.Builder builder) {}
+    @Override protected void defineSynchedData() {}
     @Override protected void readAdditionalSaveData(CompoundTag tag) {}
     @Override protected void addAdditionalSaveData(CompoundTag tag) {}
     @Override public EntityDimensions getDimensions(Pose pose) { return size==null?EntityDimensions.scalable(.01F,.01F):size; }

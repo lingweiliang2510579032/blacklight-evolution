@@ -29,7 +29,7 @@ final class SourceActionCamera {
         Clock clock=clock(player,partial);
         if(clock==null) {
             if(previous!=null){leaving=current;exitTime=0;exitDuration=Math.max(.001,remainingOut());previous=null;}
-            exitTime+=dt;current=leaving.blend(Values.NEUTRAL,Math.clamp(exitTime/Math.max(.001,exitDuration),0,1));
+            exitTime+=dt;current=leaving.blend(Values.NEUTRAL,net.minecraft.util.Mth.clamp(exitTime/Math.max(.001,exitDuration),0,1));
         }else {
             boolean same=previous!=null&&clock.key.equals(previous.key)&&clock.started==previous.started;
             if(!same) {
@@ -56,13 +56,13 @@ final class SourceActionCamera {
     }
     private Values entryValue(double time) {
         if(time<entryAt-.001)return Values.NEUTRAL;
-        return entry.blend(Values.NEUTRAL,Math.clamp((time-entryAt)/Math.max(.001,entryOut),0,1));
+        return entry.blend(Values.NEUTRAL,net.minecraft.util.Mth.clamp((time-entryAt)/Math.max(.001,entryOut),0,1));
     }
     private static Values sample(SourceCameraEvents.Event e,Values from,double time) {
         double age=time-e.start();var target=new Values(e.dolly(),e.zoom(),e.reAim()?1:0,e.offset());
         if(age<e.inTime())return from.blend(target,age/Math.max(.000001,e.inTime()));
         if(time<e.end()-e.outTime())return target;
-        return target.blend(Values.NEUTRAL,Math.clamp((time-e.end()+e.outTime())/Math.max(.000001,e.outTime()),0,1));
+        return target.blend(Values.NEUTRAL,net.minecraft.util.Mth.clamp((time-e.end()+e.outTime())/Math.max(.000001,e.outTime()),0,1));
     }
     private static double lastOut(Clock clock) {
         double out=0;
@@ -74,7 +74,7 @@ final class SourceActionCamera {
     Vec3 rotation(){return shake.rotation();}
     Vec3 translation(){return shake.translation();}
     void impact(com.codex.blacklight.network.PhysicalFeedbackPayload payload,LocalPlayer player,Vec3 camera) {
-        var move=player.getData(ModAttachments.WEAPON_VISUAL).spec();
+        var move=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL).spec();
         if(move!=null&&SourceCameraEvents.events(move.id).stream().anyMatch(e->e.kind().equals("cameraShakeRequest")))return;
         // Minecraft contact/landing events bridge to source common/light/medium/heavy presets.
         // Traversal starts have no matching source shake event, so they do not invent a pulse.
@@ -92,19 +92,19 @@ final class SourceActionCamera {
         return false;
     }
     private Clock clock(LocalPlayer player,float partial) {
-        var recovery=player.getData(ModAttachments.CONSUME_RECOVERY);
-        if(recovery.active()&&!player.getData(ModAttachments.CONSUMING)&&player.getData(ModAttachments.WEAPON_VISUAL).spec()==null
+        var recovery=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUME_RECOVERY);
+        if(recovery.active()&&!com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUMING)&&com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL).spec()==null
                 &&recovery.phaseProgress(player.level().getGameTime(),partial)<1)return consumeClock(player,recovery,partial);
-        if(player.getData(ModAttachments.GRAB_STAGE)!=ConsumeVisual.NONE) {
+        if(com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.GRAB_STAGE)!=ConsumeVisual.NONE) {
             long tick=player.level().getGameTime();
             if(victimTick!=tick) {
                 victimTick=tick;
                 cachedVictim=player.level().getEntitiesOfClass(LivingEntity.class,player.getBoundingBox().inflate(18),
-                        e->e.getData(ModAttachments.CONSUME_VISUAL).consumerId()==player.getId()).stream().findFirst().orElse(null);
+                        e->com.codex.blacklight.registry.ModAttachments.getData(e, ModAttachments.CONSUME_VISUAL).consumerId()==player.getId()).stream().findFirst().orElse(null);
             }
-            if(cachedVictim!=null&&!cachedVictim.isRemoved())return consumeClock(player,cachedVictim.getData(ModAttachments.CONSUME_VISUAL),partial);
+            if(cachedVictim!=null&&!cachedVictim.isRemoved())return consumeClock(player,com.codex.blacklight.registry.ModAttachments.getData(cachedVictim, ModAttachments.CONSUME_VISUAL),partial);
         }
-        var visual=player.getData(ModAttachments.WEAPON_VISUAL);var move=visual.spec();
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL);var move=visual.spec();
         if(move==null)return null;
         String key=visual.charging()?LocalWeaponMotion.find(move.id).flatMap(LocalWeaponMotion.Definition::charge).map(LocalWeaponMotion.Charge::animation).orElse(""):move.id;
         if(SourceCameraEvents.events(key).isEmpty())return null;

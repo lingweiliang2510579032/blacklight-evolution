@@ -1,41 +1,35 @@
-# 独立开发版安装
+# 安装 Blacklight: Ascension — Forge 1.20.1
 
-适用：Blacklight: Ascension 0.3.0-standalone-dev.7 · Minecraft 1.21.1 · NeoForge 21.1.244 · Java 21。
+适用版本：0.3.0-forge-1.20.1-dev.2，Minecraft Java 1.20.1、Java 17、Forge 47.4.10。
 
-这是从 RC59 迁移的独立开发版。黑光现在使用自身的动作、玩家渲染、输入、镜头、目标锁定与服务端同步。Epic Fight、Epic ParCool 和 Weapons of Miracles 已不是前置，首次验证使用仅含黑光与 GeckoLib 的实例。
+## 文件和依赖
 
-dev.6 新增五种攻击武器的液态变形，重点展示第三人称的组织推进、波形塑形、附着四股组织流和湿润反光；第一人称保留现有原版手部位置。效果由程序化几何与湿材质重建，原版全部软组织碎片、charge/burst 和 Shader 尚未一比一还原。源依据与具体范围见 [液态武器变形说明](LIQUID_WEAPON_MORPH_SOURCE.md)。
+- 安装 `Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.2-bundled.jar`；默认包含 224 个动作、镜头和 HUD 资料文件。
+- 单独安装 GeckoLib 4.8.4 的 Forge 1.20.1 版。
+- ParCool 1.20.1-3.4.3.3 可选。Epic Fight、Epic ParCool、Weapons of Miracles 均不是前置。
+- MixinExtras Forge 0.4.1 内嵌，不需要另外放入 mods。
+- `bundled-slim.jar` 是构建中间文件；旧 dev.1 source-only 包不可代替本版。
 
-## 安装文件
+## 独立实例验证
 
-- `Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.7-bundled.jar`：当前含完整动作、装甲、镜头与 HUD 资料的试玩 JAR。
-- `geckolib-neoforge-1.21.1-4.9.2.jar`：唯一额外的必需 Mod；其原始 JAR 和完整 MIT 许可一起保留。
-- 默认 `assemble` 已携带仓库中的全部 224 个资料文件，无需指定本机路径。
+1. 建立 Minecraft 1.20.1 / Forge 47.4.10 独立实例，选择 Java 17。
+2. 把一个本版 bundled JAR 和 GeckoLib 放入 mods，移走旧 Blacklight 版本，避免重复模组。
+3. 先验证菜单与独立测试存档，再检查 B 模式、武器切换、吞噬、移动、HUD、镜头、感染体和存档重载。
+4. 多人需客户端与服务端使用相同模组版本、依赖和资料；联机仍需专门验证。不要直接用现有整合包存档测试开发版。
 
-## 安装步骤
+Forge 编译、启动与玩法结果见 [验收状态](FORGE_1_20_1_STATUS.md)。以上是安装与验证步骤，不表示全部场景已经通过。
 
-1. 退出游戏，在启动器建立 Minecraft 1.21.1 / NeoForge 21.1.244 实例，并使用 Java 21。
-2. 把 Blacklight JAR 和单独下载的 GeckoLib JAR 放入实例的 `mods` 文件夹。黑光只保留一个版本。
-3. 首次验证先使用独立实例或已有存档副本。不要在 RC59 常用实例中混装旧黑光、新黑光与旧动作前置。
-4. 删除旧的 `-Dblacklight.localWeaponMotions=...` 参数，除非正在有意使用完整的外部开发资料目录。该目录会替代包内资料。
-5. 检查模组菜单中的版本和控制设置，先确认普通模式、B 黑光模式、五种攻击形态、装甲、盾牌、抓取吞噬和墙面动作。
+## 外部整套资料
 
-ParCool 3.4.3.3 的兼容 API 仍可选；黑光原生移动不要求安装。其他版本和额外动作 Mod 尚未作为此独立开发版的兼容组合验收。
+源码构建默认使用仓库 `art/motion-profile/`。开发者可用 `-PbundleMotionDirectory=<目录>` 替换完整资料，生成 `external-profile`；此选项不混合两个资料目录。游戏运行时的 `blacklight.localWeaponMotions` 仍是显式开发覆盖。
 
-## 升级与回退
+## 常见问题
 
-先备份整个世界和 config，并保留 RC59 旧包。试用独立版时使用副本；回退时一起恢复旧世界、配置和旧包。新的动作附件不表示旧存档中的动作前置内容可以由黑光替代。
-
-客户端与服务端必须使用相同黑光版本和完整动作资料。无 Epic Fight 的专用 GameTestServer 已启动；远程玩家实机、高延迟、重连、多人观战和完整生存流程仍需继续验收。当前结果见 [独立化记录](STANDALONE_MIGRATION.md)。
-
-## 故障排查
-
-| 表现 | 检查 |
+| 现象 | 检查 |
 | --- | --- |
-| 提示缺 GeckoLib | 是否放进正确实例；必须是 NeoForge 1.21.1 的版本 |
-| 提示缺 Epic Fight | 是否仍在运行 RC59 旧 JAR，或存在另一个附属模组 |
-| Missing Blacklight motion / Incomplete motion profile | 是否仍装了 dev.6 以前的 source-only 包，或设置了不完整的外部动作目录 |
-| E 打开背包 | 抓取与背包绑定冲突，检查控制设置 |
-| 装甲、墙跑或跑步画面异常 | 保存截图、具体动作、完整文件名及 latest.log，以同一状态复现 |
+| 缺 GeckoLib、无效模组文件 | 是否选择 Forge 1.20.1 版 GeckoLib 和本版完整 JAR |
+| 重复模组 | mods 仅保留一份 Blacklight |
+| Missing Blacklight motion / Incomplete motion profile | 是否误装旧 source-only；外部完整资料是否缺文件；成品是否通过打包清单校验 |
+| 联机或额外模组冲突 | 先在最小独立实例复现，保留脱敏日志与准确版本 |
 
-dev.7 源码已携带完整运行资料，普通构建产物为 bundled。完整清单与构建方式见 [dev.7 说明](BUNDLED_PROFILE_DEV7.md)。
+资源出处与许可见 [资源说明](../THIRD_PARTY_ASSETS.md)和[第三方声明](../THIRD_PARTY_NOTICES.md)。本地开发候选与正式发布分别记录。

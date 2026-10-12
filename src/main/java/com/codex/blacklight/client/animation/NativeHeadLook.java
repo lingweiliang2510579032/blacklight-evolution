@@ -12,13 +12,13 @@ public final class NativeHeadLook {
     public static void apply(LivingEntity entity,BlacklightPose pose,float partial) {
         if(!(entity instanceof Player player)||!player.onGround()
                 ||com.codex.blacklight.movement.WallPoseState.get(player)!=null
-                ||player.getData(ModAttachments.WEAPON_VISUAL).spec()!=null
-                ||player.getData(ModAttachments.GRAB_STAGE)!=0
-                ||player.getData(ModAttachments.CONSUME_RECOVERY).active()
-                ||player.getData(ModAttachments.JUMP_CHARGE)>0
-                ||player.getData(ModAttachments.POWER_MORPH).visible(player,partial)
-                ||player.getData(ModAttachments.HIT_REACTION).weight(player.level().getGameTime(),partial)>0)return;
-        var action=player.getData(ModAttachments.PLAYER_ACTION);
+                ||com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL).spec()!=null
+                ||com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.GRAB_STAGE)!=0
+                ||com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUME_RECOVERY).active()
+                ||com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.JUMP_CHARGE)>0
+                ||com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.POWER_MORPH).visible(player,partial)
+                ||com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.HIT_REACTION).weight(player.level().getGameTime(),partial)>0)return;
+        var action=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_ACTION);
         if(action.active(player.level().getGameTime()+partial)&&!action.clipId().startsWith("basic_"))return;
         float headYaw=Mth.rotLerp(partial,player.yHeadRotO,player.yHeadRot);
         float bodyYaw=BlacklightRenderPose.facing(player,partial);

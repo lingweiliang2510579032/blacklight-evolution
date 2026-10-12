@@ -44,7 +44,7 @@ public final class PrototypeAnimationController {
             return remove;
         });
         for (AbstractClientPlayer player : minecraft.level.players()) {
-            var blacklight = player.getData(ModAttachments.PLAYER_STATE);
+            var blacklight = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
             if (!blacklight.isInfected() || !blacklight.isPrototypeMode()
                     || player.isInWater() && !WaterRunning.onSurface(player) || player.isInLava()) {
                 STATES.remove(player);
@@ -62,7 +62,7 @@ public final class PrototypeAnimationController {
             LocomotionVisualState.set(player.getId(), runtime.direction, runtime.phase,runtime.sprintGait,runtime.visualSpeed);
             // The independent pose runtime samples this phase without reinstalling
             // animation mappings or restarting a continuing stride.
-            runtime.weaponOwned=player.getData(ModAttachments.WEAPON_VISUAL).spec()!=null;
+            runtime.weaponOwned=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL).spec()!=null;
         }
     }
 
@@ -185,22 +185,22 @@ public final class PrototypeAnimationController {
             boolean ontoPlatform = previousWallMode != WallTraversal.Mode.NONE
                     && wallMode == WallTraversal.Mode.NONE && grounded;
             previousWallMode = wallMode;
-            var weapon=player.getData(ModAttachments.WEAPON_VISUAL);
+            var weapon=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL);
             var minecraft=Minecraft.getInstance();
             boolean local=player==minecraft.player;
-            var target=local?ClientTargetLock.target():player.level().getEntity(player.getData(ModAttachments.TARGET_LOCK_ID));
+            var target=local?ClientTargetLock.target():player.level().getEntity(com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.TARGET_LOCK_ID));
             boolean locked=target!=null&&target.isAlive()&&!target.isRemoved();
-            targetFacing=locked&&weapon.spec()==null&&!player.getData(ModAttachments.CONSUMING);
+            targetFacing=locked&&weapon.spec()==null&&!com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUMING);
             freeFacing=grounded&&!charging&&wallMode==WallTraversal.Mode.NONE
                     &&!player.isPassenger()&&!player.isSleeping()&&!player.isFallFlying()&&!player.getAbilities().flying
-                    &&weapon.spec()==null&&!player.getData(ModAttachments.CONSUMING)
+                    &&weapon.spec()==null&&!com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUMING)
                     &&!locked;
             if(!facingInitialized){facing=player.yBodyRot;facingInitialized=true;}
             previousFacing=facing;
             if(targetFacing){
                 var focus=target instanceof net.minecraft.world.entity.LivingEntity living?com.codex.blacklight.combat.CombatTargeting.lockPoint(player,living):target.getBoundingBox().getCenter();
                 Vec3 delta=focus.subtract(player.position());
-                facing+=(float)Math.clamp(net.minecraft.util.Mth.wrapDegrees((float)Math.toDegrees(Math.atan2(-delta.x,delta.z))-facing),-45F,45F);
+                facing+=(float)net.minecraft.util.Mth.clamp(net.minecraft.util.Mth.wrapDegrees((float)Math.toDegrees(Math.atan2(-delta.x,delta.z))-facing),-45F,45F);
             } else if(!freeFacing)facing=weapon.spec()==null?player.yBodyRot:weapon.yaw();
             else {
                 Float intent=local?ClientMovementEvents.movementHeading(minecraft):null;
@@ -212,7 +212,7 @@ public final class PrototypeAnimationController {
                     // (especially ice). Input supplies the first near-zero step.
                     float desired=dx*dx+dz*dz>=.0016?(float)Math.toDegrees(Math.atan2(-dx,dz))
                             :intent!=null?intent:(float)Math.toDegrees(Math.atan2(-dx,dz));
-                    facing+=Math.clamp(net.minecraft.util.Mth.wrapDegrees(desired-facing),-45F,45F);
+                    facing+=net.minecraft.util.Mth.clamp(net.minecraft.util.Mth.wrapDegrees(desired-facing),-45F,45F);
                 }
             }
             double yaw = Math.toRadians(freeFacing||targetFacing?facing:player.yBodyRot);

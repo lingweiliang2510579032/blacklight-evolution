@@ -242,12 +242,14 @@ public enum WeaponMove {
                 int recovery=Math.max(0,sourceTick-safe);
                 sourceTick-=Math.min(recovery,(int)Math.ceil(recovery*.15));
             }
-            return Math.min(duration,sourceTick);
+            // A reviewed source hook can still precede Minecraft's hurt-resistance
+            // boundary. Extend that hook without removing any source contact.
+            return Math.min(duration,Math.max(sourceTick,end-1+10-next.start));
         }
         // Until the source event sentinel is fully resolved, retain every active
         // contact and a short follow-through. Do not cancel into the next attack.
         boolean quick=!aerial()&&!landingAttack()&&!rush()&&!frenzy()&&!groundSpike();
-        int followThrough=end+Math.clamp((duration-end)/3,quick?1:2,quick?3:4);
+        int followThrough=end+com.codex.blacklight.util.MathCompat.clamp((duration-end)/3,quick?1:2,quick?3:4);
         int hurtResistance=end-1+10-next.start;
         return Math.min(duration,Math.max(followThrough,hurtResistance));
     }
@@ -265,6 +267,6 @@ public enum WeaponMove {
             return localMotion.contactWindows().stream().filter(window->window.contains(tick))
                     .findFirst().map(window->window.progress(tick)).orElse(0D);
         double local=frenzy()?(tick-start)%10:tick-start;
-        return Math.clamp(local/(frenzy()?2:Math.max(1,end-start-1)),0,1);
+        return com.codex.blacklight.util.MathCompat.clamp(local/(frenzy()?2:Math.max(1,end-start-1)),0,1);
     }
 }

@@ -16,7 +16,7 @@ assignees: ''
 
 ## 环境
 - 模组版本或提交：
-- Minecraft / NeoForge / Epic Fight 版本：
+- Minecraft / Forge / GeckoLib 版本：
 - 单人或多人：
 - 其他模组 / 光影：
 

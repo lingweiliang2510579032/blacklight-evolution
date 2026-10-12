@@ -19,8 +19,8 @@ public record WhipCurve(double radius, double collisionRadius, List<Sample> samp
 
     public List<Point> sample(double time) {
         if (!Double.isFinite(time)) throw new IllegalArgumentException("Non-finite whip sample time");
-        if (time <= samples.getFirst().time()) return samples.getFirst().points();
-        if (time >= samples.getLast().time()) return samples.getLast().points();
+        if (time <= samples.get(0).time()) return samples.get(0).points();
+        if (time >= samples.get(samples.size()-1).time()) return samples.get(samples.size()-1).points();
         int low = 0, high = samples.size() - 1;
         while (high - low > 1) {
             int middle = (low + high) >>> 1;

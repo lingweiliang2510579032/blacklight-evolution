@@ -21,7 +21,7 @@ public abstract class LocalPlayerMixin {
     @Inject(method = "canSpawnSprintParticle", at = @At("HEAD"), cancellable = true)
     private void blacklight$hideVanillaSprintTrail(CallbackInfoReturnable<Boolean> callback) {
         LocalPlayer player = (LocalPlayer)(Object)this;
-        if (player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()) {
+        if (com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).isPrototypeMode()) {
             callback.setReturnValue(false);
         }
     }

@@ -5,18 +5,18 @@ import net.minecraft.resources.ResourceLocation;
 import software.bernie.geckolib.model.GeoModel;
 
 public final class BlacklightHunterModel extends GeoModel<BlacklightHunter> {
-    private static ResourceLocation resource(String path) { return ResourceLocation.fromNamespaceAndPath("blacklight", path); }
+    private static ResourceLocation resource(String path) { return new ResourceLocation("blacklight", path); }
     @Override public ResourceLocation getModelResource(BlacklightHunter entity) { return resource("geo/blacklight_hunter_authored.geo.json"); }
     @Override public ResourceLocation getTextureResource(BlacklightHunter entity) { return resource("textures/entity/hunter_authored.png"); }
     @Override public ResourceLocation getAnimationResource(BlacklightHunter entity) { return resource("animations/blacklight_hunter.animation.json"); }
 
     @Override public void setCustomAnimations(BlacklightHunter entity, long instanceId,
-            software.bernie.geckolib.animation.AnimationState<BlacklightHunter> state) {
+            software.bernie.geckolib.core.animation.AnimationState<BlacklightHunter> state) {
         super.setCustomAnimations(entity, instanceId, state);
         com.codex.blacklight.client.animation.NativeReceiverPose.resetRoot(this);
-        var visual = entity.getData(com.codex.blacklight.registry.ModAttachments.CONSUME_VISUAL);
+        var visual = com.codex.blacklight.registry.ModAttachments.getData(entity, com.codex.blacklight.registry.ModAttachments.CONSUME_VISUAL);
         float t = visual.active() ? visual.progress(entity.level().getGameTime(), state.getPartialTick()) : 0;
-        var hit=entity.getData(com.codex.blacklight.registry.ModAttachments.HIT_REACTION);
+        var hit=com.codex.blacklight.registry.ModAttachments.getData(entity, com.codex.blacklight.registry.ModAttachments.HIT_REACTION);
         float hitWeight=hit.weight(entity.level().getGameTime(),state.getPartialTick());
         boolean sourcePose=com.codex.blacklight.client.animation.NativeReceiverPose.apply(this,entity,state.getPartialTick());
         if(!sourcePose&&!visual.active()&&hitWeight>0){

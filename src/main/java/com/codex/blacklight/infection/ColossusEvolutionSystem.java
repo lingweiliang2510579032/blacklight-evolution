@@ -16,9 +16,9 @@ import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.tick.EntityTickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import com.codex.blacklight.combat.ForgeEntityTickEvent;
 
 import java.util.Comparator;
 import java.util.List;
@@ -42,7 +42,7 @@ public final class ColossusEvolutionSystem {
     private ColossusEvolutionSystem() {}
 
     @SubscribeEvent
-    public static void onTick(EntityTickEvent.Post event) {
+    public static void onTick(ForgeEntityTickEvent.Post event) {
         Entity entity = event.getEntity();
         if (!(entity.level() instanceof ServerLevel level)) return;
         if (entity instanceof BlacklightHive hive) {
@@ -205,7 +205,7 @@ public final class ColossusEvolutionSystem {
         return host.isAlive() && host.hasMultipartBody() && !host.giantBoss()
                 && !host.isNoAi() && !host.isInvulnerable() && !host.isPassenger()
                 && !host.isVehicle() && !host.isLeashed()
-                && !host.getData(ModAttachments.CONSUME_VISUAL).active();
+                && !com.codex.blacklight.registry.ModAttachments.getData(host, ModAttachments.CONSUME_VISUAL).active();
     }
 
     private static boolean regionReady(int livingCount, BlacklightInfectedHost host) {

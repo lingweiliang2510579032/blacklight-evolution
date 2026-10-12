@@ -1,7 +1,7 @@
 package com.codex.blacklight.world;
 
 import com.codex.blacklight.registry.ModWorldgen;
-import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.Codec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.QuartPos;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -12,7 +12,7 @@ import java.util.Optional;
 
 /** A surface structure split by Minecraft's normal per-chunk structure placement. */
 public final class ColossalHiveStructure extends Structure {
-    public static final MapCodec<ColossalHiveStructure> CODEC=simpleCodec(ColossalHiveStructure::new);
+    public static final Codec<ColossalHiveStructure> CODEC=simpleCodec(ColossalHiveStructure::new);
     public ColossalHiveStructure(StructureSettings settings) { super(settings); }
     @Override public Optional<GenerationStub> findGenerationPoint(GenerationContext context) {
         int x=context.chunkPos().getMiddleBlockX(),z=context.chunkPos().getMiddleBlockZ();

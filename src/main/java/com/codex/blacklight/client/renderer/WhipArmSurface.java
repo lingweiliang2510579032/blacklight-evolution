@@ -26,7 +26,7 @@ public final class WhipArmSurface {
             }
         }
         if(!drawTip)return;
-        Vec3 end=points.getLast(),axis=end.subtract(points.get(points.size()-2)).normalize();
+        Vec3 end=points.get(points.size()-1),axis=end.subtract(points.get(points.size()-2)).normalize();
         if(axis.lengthSqr()<.1)return;
         if(terminal==null)terminal=new com.codex.blacklight.client.model.ClawArmModel("whip_tip");
         stack.pushPose();stack.translate(end.x,end.y,end.z);
@@ -43,7 +43,7 @@ public final class WhipArmSurface {
     }
     private static void triangle(PoseStack stack,VertexConsumer out,int light,Vec3 a,Vec3 b,Vec3 c,int color){
         Vec3 n=b.subtract(a).cross(c.subtract(a)).normalize();
-        for(Vec3 v:new Vec3[]{a,b,c,c})out.addVertex(stack.last(),(float)v.x,(float)v.y,(float)v.z).setColor(color).setUv(.5F,.5F)
-                .setOverlay(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY).setLight(light).setNormal(stack.last(),(float)n.x,(float)n.y,(float)n.z);
+        for(Vec3 v:new Vec3[]{a,b,c,c})out.vertex((stack.last()).pose(),(float)v.x,(float)v.y,(float)v.z).color(color).uv(.5F,.5F)
+                .overlayCoords(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY).uv2(light).normal((stack.last()).normal(),(float)n.x,(float)n.y,(float)n.z).endVertex();
     }
 }

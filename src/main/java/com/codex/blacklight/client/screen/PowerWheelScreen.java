@@ -10,7 +10,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.codex.blacklight.forge.PacketDistributor;
 
 /** Hold the bound key, point at an unlocked sector, release to select. */
 public final class PowerWheelScreen extends Screen {
@@ -27,22 +27,22 @@ public final class PowerWheelScreen extends Screen {
         addRenderableWidget(net.minecraft.client.gui.components.Button.builder(Component.translatable("screen.blacklight.wheel.utilities"), b->{utility=true;selected=-1;})
                 .bounds(width/2+4,8,buttonWidth,20).build());
     }
-    @Override public void renderBackground(GuiGraphics g,int x,int y,float partial) { }
+    @Override public void renderBackground(GuiGraphics g) { }
     @Override public boolean isPauseScreen(){return false;}
     @Override public void tick(){
-        if(minecraft.player==null||!minecraft.player.isAlive()||!minecraft.player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()||minecraft.player.getData(ModAttachments.CONSUMING)){onClose();return;}
+        if(minecraft.player==null||!minecraft.player.isAlive()||!com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.PLAYER_STATE).isPrototypeMode()||com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.CONSUMING)){onClose();return;}
         var form=selected<0?null:PowerWheel.form(utility,selected);
         if(form!=heldForm){heldForm=form;heldTicks=0;}else if(form!=null)heldTicks++;
     }
     @Override public void render(GuiGraphics g,int mouseX,int mouseY,float partial){
         if(minecraft.player==null)return;
-        var state=minecraft.player.getData(ModAttachments.PLAYER_STATE);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.PLAYER_STATE);
         int cx=width/2,cy=height/2;
         float outer=Math.min(125,Math.min(width*.34F,height*.36F)),inner=outer*.39F;
         selected=PowerWheel.sector(mouseX-cx,mouseY-cy,inner,outer+12,utility);
         g.fill(0,0,width,height,0x6506090d);g.flush();
         RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.disableCull();RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        var mesh=Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLES,DefaultVertexFormat.POSITION_COLOR);
+        var mesh=Tesselator.getInstance().getBuilder();mesh.begin(VertexFormat.Mode.TRIANGLES,DefaultVertexFormat.POSITION_COLOR);
         var matrix=g.pose().last().pose();
         for(int slot=0;slot<PowerWheel.size(utility);slot++) {
             var form=PowerWheel.form(utility,slot);boolean owned=form==PowerForm.NONE||state.hasUnlocked(form);
@@ -55,7 +55,7 @@ public final class PowerWheelScreen extends Screen {
                 vertex(mesh,matrix,cx+ax*inner,cy+ay*inner,color);vertex(mesh,matrix,cx+bx*outer,cy+by*outer,color);vertex(mesh,matrix,cx+bx*inner,cy+by*inner,color);
             }
         }
-        BufferUploader.drawWithShader(mesh.buildOrThrow());RenderSystem.enableCull();RenderSystem.disableBlend();
+        BufferUploader.drawWithShader(mesh.end());RenderSystem.enableCull();RenderSystem.disableBlend();
         for(int slot=0;slot<PowerWheel.size(utility);slot++) {
             var form=PowerWheel.form(utility,slot);boolean owned=form==PowerForm.NONE||state.hasUnlocked(form);
             double angle=-Math.PI/2+slot*Math.PI*2/PowerWheel.size(utility);
@@ -74,10 +74,10 @@ public final class PowerWheelScreen extends Screen {
             g.drawCenteredString(font,Component.translatable(heldTicks>=10?"screen.blacklight.wheel.morph_ready":"screen.blacklight.wheel.morph_hold"),cx,lineY+2,0xFFFFB090);
         super.render(g,mouseX,mouseY,partial);
     }
-    private static void vertex(BufferBuilder b,org.joml.Matrix4f m,float x,float y,int color){b.addVertex(m,x,y,0).setColor(color);}
+    private static void vertex(BufferBuilder b,org.joml.Matrix4f m,float x,float y,int color){b.vertex(m,x,y,0).color(color).endVertex();}
     private void confirm(){
         if(!submitted&&selected>=0&&minecraft.player!=null){
-            var form=PowerWheel.form(utility,selected);var state=minecraft.player.getData(ModAttachments.PLAYER_STATE);
+            var form=PowerWheel.form(utility,selected);var state=com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.PLAYER_STATE);
             if(form==PowerForm.NONE||state.hasUnlocked(form)){submitted=true;PacketDistributor.sendToServer(new PowerSelectPayload(form.ordinal(),form==heldForm&&heldTicks>=10));}
         }
         onClose();

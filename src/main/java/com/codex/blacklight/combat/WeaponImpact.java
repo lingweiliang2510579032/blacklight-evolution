@@ -7,7 +7,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.sounds.*;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.codex.blacklight.forge.PacketDistributor;
 
 public final class WeaponImpact {
     private WeaponImpact() {}
@@ -20,9 +20,9 @@ public final class WeaponImpact {
         var profile=ImpactProfile.of(move);
         boolean slam=profile.kind()==HitReaction.SLAM||move.quake();
         boolean heavy=profile.kind()!=HitReaction.STAGGER;
-        double resistance=Math.clamp(1-v.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE),0,1);
+        double resistance=com.codex.blacklight.util.MathCompat.clamp(1-v.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE),0,1);
         double volume=v.getBbWidth()*v.getBbWidth()*v.getBbHeight();
-        double mass=Math.clamp(.8/Math.max(.6,volume),.08,1);
+        double mass=com.codex.blacklight.util.MathCompat.clamp(.8/Math.max(.6,volume),.08,1);
         // Large, resistant creatures flinch but are not tossed like a chicken.
         boolean canFall=profile.knockdown()&&resistance>.05&&volume<4;
         if(!canFall&&profile.knockdown())profile=new ImpactProfile(HitReaction.HEAVY,ImpactProfile.BODY,12,profile.push(),0,false);

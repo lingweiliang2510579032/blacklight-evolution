@@ -3,9 +3,9 @@ package com.codex.blacklight.combat;
 import com.codex.blacklight.registry.ModAttachments;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.tick.EntityTickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import com.codex.blacklight.combat.ForgeEntityTickEvent;
 import java.util.*;
 
 /** Temporary control ends on recovery, capture, removal or server stop. Never changes NoAI. */
@@ -15,7 +15,7 @@ public final class ImpactControl {
     private static final Map<Mob,Control> ACTIVE=new IdentityHashMap<>();
     private ImpactControl(){}
     public static void begin(LivingEntity entity,ImpactProfile profile,float yaw){
-        if(ConsumeSystem.grappleProtected(entity)||entity.getData(ModAttachments.CONSUME_VISUAL).active())return;
+        if(ConsumeSystem.grappleProtected(entity)||com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL).active())return;
         cancel(entity);
         if(!entity.isAlive()){
             publish(entity,new HitReaction(entity.level().getGameTime(),20,HitReaction.DEATH,yaw,ImpactProfile.FALL));return;
@@ -30,22 +30,22 @@ public final class ImpactControl {
         int duration=profile.stun();
         if(entity instanceof com.codex.blacklight.entity.BlacklightHunter){
             var source=ReceiverMotions.clip(ReceiverMotions.hitKey(entity,profile.kind(),profile.motion()));
-            if(source!=null)duration=Math.max(duration,Math.clamp(Math.round(source.seconds()*20),10,70));
+            if(source!=null)duration=Math.max(duration,com.codex.blacklight.util.MathCompat.clamp(Math.round(source.seconds()*20),10,70));
         }
         publish(entity,new HitReaction(entity.level().getGameTime(),duration,profile.kind(),yaw,profile.motion()));
     }
-    private static void publish(LivingEntity entity,HitReaction state){entity.setData(ModAttachments.HIT_REACTION,state);entity.syncData(ModAttachments.HIT_REACTION);}
+    private static void publish(LivingEntity entity,HitReaction state){com.codex.blacklight.registry.ModAttachments.setData(entity, ModAttachments.HIT_REACTION,state);com.codex.blacklight.registry.ModAttachments.syncData(entity, ModAttachments.HIT_REACTION);}
     public static void cancel(LivingEntity entity){
         if(entity instanceof Mob mob)ACTIVE.remove(mob);
-        if(entity.getData(ModAttachments.HIT_REACTION).duration()>0)publish(entity,HitReaction.EMPTY);
+        if(com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.HIT_REACTION).duration()>0)publish(entity,HitReaction.EMPTY);
     }
     public static boolean stunned(Mob mob){return !mob.level().isClientSide&&ACTIVE.containsKey(mob);}
-    @SubscribeEvent public static void tick(EntityTickEvent.Post event){
+    @SubscribeEvent public static void tick(ForgeEntityTickEvent.Post event){
         if(!(event.getEntity() instanceof Mob mob)||mob.level().isClientSide)return;
         var control=ACTIVE.get(mob);if(control==null)return;
         if(!mob.onGround()&&!control.airborne()){control=new Control(control.knockdown(),control.flightStarted(),true);ACTIVE.put(mob,control);}
-        var hit=mob.getData(ModAttachments.HIT_REACTION);long now=mob.level().getGameTime(),age=now-hit.started();
-        if(mob.isRemoved()||mob.getData(ModAttachments.CONSUME_VISUAL).active()){cancel(mob);return;}
+        var hit=com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.HIT_REACTION);long now=mob.level().getGameTime(),age=now-hit.started();
+        if(mob.isRemoved()||com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.CONSUME_VISUAL).active()){cancel(mob);return;}
         if(!mob.isAlive()){
             float yaw=hit.yaw();cancel(mob);publish(mob,new HitReaction(now,20,HitReaction.DEATH,yaw,ImpactProfile.FALL));return;
         }
@@ -66,6 +66,6 @@ public final class ImpactControl {
                     net.minecraft.sounds.SoundSource.HOSTILE,.8F,.65F);
         }else if(age>=hit.duration()||now-control.flightStarted()>80)cancel(mob);
     }
-    @SubscribeEvent public static void leave(net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent e){if(e.getEntity() instanceof Mob m&&!m.level().isClientSide)cancel(m);}
-    @SubscribeEvent public static void stop(net.neoforged.neoforge.event.server.ServerStoppingEvent e){for(var m:List.copyOf(ACTIVE.keySet()))cancel(m);}
+    @SubscribeEvent public static void leave(net.minecraftforge.event.entity.EntityLeaveLevelEvent e){if(e.getEntity() instanceof Mob m&&!m.level().isClientSide)cancel(m);}
+    @SubscribeEvent public static void stop(net.minecraftforge.event.server.ServerStoppingEvent e){for(var m:List.copyOf(ACTIVE.keySet()))cancel(m);}
 }

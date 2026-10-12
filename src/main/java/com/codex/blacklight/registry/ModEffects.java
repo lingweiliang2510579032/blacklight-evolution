@@ -7,22 +7,22 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.registries.DeferredHolder;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.registries.RegistryObject;
+import net.minecraftforge.registries.DeferredRegister;
 
 public final class ModEffects {
     private static final DeferredRegister<MobEffect> EFFECTS =
             DeferredRegister.create(Registries.MOB_EFFECT, BlacklightNeoMod.MOD_ID);
 
-    public static final DeferredHolder<MobEffect, MobEffect> BLACKLIGHT_INFECTION = EFFECTS.register(
+    public static final RegistryObject<MobEffect> BLACKLIGHT_INFECTION = EFFECTS.register(
             "blacklight_infection", () -> new BlacklightInfectionEffect()
                     .addAttributeModifier(Attributes.MOVEMENT_SPEED, id("infection_speed"),
-                            0.16D, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL)
+                            0.16D, AttributeModifier.Operation.MULTIPLY_TOTAL)
                     .addAttributeModifier(Attributes.ATTACK_DAMAGE, id("infection_damage"),
-                            2.5D, AttributeModifier.Operation.ADD_VALUE)
+                            2.5D, AttributeModifier.Operation.ADDITION)
                     .addAttributeModifier(Attributes.MAX_HEALTH, id("infection_health"),
-                            6.0D, AttributeModifier.Operation.ADD_VALUE));
+                            6.0D, AttributeModifier.Operation.ADDITION));
 
     private ModEffects() {
     }
@@ -31,7 +31,7 @@ public final class ModEffects {
         EFFECTS.register(bus);
     }
 
-    private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(BlacklightNeoMod.MOD_ID, path);
+    private static String id(String path) {
+        return java.util.UUID.nameUUIDFromBytes((BlacklightNeoMod.MOD_ID+":"+path).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
     }
 }

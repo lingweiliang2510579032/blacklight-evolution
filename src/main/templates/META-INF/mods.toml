@@ -1,0 +1,40 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="${mod_license} (project code and authored assets); see THIRD_PARTY_ASSETS.md"
+issueTrackerURL="https://github.com/lingweiliang2510579032/blacklight-evolution/issues"
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+displayURL="https://github.com/lingweiliang2510579032/blacklight-evolution/tree/forge-1.20.1"
+authors="末者 (original author); 雨夜 (Forge 1.20.1 maintenance)"
+description='''
+Blacklight: Ascension — independent Forge 1.20.1 port.
+Biological shapeshifting, consumption, disguise, movement and infected hive encounters.
+Original project by 末者. Independent fan project, not affiliated with the original game publishers.
+Default builds include the complete repository motion, camera and HUD profile. Forge gameplay acceptance is recorded separately.
+'''
+[[dependencies.${mod_id}]]
+modId="forge"
+mandatory=true
+versionRange="[${forge_version},)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.${mod_id}]]
+modId="minecraft"
+mandatory=true
+versionRange="${minecraft_version_range}"
+ordering="NONE"
+side="BOTH"
+[[dependencies.${mod_id}]]
+modId="geckolib"
+mandatory=true
+versionRange="[${geckolib_version},5)"
+ordering="AFTER"
+side="BOTH"
+[[dependencies.${mod_id}]]
+modId="parcool"
+mandatory=false
+versionRange="[3.4.3.3,3.5)"
+ordering="AFTER"
+side="BOTH"

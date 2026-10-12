@@ -10,10 +10,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.*;
 import net.minecraft.sounds.*;
 import net.minecraft.core.particles.ParticleTypes;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.TickEvent.PlayerTickEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import com.codex.blacklight.forge.PacketDistributor;
 import java.util.*;
 
 /** Separate weapon actions; server owns each contact and never trusts a client target. */
@@ -35,7 +35,7 @@ public final class WeaponCombatSystem {
         Vec3 previousFeet;LivingEntity target,queuedTarget;final Map<UUID,List<AABB>> previousTargets=new HashMap<>();
         int mobilityStarted=-1;boolean mobilityFinished;Vec3 releaseDirection;double ballisticY;
         final Set<net.minecraft.core.BlockPos> terrainContacts=new HashSet<>();
-        Session(ServerPlayer p,WeaponMove m,float offset,float heading){move=m;clipOffset=offset;started=p.tickCount-Math.round(offset*20);created=p.tickCount;form=p.getData(ModAttachments.PLAYER_STATE).getActivePower();yaw=heading;previousYaw=yaw;direction=Vec3.directionFromRotation(0,yaw);previousFeet=p.position();}
+        Session(ServerPlayer p,WeaponMove m,float offset,float heading){move=m;clipOffset=offset;started=p.tickCount-Math.round(offset*20);created=p.tickCount;form=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).getActivePower();yaw=heading;previousYaw=yaw;direction=Vec3.directionFromRotation(0,yaw);previousFeet=p.position();}
     }
     private WeaponCombatSystem(){}
     public static boolean busy(ServerPlayer p){return ACTIVE.containsKey(p);}
@@ -53,8 +53,8 @@ public final class WeaponCombatSystem {
         if(queued!=null)beginInput(p,WeaponMove.choose(s.form,queued,true,false,false),queued,held);
     }
     private static boolean canRequest(ServerPlayer p){
-        var state=p.getData(ModAttachments.PLAYER_STATE);var movement=p.getData(ModAttachments.MOVEMENT_STATE);
-        return p.isAlive()&&!p.isSpectator()&&!p.isPassenger()&&state.isInfected()&&state.isPrototypeMode()&&WeaponMove.controls(state.getActivePower(),p.getMainHandItem().isEmpty()&&p.getOffhandItem().isEmpty())&&!p.getData(ModAttachments.CONSUMING)&&!movement.wallTraversal().attached()&&movement.chargeTicks()==0;
+        var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);var movement=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.MOVEMENT_STATE);
+        return p.isAlive()&&!p.isSpectator()&&!p.isPassenger()&&state.isInfected()&&state.isPrototypeMode()&&WeaponMove.controls(state.getActivePower(),p.getMainHandItem().isEmpty()&&p.getOffhandItem().isEmpty())&&!com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CONSUMING)&&!movement.wallTraversal().attached()&&movement.chargeTicks()==0;
     }
     public static void request(ServerPlayer p,boolean special){
         request(p,special?WeaponMove.Input.SPECIAL:WeaponMove.Input.ATTACK);
@@ -88,7 +88,7 @@ public final class WeaponCombatSystem {
     public static void request(ServerPlayer p,WeaponMove.Input input){requestInternal(p,input,false);}
     private static void requestInternal(ServerPlayer p,WeaponMove.Input input,boolean held){
         if(!canRequest(p))return;
-        var state=p.getData(ModAttachments.PLAYER_STATE);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);
         var active=ACTIVE.get(p);
         if(active!=null){
             var followUp=active.move.followUp(input,state.getActivePower(),!p.onGround(),p.isSprinting());
@@ -98,7 +98,7 @@ public final class WeaponCombatSystem {
             }
             return;
         }
-        if(p.getData(ModAttachments.CLAW_COMBAT).action()!=ClawCombatState.Action.IDLE)return;
+        if(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CLAW_COMBAT).action()!=ClawCombatState.Action.IDLE)return;
         var last=CHAINS.get(p);
         WeaponMove move=null;
         if(last!=null&&last.form==state.getActivePower()&&p.tickCount-last.tick<COMBO_GRACE_TICKS)
@@ -108,7 +108,7 @@ public final class WeaponCombatSystem {
     }
     private static void beginInput(ServerPlayer p,WeaponMove move,WeaponMove.Input input,boolean held){
         if(move==null)return;
-        if(!move.accepts(p.getData(ModAttachments.PLAYER_STATE).getActivePower()))return;
+        if(!move.accepts(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).getActivePower()))return;
         if(move.airCombo()){
             if(AIR_HITS.getOrDefault(p,0)>=4)return;
             AIR_HITS.merge(p,1,Integer::sum);
@@ -129,25 +129,25 @@ public final class WeaponCombatSystem {
             // An attack begins from its own step curve, without inherited sprint inertia.
             p.setDeltaMovement(0,p.getDeltaMovement().y,0);p.xxa=0;p.zza=0;p.hurtMarked=true;
         }
-        Session s=new Session(p,move,clipOffset,heading);s.charging=charging;s.input=input;s.releaseDirection=CombatMotion.flightDirection(s.yaw,p.getXRot());ACTIVE.put(p,s);CHAINS.remove(p);p.getData(ModAttachments.MOVEMENT_STATE).cancelLandingRecovery();
+        Session s=new Session(p,move,clipOffset,heading);s.charging=charging;s.input=input;s.releaseDirection=CombatMotion.flightDirection(s.yaw,p.getXRot());ACTIVE.put(p,s);CHAINS.remove(p);com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.MOVEMENT_STATE).cancelLandingRecovery();
         if(CombatMotion.stationaryWhip(move)&&!p.onGround()){p.setDeltaMovement(Vec3.ZERO);p.hurtMarked=true;}
         s.target=target;s.locked=target!=null&&CombatTargeting.locked(p)==target;rememberTargets(p,s);
         s.lastTargetPosition=target==null?null:target.position();
         s.traveling=CombatMotion.canApproach(move)&&!charging&&target!=null&&travelDistance(p,target)>Math.max(AttackReach.reach(p,move)+1.65,CombatMotion.standOff(move)+1.1);
         s.travelStarted=p.tickCount;s.travelBudget=CombatMotion.travelBudget(target==null?0:travelDistance(p,target),CombatMotion.speed(move,0));
-        p.getData(ModAttachments.CLAW_COMBAT).begin(ClawCombatState.Action.TRANSFORM);
-        p.setData(ModAttachments.WEAPON_VISUAL,new WeaponVisual(move.ordinal(),p.level().getGameTime()-Math.round(clipOffset*20),s.yaw,charging,clipOffset,target==null?-1:target.getId(),s.traveling?CombatMotion.travelPose(move):-1));p.syncData(ModAttachments.WEAPON_VISUAL);
+        com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CLAW_COMBAT).begin(ClawCombatState.Action.TRANSFORM);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.WEAPON_VISUAL,new WeaponVisual(move.ordinal(),p.level().getGameTime()-Math.round(clipOffset*20),s.yaw,charging,clipOffset,target==null?-1:target.getId(),s.traveling?CombatMotion.travelPose(move):-1));com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.WEAPON_VISUAL);
         PlayerActions.get().playWeapon(p,move,charging,clipOffset);
         PacketDistributor.sendToPlayer(p,new WeaponAnimationPayload(move.ordinal(),charging,clipOffset));
     }
     private static boolean directionalInput(ServerPlayer p,WeaponMove move){
-        return CombatMotion.usesDirectionalInput(move)&&p.getData(ModAttachments.MOVEMENT_STATE).wallInput().moving();
+        return CombatMotion.usesDirectionalInput(move)&&com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.MOVEMENT_STATE).wallInput().moving();
     }
     private static double travelDistance(ServerPlayer player,LivingEntity target){
         return CombatTargeting.multipart(target)?Math.sqrt(CombatTargeting.distanceSquared(player.getEyePosition(),target)):player.distanceTo(target);
     }
     private static float requestedYaw(ServerPlayer p,WeaponMove move){
-        var input=p.getData(ModAttachments.MOVEMENT_STATE).wallInput();
+        var input=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.MOVEMENT_STATE).wallInput();
         return directionalInput(p,move)?CombatPursuit.inputYaw(com.codex.blacklight.movement.TraversalSteering.cameraYaw(p),input.forward(),input.sideways()):p.getYRot();
     }
     private static double inputAimScore(ServerPlayer p,WeaponMove move,LivingEntity target){
@@ -179,30 +179,30 @@ public final class WeaponCombatSystem {
     }
     /** Both logical sides arrest the whip strike before travel applies gravity.
      * No persistent noGravity flag can leak into the next action/life. */
-    @SubscribeEvent public static void beforeTravel(PlayerTickEvent.Pre event){
-        holdWhip(event.getEntity());
+    @SubscribeEvent public static void beforeTravel(PlayerTickEvent event){if(event.phase != net.minecraftforge.event.TickEvent.Phase.START)return;
+        holdWhip(event.player);
     }
-    @SubscribeEvent public static void afterTravel(PlayerTickEvent.Post event){
-        holdWhip(event.getEntity());
+    @SubscribeEvent public static void afterTravel(PlayerTickEvent event){if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
+        holdWhip(event.player);
     }
     private static void holdWhip(Player player){
-        var visual=player.getData(ModAttachments.WEAPON_VISUAL);var move=visual.spec();
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL);var move=visual.spec();
         if(!CombatMotion.stationaryWhip(move)||player.onGround()||!player.isAlive()
                 ||player.isSpectator()||player.isPassenger()||player.getAbilities().flying
                 ||player.isInWater()||player.isInLava()||player.isFallFlying())return;
-        var state=player.getData(ModAttachments.PLAYER_STATE);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         if(!state.isInfected()||!state.isPrototypeMode()||state.getActivePower()!=move.form)return;
         long elapsed=player.level().getGameTime()-visual.started();
         // Bounded MC adaptation: anticipation/charge/strike suspend; recovery falls.
         if(elapsed<0||elapsed>=(visual.charging()?60:move.end))return;
         player.setDeltaMovement(Vec3.ZERO);player.resetFallDistance();
     }
-    @SubscribeEvent public static void tick(PlayerTickEvent.Post event){
-        if(!(event.getEntity() instanceof ServerPlayer p))return;
+    @SubscribeEvent public static void tick(PlayerTickEvent event){if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
+        if(!(event.player instanceof ServerPlayer p))return;
         if(p.onGround())AIR_HITS.remove(p);
         var s=ACTIVE.get(p);if(s==null)return;
-        var state=p.getData(ModAttachments.PLAYER_STATE);
-        if(!p.isAlive()||p.isSpectator()||!state.isPrototypeMode()||state.getActivePower()!=s.form||p.getData(ModAttachments.CONSUMING)
+        var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);
+        if(!p.isAlive()||p.isSpectator()||!state.isPrototypeMode()||state.getActivePower()!=s.form||com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CONSUMING)
                 ||!WeaponMove.controls(s.form,p.getMainHandItem().isEmpty()&&p.getOffhandItem().isEmpty())){cancel(p);return;}
         if(CombatMotion.stationaryWhip(s.move)&&(p.isInWater()||p.isInLava()||p.isPassenger()||p.getAbilities().flying)){cancel(p);return;}
         int t=p.tickCount-s.started;
@@ -227,7 +227,7 @@ public final class WeaponCombatSystem {
             if(airTargetAvailable(p,s)&&!s.charging&&t<s.move.end&&s.hit.isEmpty()){
                 var delta=CombatTargeting.positionNear(p.position(),s.target).subtract(p.position());double length=delta.horizontalDistance();
                 double speed=Math.min(CombatMotion.speed(s.move,s.chargePower),Math.max(0,length-1.1)*.35);var horizontal=length>.001?delta.multiply(1,0,1).scale(speed/length):Vec3.ZERO;
-                p.setDeltaMovement(horizontal.x,Math.clamp(delta.y*.35,-.95,.7),horizontal.z);
+                p.setDeltaMovement(horizontal.x,com.codex.blacklight.util.MathCompat.clamp(delta.y*.35,-.95,.7),horizontal.z);
             }else p.setDeltaMovement(v.x*.85,Math.max(v.y,-.04),v.z*.85);
             p.hurtMarked=true;
         }
@@ -255,7 +255,7 @@ public final class WeaponCombatSystem {
                     move=Arrays.stream(WeaponMove.values()).filter(candidate->candidate.id.equals(id)).findFirst()
                             .orElseThrow(()->new IllegalStateException("Unknown charged move: "+id));
                 }
-                if(full&&p.onGround()&&p.getData(ModAttachments.MOVEMENT_STATE).wallInput().forward()<0&&hasLaunchTarget(p)){
+                if(full&&p.onGround()&&com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.MOVEMENT_STATE).wallInput().forward()<0&&hasLaunchTarget(p)){
                     var launcher=chargedLauncher(s.move);
                     if(launcher!=null){move=launcher;releaseTime=0;}
                 }
@@ -264,7 +264,7 @@ public final class WeaponCombatSystem {
                 // Some source moves strengthen the same release clip instead of
                 // selecting a second animation. Preserve their actual held charge.
                 if(move==WeaponMove.AIR_KICK||move==WeaponMove.AIR_PAIN||move==WeaponMove.CLAW_POUNCE||move==WeaponMove.BLADE_DIVE||move==WeaponMove.HAMMER_DROP||move==WeaponMove.HAMMER_RAM||move==WeaponMove.BLADE_RUSH)
-                    released.chargePower=(float)Math.clamp((t-minimum)/(double)charge.holdTicks(),0,1);
+                    released.chargePower=(float)com.codex.blacklight.util.MathCompat.clamp((t-minimum)/(double)charge.holdTicks(),0,1);
             }
             return;
         }
@@ -329,7 +329,7 @@ public final class WeaponCombatSystem {
                 if(t>=descent&&p.onGround()){
                     s.landed=p.tickCount;s.clipOffset=impact;s.started=p.tickCount-Math.round(impact*20);
                     p.setDeltaMovement(0,0,0);p.hurtMarked=true;
-                    p.setData(ModAttachments.WEAPON_VISUAL,new WeaponVisual(s.move.ordinal(),p.level().getGameTime()-Math.round(impact*20),s.yaw,false,impact,s.target==null?-1:s.target.getId()));p.syncData(ModAttachments.WEAPON_VISUAL);
+                    com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.WEAPON_VISUAL,new WeaponVisual(s.move.ordinal(),p.level().getGameTime()-Math.round(impact*20),s.yaw,false,impact,s.target==null?-1:s.target.getId()));com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.WEAPON_VISUAL);
                     PlayerActions.get().playWeapon(p,s.move,false,impact);
                     PacketDistributor.sendToPlayer(p,new WeaponAnimationPayload(s.move.ordinal(),false,impact));
                 }else return;
@@ -356,7 +356,7 @@ public final class WeaponCombatSystem {
         }
         // Keep all authored contacts, then let movement leave the recovery.
         // Buffered combos have priority; committed aerial/landing travel keeps its owner.
-        var travelInput=p.getData(ModAttachments.MOVEMENT_STATE).wallInput();
+        var travelInput=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.MOVEMENT_STATE).wallInput();
         if(s.queued==null&&(!s.move.aerial()||s.move.airCombo())&&t>=s.move.end+2
                 &&(travelInput.forward()!=0||travelInput.sideways()!=0)){
             cancel(p);return;
@@ -387,10 +387,10 @@ public final class WeaponCombatSystem {
     }
     private static void syncHeading(ServerPlayer p,Session s,float yaw){
         s.yaw=yaw;s.direction=Vec3.directionFromRotation(0,yaw);p.yBodyRot=yaw;
-        var old=p.getData(ModAttachments.WEAPON_VISUAL);
-        p.setData(ModAttachments.WEAPON_VISUAL,new WeaponVisual(old.move(),old.started(),yaw,old.charging(),old.clipOffset(),
+        var old=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.WEAPON_VISUAL);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.WEAPON_VISUAL,new WeaponVisual(old.move(),old.started(),yaw,old.charging(),old.clipOffset(),
                 s.target==null?-1:s.target.getId(),old.travelPose(),old.attackPose()));
-        p.syncData(ModAttachments.WEAPON_VISUAL);
+        com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.WEAPON_VISUAL);
     }
     private static void steerPreparation(ServerPlayer p,Session s,int tick){
         if(s.move.aerial()||!preparing(s,tick)||!CombatMotion.usesDirectionalInput(s.move))return;
@@ -433,9 +433,9 @@ public final class WeaponCombatSystem {
         if(s.charging||whip||s.move.landingAttack()||aerialPursuit||s.move.quake()||s.move.rush()||s.pursuitTravel>=1.65||delta.multiply(1,0,1).normalize().dot(s.direction)<.8)return;
         double standOff=Math.max(.9,AttackReach.reach(p,s.move)*.62);
         var bounds=s.move.contactBounds(Math.max(tick,s.move.start));
-        if(bounds!=null)standOff=Math.clamp(bounds.maxForward()*.72,.9,standOff);
+        if(bounds!=null)standOff=com.codex.blacklight.util.MathCompat.clamp(bounds.maxForward()*.72,.9,standOff);
         double step=Math.min(Math.min(windup?.24:.14,Math.max(0,distance-standOff)),1.65-s.pursuitTravel);
-        double dy=s.move.aerial()&&!p.onGround()?Math.clamp(delta.y*.15,-.12,.12):0;
+        double dy=s.move.aerial()&&!p.onGround()?com.codex.blacklight.util.MathCompat.clamp(delta.y*.15,-.12,.12):0;
         var before=p.position();p.move(MoverType.SELF,s.direction.scale(step).add(0,dy,0));
         s.pursuitTravel+=p.position().subtract(before).length();if(!p.position().equals(before))p.hurtMarked=true;
     }
@@ -513,9 +513,9 @@ public final class WeaponCombatSystem {
     private static void tickFreeFlight(ServerPlayer p,Session s){
         if(s.mobilityStarted<0){
             s.mobilityStarted=p.tickCount;s.contact=0;
-            var old=p.getData(ModAttachments.WEAPON_VISUAL);
+            var old=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.WEAPON_VISUAL);
             float pose=(s.move.start+Math.min(2,s.move.end-s.move.start-1))/20F;
-            p.setData(ModAttachments.WEAPON_VISUAL,new WeaponVisual(old.move(),old.started(),s.yaw,false,old.clipOffset(),-1,-1,pose));p.syncData(ModAttachments.WEAPON_VISUAL);
+            com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.WEAPON_VISUAL,new WeaponVisual(old.move(),old.started(),s.yaw,false,old.clipOffset(),-1,-1,pose));com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.WEAPON_VISUAL);
             CombatImpactEffects.swing(p,s.move,s.direction);
         }
         // Check the segment actually traversed, even on the final or wall tick.
@@ -527,7 +527,7 @@ public final class WeaponCombatSystem {
             var velocity=p.getDeltaMovement();
             double factor=s.hit.isEmpty()?.65:s.move==WeaponMove.AIR_PAIN?-.22:.15;
             p.setDeltaMovement(velocity.x*factor,Math.min(velocity.y,.1),velocity.z*factor);p.hurtMarked=true;
-            p.setData(ModAttachments.WEAPON_VISUAL,new WeaponVisual(s.move.ordinal(),p.level().getGameTime()-s.move.end,s.yaw,false,s.clipOffset,-1));p.syncData(ModAttachments.WEAPON_VISUAL);
+            com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.WEAPON_VISUAL,new WeaponVisual(s.move.ordinal(),p.level().getGameTime()-s.move.end,s.yaw,false,s.clipOffset,-1));com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.WEAPON_VISUAL);
             PlayerActions.get().playWeapon(p,s.move,false,s.clipOffset);
             PacketDistributor.sendToPlayer(p,new WeaponAnimationPayload(s.move.ordinal(),false,s.clipOffset));
         }else{
@@ -554,7 +554,7 @@ public final class WeaponCombatSystem {
             if(s.move==WeaponMove.CLAW_POUNCE)s.clipOffset=.4F;
             s.started=p.tickCount-Math.round(s.clipOffset*20);s.previousFeet=p.position();s.previousYaw=s.yaw;
             p.setDeltaMovement(0,0,0);p.hurtMarked=true;
-            p.setData(ModAttachments.WEAPON_VISUAL,new WeaponVisual(s.move.ordinal(),p.level().getGameTime()-Math.round(s.clipOffset*20),s.yaw,false,s.clipOffset,s.target.getId()));p.syncData(ModAttachments.WEAPON_VISUAL);
+            com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.WEAPON_VISUAL,new WeaponVisual(s.move.ordinal(),p.level().getGameTime()-Math.round(s.clipOffset*20),s.yaw,false,s.clipOffset,s.target.getId()));com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.WEAPON_VISUAL);
             PlayerActions.get().playWeapon(p,s.move,false,s.clipOffset);
             PacketDistributor.sendToPlayer(p,new WeaponAnimationPayload(s.move.ordinal(),false,s.clipOffset));return;
         }
@@ -563,12 +563,12 @@ public final class WeaponCombatSystem {
         s.travelSpeed=Math.min(CombatMotion.speed(s.move,s.chargePower),s.travelSpeed+CombatMotion.acceleration(s.move));
         var horizontal=CombatMotion.chase(delta,standOff,s.travelSpeed);
         if(horizontal.lengthSqr()>.001&&horizontal.normalize().dot(s.direction)<.8)horizontal=horizontal.scale(.25);
-        double dy=airborne?Math.clamp((delta.y+height)*.4,-s.travelSpeed,s.travelSpeed):p.getDeltaMovement().y;
+        double dy=airborne?com.codex.blacklight.util.MathCompat.clamp((delta.y+height)*.4,-s.travelSpeed,s.travelSpeed):p.getDeltaMovement().y;
         if(!airborne&&delta.y>1.2){cancel(p);return;}
         p.setDeltaMovement(horizontal.x,dy,horizontal.z);p.fallDistance=0;p.hurtMarked=true;
-        var old=p.getData(ModAttachments.WEAPON_VISUAL);
+        var old=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.WEAPON_VISUAL);
         if(Math.abs(old.yaw()-s.yaw)>.2){
-            p.setData(ModAttachments.WEAPON_VISUAL,new WeaponVisual(old.move(),old.started(),s.yaw,false,old.clipOffset(),old.targetId(),old.travelPose()));p.syncData(ModAttachments.WEAPON_VISUAL);
+            com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.WEAPON_VISUAL,new WeaponVisual(old.move(),old.started(),s.yaw,false,old.clipOffset(),old.targetId(),old.travelPose()));com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.WEAPON_VISUAL);
         }
     }
     private static void tickPounce(ServerPlayer p,Session s,int tick){
@@ -586,14 +586,14 @@ public final class WeaponCombatSystem {
         if(tick>=9&&(reached||elapsed>=18||p.horizontalCollision||p.onGround())){
             s.pounceCommitted=true;s.clipOffset=.5F;s.started=p.tickCount-10;
             p.setDeltaMovement(0,0,0);p.hurtMarked=true;
-            p.setData(ModAttachments.WEAPON_VISUAL,new WeaponVisual(s.move.ordinal(),p.level().getGameTime()-10,s.yaw,false,.5F,s.target==null?-1:s.target.getId()));p.syncData(ModAttachments.WEAPON_VISUAL);
+            com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.WEAPON_VISUAL,new WeaponVisual(s.move.ordinal(),p.level().getGameTime()-10,s.yaw,false,.5F,s.target==null?-1:s.target.getId()));com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.WEAPON_VISUAL);
             PlayerActions.get().playWeapon(p,s.move,false,.5F);
             PacketDistributor.sendToPlayer(p,new WeaponAnimationPayload(s.move.ordinal(),false,.5F));return;
         }
         if(tick>=9)s.started=p.tickCount-9;
         double speed=available?Math.min(1.15+.25*s.chargePower,Math.max(0,distance-.9)*.48):.8+.2*s.chargePower;
         var horizontal=distance>.001?delta.multiply(1,0,1).scale(speed/distance):Vec3.ZERO;
-        p.setDeltaMovement(horizontal.x,available?Math.clamp(delta.y*.4,-.85,.75):-.045,horizontal.z);
+        p.setDeltaMovement(horizontal.x,available?com.codex.blacklight.util.MathCompat.clamp(delta.y*.4,-.85,.75):-.045,horizontal.z);
         p.fallDistance=0;p.hurtMarked=true;
     }
     /** Hammer contact disperses a nearby crowd; the main victim is never damaged twice. */
@@ -672,7 +672,7 @@ public final class WeaponCombatSystem {
     }
     private static void finish(ServerPlayer p){
         var old=ACTIVE.remove(p);if(old==null)return;
-        p.getData(ModAttachments.CLAW_COMBAT).reset();p.setData(ModAttachments.WEAPON_VISUAL,WeaponVisual.EMPTY);p.syncData(ModAttachments.WEAPON_VISUAL);
+        com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CLAW_COMBAT).reset();com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.WEAPON_VISUAL,WeaponVisual.EMPTY);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.WEAPON_VISUAL);
         PlayerActions.get().resume(p);
         PlayerActions.get().play(p, !p.onGround()&&!p.isInWater()&&!p.isInLava()
                 ? (p.getDeltaMovement().y>.035 ? PlayerAction.JUMP_RISE : PlayerAction.JUMP_FALL)
@@ -680,5 +680,5 @@ public final class WeaponCombatSystem {
     }
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e){if(e.getEntity() instanceof ServerPlayer p){cancel(p);CHAINS.remove(p);BUTTONS.remove(p);AIR_HITS.remove(p);}}
     @SubscribeEvent public static void dimension(PlayerEvent.PlayerChangedDimensionEvent e){if(e.getEntity() instanceof ServerPlayer p){cancel(p);BUTTONS.remove(p);AIR_HITS.remove(p);}}
-    @SubscribeEvent public static void stop(net.neoforged.neoforge.event.server.ServerStoppingEvent e){for(var p:List.copyOf(ACTIVE.keySet()))cancel(p);CHAINS.clear();BUTTONS.clear();AIR_HITS.clear();}
+    @SubscribeEvent public static void stop(net.minecraftforge.event.server.ServerStoppingEvent e){for(var p:List.copyOf(ACTIVE.keySet()))cancel(p);CHAINS.clear();BUTTONS.clear();AIR_HITS.clear();}
 }

@@ -1,5 +1,7 @@
 package com.codex.blacklight.client.camera;
 
+import net.minecraft.client.Camera;
+
 import com.codex.blacklight.client.ClientWallMotion;
 import com.codex.blacklight.client.PrototypeAnimationController;
 import com.codex.blacklight.combat.ConsumeVisual;
@@ -19,6 +21,15 @@ import com.codex.blacklight.client.ClientTargetLock;
  * Observation is shared with movement; shake and active films remain visual only.
  */
 public final class PrototypeChaseCamera {
+    private static void setRotation(Camera camera,float yaw,float pitch,float roll){
+        ((PrototypeCameraAccess)camera).blacklight$setRotation(yaw,pitch);
+        if(roll==0)return;
+        camera.rotation().rotateZ(roll*net.minecraft.util.Mth.DEG_TO_RAD);
+        camera.getLookVector().set(0,0,1).rotate(camera.rotation());
+        camera.getUpVector().set(0,1,0).rotate(camera.rotation());
+        camera.getLeftVector().set(1,0,0).rotate(camera.rotation());
+    }
+
     private static final SourceCameraMath.FollowFilter follow=new SourceCameraMath.FollowFilter();
     private static final SourceActionCamera action=new SourceActionCamera();
     private static final SourceCameraOrbit orbit=new SourceCameraOrbit();
@@ -120,7 +131,7 @@ public final class PrototypeChaseCamera {
             double t=Mth.clamp(handoffAge/.18,0,1),weight=1-t*t*(3-2*t);
             access.blacklight$setPosition(clearPosition(player,eye,
                     camera.getPosition().lerp(eye.add(handoffOffset),weight)));
-            if(handoffAngles)access.blacklight$setRotation(camera.getYRot()+(float)(handoffYawOffset*weight),
+            if(handoffAngles)setRotation(camera,camera.getYRot()+(float)(handoffYawOffset*weight),
                     (float)Mth.clamp(camera.getXRot()+handoffPitchOffset*weight,-80,80),0);
             handoffAge+=dt;
             if(t>=1)handoffOffset=null;
@@ -129,10 +140,10 @@ public final class PrototypeChaseCamera {
     }
 
     private static String select(LocalPlayer player) {
-        var recovery=player.getData(ModAttachments.CONSUME_RECOVERY);
-        if(player.getData(ModAttachments.GRAB_STAGE)!=ConsumeVisual.NONE
+        var recovery=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUME_RECOVERY);
+        if(com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.GRAB_STAGE)!=ConsumeVisual.NONE
                 ||recovery.active()&&recovery.phaseProgress(player.level().getGameTime(),0)<1
-                &&player.getData(ModAttachments.WEAPON_VISUAL).spec()==null)return "Grapple";
+                &&com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL).spec()==null)return "Grapple";
         if(com.codex.blacklight.client.ClientTargetLock.hasValidLock())return "Target";
         if(player.hurtTime>0)return "Unstable";
         var wall=ClientWallMotion.modeFor(player);
@@ -183,7 +194,7 @@ public final class PrototypeChaseCamera {
                 suspendedManual=orbit.manual();
                 if(!externalSeeded){
                     releaseControl();
-                    ((PrototypeCameraAccess)camera).blacklight$setRotation(lastYaw,lastPitch,0);
+                    setRotation(camera,lastYaw,lastPitch,0);
                 }
                 beginHandoff(true);SourceCameraViewport.handoff();
                 action.reset();framer.reset();film.reset();filmFrame=null;zoom=1;
@@ -229,7 +240,7 @@ public final class PrototypeChaseCamera {
         boolean targeting=com.codex.blacklight.client.ClientTargetLock.hasValidLock();
         var target=targeting?ClientTargetLock.target():null;
         if(!targeting&&action.hint("AutoTarget")) {
-            var accepted=player.level().getEntity(player.getData(ModAttachments.WEAPON_VISUAL).targetId());
+            var accepted=player.level().getEntity(com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL).targetId());
             if(accepted instanceof net.minecraft.world.entity.LivingEntity living&&living.distanceToSqr(player)<4096
                     &&player.hasLineOfSight(living))target=living;
         }
@@ -240,7 +251,7 @@ public final class PrototypeChaseCamera {
         // Source look-ahead uses normalized movement and camera axes (0x10342c0b).
         Vec3 velocity=player.getDeltaMovement().scale(20),direction=velocity.normalize();
         Float travelFacing=PrototypeAnimationController.movementFacing(player,partial);
-        var weapon=player.getData(ModAttachments.WEAPON_VISUAL);
+        var weapon=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL);
         float bodyFacing=weapon.spec()!=null?weapon.yaw():travelFacing!=null?travelFacing:Mth.rotLerp(partial,player.yBodyRotO,player.yBodyRot);
         Vec3 facing=Vec3.directionFromRotation(0,bodyFacing);
         Vec3 right=Vec3.directionFromRotation(0,yaw+90);
@@ -254,11 +265,11 @@ public final class PrototypeChaseCamera {
         var access=(PrototypeCameraAccess)camera;
         // The movement/input API sees the same base orbit as the rendered camera.
         // Do not feed action shake or cinematic offsets into attack direction.
-        access.blacklight$setRotation(yaw,pitch,0);
+        setRotation(camera,yaw,pitch,0);
         access.blacklight$setPosition(anchor);
         float desired=(float)(distance*player.getScale()/actionValues.dolly());
         orbit.position(anchor.subtract(Vec3.directionFromRotation(pitch,yaw).scale(desired)));
-        float clear=access.blacklight$getMaxZoom(desired);
+        float clear=(float)access.blacklight$getMaxZoom(desired);
         // Collision retracts immediately, including on fast turns; never smooth through walls.
         float safe=clear<desired?Math.max(0,clear-.05F):clear;
         // Retract immediately; ease out only into space confirmed clear this frame.
@@ -284,12 +295,12 @@ public final class PrototypeChaseCamera {
         Vec3 shake=action.rotation();
         float finalYaw=(float)Math.toDegrees(Math.atan2(-desiredLook.x,desiredLook.z));
         float finalPitch=(float)-Math.toDegrees(Math.atan2(desiredLook.y,desiredLook.horizontalDistance()));
-        access.blacklight$setRotation(finalYaw,finalPitch,(float)roll);
+        setRotation(camera,finalYaw,finalPitch,(float)roll);
         access.blacklight$setPosition(clearPosition(player,eye,camera.getPosition()));
         finishFrame(camera,player,eye,dt);
         // Handoff and observation use the unshaken pose, never accumulated recoil.
         finalYaw=camera.getYRot();finalPitch=camera.getXRot();
-        access.blacklight$setRotation(finalYaw+(float)shake.y,Mth.clamp(finalPitch+(float)shake.x,-89,89),(float)(shake.z+roll));
+        setRotation(camera,finalYaw+(float)shake.y,Mth.clamp(finalPitch+(float)shake.x,-89,89),(float)(shake.z+roll));
     }
 
     private static Vec3 clearPosition(LocalPlayer p,Vec3 origin,Vec3 wanted) {

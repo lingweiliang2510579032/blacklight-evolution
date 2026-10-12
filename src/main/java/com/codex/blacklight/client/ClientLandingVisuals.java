@@ -16,11 +16,11 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 import org.joml.Vector3f;
 
 import java.util.ArrayDeque;
@@ -79,7 +79,7 @@ public final class ClientLandingVisuals {
     }
 
     @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(net.minecraftforge.event.TickEvent.ClientTickEvent event){if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) {
             ACTIVE_FIELDS.clear();
@@ -96,7 +96,7 @@ public final class ClientLandingVisuals {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) return;
 
-        float partial = event.getPartialTick().getGameTimeDeltaPartialTick(false);
+        float partial = event.getPartialTick();
         long now = minecraft.level.getGameTime();
         Vec3 camera = event.getCamera().getPosition();
         PoseStack poseStack = event.getPoseStack();
@@ -207,10 +207,10 @@ public final class ClientLandingVisuals {
         float nx = dx / length;
         float ny = dy / length;
         float nz = dz / length;
-        consumer.addVertex(pose, (float)segment.x1(), (float)segment.y1(), (float)segment.z1())
-                .setColor(red, green, blue, alpha).setNormal(pose, nx, ny, nz);
-        consumer.addVertex(pose, (float)segment.x2(), (float)segment.y2(), (float)segment.z2())
-                .setColor(red, green, blue, alpha).setNormal(pose, nx, ny, nz);
+        consumer.vertex((pose).pose(),(float)segment.x1(),(float)segment.y1(),(float)segment.z1())
+                .color(red, green, blue, alpha).normal((pose).normal(),nx,ny,nz).endVertex();
+        consumer.vertex((pose).pose(),(float)segment.x2(),(float)segment.y2(),(float)segment.z2())
+                .color(red, green, blue, alpha).normal((pose).normal(),nx,ny,nz).endVertex();
     }
 
     private record CrackField(List<CrackSegment> segments, long createdAt, int lifetime) {

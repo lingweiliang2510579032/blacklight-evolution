@@ -56,7 +56,7 @@ public final class BlacklightPlayerModel extends PlayerModel<AbstractClientPlaye
     }
     @Override public void setupAnim(AbstractClientPlayer player,float swing,float amount,float age,float yaw,float pitch) {
         super.setupAnim(player,swing,amount,age,yaw,pitch);
-        float partial=Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false);
+        float partial=Minecraft.getInstance().getFrameTime();
         matrices=PlayerMotionController.skeleton().getPoseMatrices(BlacklightRenderPose.sample(player,partial));
         // Ordinary equipment layers copy ModelPart transforms. Project the same
         // authored pose into their native frame so equipment follows the body.
@@ -70,7 +70,7 @@ public final class BlacklightPlayerModel extends PlayerModel<AbstractClientPlaye
         if(armor.covers(player,"right_arm",partial)){rightArm.visible=false;rightSleeve.visible=false;}
         if(armor.covers(player,"left_leg",partial)){leftLeg.visible=false;leftPants.visible=false;}
         if(armor.covers(player,"right_leg",partial)){rightLeg.visible=false;rightPants.visible=false;}
-        var state=player.getData(com.codex.blacklight.registry.ModAttachments.PLAYER_STATE);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE);
         var form=state.getActivePower();
         rightBiological=leftBiological=false;
         if(state.isPrototypeMode()) {
@@ -98,8 +98,9 @@ public final class BlacklightPlayerModel extends PlayerModel<AbstractClientPlaye
         var scale=matrix.getScale(new Vector3f());part.xScale=scale.x;part.yScale=scale.y;part.zScale=scale.z;
     }
     public Matrix4f[] matrices() { return matrices; }
-    @Override public void renderToBuffer(PoseStack stack,VertexConsumer out,int light,int overlay,int color) {
-        if(matrices==null){super.renderToBuffer(stack,out,light,overlay,color);return;}
+    @Override public void renderToBuffer(PoseStack stack,VertexConsumer out,int light,int overlay,float red,float green,float blue,float alpha) {
+        int color=((int)(alpha*255)<<24)|((int)(red*255)<<16)|((int)(green*255)<<8)|(int)(blue*255);
+        if(matrices==null){super.renderToBuffer(stack,out,light,overlay,red,green,blue,alpha);return;}
         skinMatrices=new Matrix4f[matrices.length];skinNormals=new Matrix3f[matrices.length];
         for(int i=0;i<matrices.length;i++) {
             skinMatrices[i]=new Matrix4f(matrices[i]).mul(bindInverse[i]);
@@ -156,7 +157,7 @@ public final class BlacklightPlayerModel extends PlayerModel<AbstractClientPlaye
         Vector3f p=new Vector3f(points[0]).lerp(new Vector3f(points[1]),u);
         p.lerp(new Vector3f(points[3]).lerp(new Vector3f(points[2]),u),v);
         // Clothing inflation uses the base skin's weight, keeping copied layers attached.
-        float modelY=piece.y+Math.clamp(p.y*16-piece.y,piece.from,piece.to);
+        float modelY=piece.y+net.minecraft.util.Mth.clamp(p.y*16-piece.y,piece.from,piece.to);
         var weight=BlacklightSkinWeights.sample(piece.anatomy,modelY,piece.bone.equals("neck"));
         var skeleton=PlayerMotionController.skeleton();
         int first=skeleton.searchJointByName(weight.first()).getId(),second=skeleton.searchJointByName(weight.second()).getId();
@@ -166,6 +167,6 @@ public final class BlacklightPlayerModel extends PlayerModel<AbstractClientPlaye
         var normal=new Vector3f(firstNormal).lerp(skinNormals[second].transform(new Vector3f(-nx,-ny,nz)),weight.secondWeight());
         if(normal.lengthSquared()<1e-8F)normal.set(firstNormal);
         normal.normalize();
-        out.addVertex(stack.last(),position.x,position.y,position.z).setColor(color).setUv(textureU/64,textureV/64).setOverlay(overlay).setLight(light).setNormal(stack.last(),normal.x,normal.y,normal.z);
+        out.vertex((stack.last()).pose(),position.x,position.y,position.z).color(color).uv(textureU/64,textureV/64).overlayCoords(overlay).uv2(light).normal((stack.last()).normal(),normal.x,normal.y,normal.z).endVertex();
     }
 }

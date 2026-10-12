@@ -11,21 +11,21 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 
 /** One stage-driven effect for vanilla, Blacklight and Gecko receivers, including large targets. */
 @EventBusSubscriber(modid="blacklight",value=Dist.CLIENT)
 public final class ConsumeAbsorptionFx {
     private ConsumeAbsorptionFx() {}
     public static Vec3 destination(LivingEntity victim,float partial,Vec3 placement) {
-        var data=victim.getData(ModAttachments.CONSUME_VISUAL);
+        var data=com.codex.blacklight.registry.ModAttachments.getData(victim, ModAttachments.CONSUME_VISUAL);
         var owner=victim.level().getEntity(data.consumerId());if(owner==null)return Vec3.ZERO;
         Vec3 chest=new Vec3(0,owner.getBbHeight()*.63,0);
         if(owner instanceof LivingEntity&&!ConsumeSequence.mountedStage(data.stage())){
-            var form=PowerForm.values()[Math.clamp(data.form(),0,PowerForm.values().length-1)];
+            var form=PowerForm.values()[net.minecraft.util.Mth.clamp(data.form(),0,PowerForm.values().length-1)];
             var row=ConsumePlacementTrack.contactFrame(form,data.motionProgress(victim.level().getGameTime(),partial)).orElse(null);
             if(row!=null){Vec3 f=Vec3.directionFromRotation(0,data.facing()),r=new Vec3(-f.z,0,f.x);chest=r.scale(row[7]*.9375).add(f.scale(row[9]*.9375)).add(0,row[8]*.9375,0);}
         }
@@ -34,12 +34,12 @@ public final class ConsumeAbsorptionFx {
     @SubscribeEvent public static void render(RenderLevelStageEvent event) {
         if(event.getStage()!=RenderLevelStageEvent.Stage.AFTER_ENTITIES)return;
         var mc=Minecraft.getInstance();if(mc.level==null)return;
-        float partial=event.getPartialTick().getGameTimeDeltaPartialTick(false);
+        float partial=event.getPartialTick();
         var camera=event.getCamera().getPosition();var stack=event.getPoseStack();var buffers=mc.renderBuffers().bufferSource();
         var type=RenderType.entityCutoutNoCull(ConsumedMobVisuals.WHITE);
         for(var entity:mc.level.entitiesForRendering()){
             if(!(entity instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon mob)||mob.distanceToSqr(camera)>96*96)continue;
-            var visual=mob.getData(ModAttachments.CONSUME_VISUAL);if(!visual.consuming()||mc.level.getEntity(visual.consumerId())==null)continue;
+            var visual=com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.CONSUME_VISUAL);if(!visual.consuming()||mc.level.getEntity(visual.consumerId())==null)continue;
             var phase=ConsumeFracture.phase(mob,partial);if(phase.opening()<=0)continue;
             var placement=ClientCarryPlacement.consumeOffset(mob,partial);
             Vec3 position=mob.getPosition(partial).add(placement).subtract(camera);
@@ -73,5 +73,5 @@ public final class ConsumeAbsorptionFx {
             ConsumedMobVisuals.tube(stack,out,light,point.subtract(direction.scale(size)),point.add(direction.scale(size)),size,i%2==0?0xff66242e:0xff28181d);
         }
     }
-    private static float smooth(float t){t=Math.clamp(t,0,1);return t*t*(3-2*t);}
+    private static float smooth(float t){t=net.minecraft.util.Mth.clamp(t,0,1);return t*t*(3-2*t);}
 }

@@ -10,15 +10,15 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.*;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderLivingEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.*;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.RenderLivingEvent;
 
 /** Victims retain their species model until it contracts into biomass. No replacement mob or item drop. */
 @EventBusSubscriber(modid = BlacklightNeoMod.MOD_ID, value = Dist.CLIENT)
 public final class ConsumedMobVisuals {
-    public static final ResourceLocation WHITE = ResourceLocation.fromNamespaceAndPath("blacklight", "textures/entity/claw_white.png");
+    public static final ResourceLocation WHITE = new ResourceLocation("blacklight", "textures/entity/claw_white.png");
     private static final java.util.Set<LivingEntity> SCALED = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
     private static final java.util.Set<LivingEntity> RENDERING = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
     private ConsumedMobVisuals() {}
@@ -28,10 +28,10 @@ public final class ConsumedMobVisuals {
         var mob = event.getEntity();
         if (RENDERING.contains(mob)) return;
         if (mob instanceof BlacklightHunter) return;
-        var data = mob.getData(ModAttachments.CONSUME_VISUAL);
+        var data = com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.CONSUME_VISUAL);
         if (!data.active()) {
             boolean feeding=DevourerFeedingFx.shrinkingVictim(mob,event.getPartialTick());
-            var hit=mob.getData(ModAttachments.HIT_REACTION);
+            var hit=com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.HIT_REACTION);
             if(!feeding&&hit.weight(mob.level().getGameTime(),event.getPartialTick())<=0)return;
             if(!feeding&&mob instanceof net.minecraft.client.player.AbstractClientPlayer&&com.codex.blacklight.client.animation.NativeHitPose.available(mob))return;
             var stack=event.getPoseStack();stack.pushPose();
@@ -73,7 +73,7 @@ public final class ConsumedMobVisuals {
     }
 
     public static float tetherProgress(LivingEntity mob,float partial) {
-        var data=mob.getData(ModAttachments.CONSUME_VISUAL);
+        var data=com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.CONSUME_VISUAL);
         if(data.stage()==com.codex.blacklight.combat.ConsumeVisual.WHIP_PULL)
             return Math.min(.44F,(mob.level().getGameTime()-data.started()+partial)/60F);
         if(data.stage()==com.codex.blacklight.combat.ConsumeVisual.CAPTURE)
@@ -84,11 +84,11 @@ public final class ConsumedMobVisuals {
     }
     /** A thick, continuous cable and tightening coil distinguish whip capture from generic tendrils. */
     public static void whip(LivingEntity mob, PoseStack stack, VertexConsumer out, int light, Vec3 delta, float t) {
-        if (mob.getData(ModAttachments.CONSUME_VISUAL).form() != PowerForm.WHIPFIST.ordinal() || t > .9F) return;
+        if (com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.CONSUME_VISUAL).form() != PowerForm.WHIPFIST.ordinal() || t > .9F) return;
         if (t < .185F) return;
         stack.pushPose();
-        stack.mulPose(com.codex.blacklight.client.animation.ConsumeVictimPose.effectTransform(mob,net.minecraft.client.Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false)));
-        double radius = mob.getBbWidth() * .58 * (1-Math.clamp((t-.85)/.05, 0, 1));
+        com.codex.blacklight.client.ClientPoseMatrices.multiply(stack,com.codex.blacklight.client.animation.ConsumeVictimPose.effectTransform(mob,net.minecraft.client.Minecraft.getInstance().getFrameTime()));
+        double radius = mob.getBbWidth() * .58 * (1-net.minecraft.util.Mth.clamp((t-.85)/.05, 0, 1));
         for (int i = 0; i < 48; i++) {
             double a = i / 48.0, b = (i+1) / 48.0;
             Vec3 p = new Vec3(Math.cos(a*Math.PI*5)*radius, mob.getBbHeight()*(.22+.6*a), Math.sin(a*Math.PI*5)*radius);
@@ -109,7 +109,7 @@ public final class ConsumedMobVisuals {
         }
     }
     private static void vertex(PoseStack stack, VertexConsumer out, int light, Vec3 p, Vec3 n, int color) {
-        out.addVertex(stack.last(), (float)p.x, (float)p.y, (float)p.z).setColor(color).setUv(.5F,.5F)
-                .setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(stack.last(),(float)n.x,(float)n.y,(float)n.z);
+        out.vertex((stack.last()).pose(),(float)p.x,(float)p.y,(float)p.z).color(color).uv(.5F,.5F)
+                .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(light).normal((stack.last()).normal(),(float)n.x,(float)n.y,(float)n.z).endVertex();
     }
 }

@@ -109,8 +109,8 @@ class BlacklightStateTest {
         state.buyMovementUpgrade(MovementUpgrade.SPRINT_1);
         state.buyMovementUpgrade(MovementUpgrade.AIR_DASH_PLUS);
 
-        var encoded = BlacklightState.CODEC.encodeStart(JsonOps.INSTANCE, state).getOrThrow();
-        BlacklightState decoded = BlacklightState.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow();
+        var encoded = BlacklightState.CODEC.encodeStart(JsonOps.INSTANCE, state).getOrThrow(false, error -> { throw new IllegalStateException(error); });
+        BlacklightState decoded = BlacklightState.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow(false, error -> { throw new IllegalStateException(error); });
 
         assertTrue(decoded.hasMovementUpgrade(MovementUpgrade.SPRINT_1));
         assertTrue(decoded.hasMovementUpgrade(MovementUpgrade.AIR_DASH_PLUS));
@@ -137,8 +137,8 @@ class BlacklightStateTest {
         state.infect();
         state.setPrototypeMode(true);
 
-        var encoded = BlacklightState.CODEC.encodeStart(JsonOps.INSTANCE, state).getOrThrow();
-        BlacklightState decoded = BlacklightState.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow();
+        var encoded = BlacklightState.CODEC.encodeStart(JsonOps.INSTANCE, state).getOrThrow(false, error -> { throw new IllegalStateException(error); });
+        BlacklightState decoded = BlacklightState.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow(false, error -> { throw new IllegalStateException(error); });
 
         assertTrue(decoded.isPrototypeMode());
         assertEquals(PowerForm.CLAWS, decoded.getActivePower());
@@ -150,7 +150,7 @@ class BlacklightStateTest {
                 {"infected":true,"biomass":250,"unlocked":1,"active_power":"claws"}
                 """);
 
-        BlacklightState decoded = BlacklightState.CODEC.parse(JsonOps.INSTANCE, legacy).getOrThrow();
+        BlacklightState decoded = BlacklightState.CODEC.parse(JsonOps.INSTANCE, legacy).getOrThrow(false, error -> { throw new IllegalStateException(error); });
 
         assertTrue(decoded.isInfected());
         assertFalse(decoded.isPrototypeMode());

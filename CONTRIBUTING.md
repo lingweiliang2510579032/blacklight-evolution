@@ -2,17 +2,17 @@
 
 欢迎参与代码、建模、动画、特效和测试。项目目前处于原型迭代阶段，目标是制作受 Prototype 启发的 Minecraft 模组。提交功能前请先说明你要解决的问题；大型改动先讨论设计和分工，避免多人同时重做同一套动作。
 
-项目原创内容采用 [GPL-3.0-only](LICENSE)。公开协作仓库：https://github.com/mengyuyuan/blacklight-evolution 。提交贡献时，请确认你有权按此许可证提供这些内容；第三方文件保留原有许可和署名。
+项目原创内容采用 [GPL-3.0-only](LICENSE)。本分支独立维护 Forge 1.20.1，协作仓库：https://github.com/lingweiliang2510579032/blacklight-evolution ，目标分支 `forge-1.20.1`。原作者在上游维护 NeoForge 1.21.1，不向上游提交整套降版 PR。第三方文件保留原有许可和署名。
 
 ## 开发环境
 
-- Java 21，使用仓库内的 Gradle Wrapper。
-- Minecraft 1.21.1、NeoForge 21.1.244；GeckoLib 由 Gradle 获取；独立版不要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。
+- Java 17，使用仓库内的 Gradle 8.9 Wrapper。
+- Minecraft 1.20.1、Forge 47.4.10、GeckoLib 4.8.4；不要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。
 - 默认只编译打包：Windows 使用 `./gradlew.bat assemble --no-daemon`；Linux/macOS 使用 `bash ./gradlew assemble --no-daemon`。
 - 用户明确要求启动试玩时，使用 `./gradlew.bat runClient`；Linux/macOS 替换为 `bash ./gradlew`。
 - 第一轮构建需要网络下载依赖。不要提交 `.gradle/`、`build/`、`run/`、存档或个人账户配置。
 
-普通源码构建是 source-only，缺少完整运行所需的本地动作资料，不能直接作为可玩发行包。私有 local-preview 资料不提交到仓库，详见 `THIRD_PARTY_ASSETS.md`。
+普通构建是 bundled，包含仓库中完整的 224 个资料文件，并验证最终 Forge 重混淆成品。外部整套资料使用 external-profile；不提交个人导出、测试存档、解包原始文件或凭证。构建和完整玩法验收分开记录，资源出处见 `THIRD_PARTY_ASSETS.md`。
 
 默认构建与 CI 不运行单元测试、碰撞测试、GameTest 或游戏内验收；这些检查仅在用户明确要求时运行。编译打包成功不代表真人试玩已通过。
 
@@ -34,9 +34,11 @@
 
 ## 提交改动
 
-1. 从主分支建立自己的功能分支；一个改动集中解决一个问题。
+源码构建保留完整动作缺失的失败行为。当前新增 Forge 状态/网络测试可用 `test --tests 'com.codex.blacklight.forge.*'` 运行；全量测试仍有资源阻塞与上游旧断言差异，参见 [实际验收记录](docs/FORGE_1_20_1_STATUS.md)。不能把仅编译通过标记为可玩验收。
+
+1. 从 `forge-1.20.1` 建立自己的功能分支；一个改动集中解决一个问题。
 2. 描述修改前后的行为，附复现步骤。动作和模型改动提供可编辑源文件和导出结果；已有正面、侧面或运动视频可附在 PR 中，没有游戏内验收材料时如实说明。
-3. 运行 `assemble` 编译打包。只有用户明确要求时才运行相应测试；如要求墙面碰撞测试，可执行 `runGameTestServer -PwallTraversalTest`，使用独立的 `run-wall-gametest/` 世界。
+3. 运行 `assemble` 编译打包。只有用户明确要求时才运行相应测试；如要求墙面碰撞测试，可执行 `runGameTestServer -PwallTraversalTest`，使用独立的 `run-standalone-gametest/` 世界。
 4. 在 PR 中填写验证结果、未验证项和素材来源。服务端裁定伤害与移动规则，不能只改客户端表现而遗漏同步。
 5. 不上传从商业游戏提取的模型、纹理、音频或完整参考视频。原创或第三方资产应注明作者、来源和许可证，保留要求的声明。
 

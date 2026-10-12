@@ -2,17 +2,17 @@ package com.codex.blacklight.client;
 
 import com.codex.blacklight.power.PrototypeMetabolism;
 import net.minecraft.client.Minecraft;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
-import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.RenderGuiOverlayEvent;
+import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 
 @EventBusSubscriber(modid = "blacklight", value = Dist.CLIENT)
 public final class PrototypeFoodHud {
     @SubscribeEvent
-    public static void render(RenderGuiLayerEvent.Pre event) {
-        if (event.getName().equals(VanillaGuiLayers.FOOD_LEVEL)
+    public static void render(RenderGuiOverlayEvent.Pre event) {
+        if (event.getOverlay().id().equals(VanillaGuiOverlay.FOOD_LEVEL.id())
                 && PrototypeMetabolism.active(Minecraft.getInstance().player)) event.setCanceled(true);
     }
 }

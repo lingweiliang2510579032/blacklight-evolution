@@ -8,12 +8,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 
 /** Real posed silhouettes over a world colour pass. Does not change entity glowing flags. */
 @EventBusSubscriber(modid="blacklight", value=Dist.CLIENT)
@@ -42,7 +42,7 @@ public final class VisionPowerRenderer {
         e.registerReloadListener((net.minecraft.server.packs.resources.ResourceManagerReloadListener) manager ->
                 Minecraft.getInstance().execute(() -> { closeEffect(); failed = false; }));
     }
-    @SubscribeEvent public static void tick(ClientTickEvent.Post e) {
+    @SubscribeEvent public static void tick(net.minecraftforge.event.TickEvent.ClientTickEvent e){if(e.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
         var current = Minecraft.getInstance().level;
         if (current != previousLevel) {
             closeEffect(); previousLevel = current; displayedMode = 0; strength = 0; lastFrame = -1; failed = false;
@@ -50,11 +50,11 @@ public final class VisionPowerRenderer {
     }
     private static int transition(Minecraft mc, float partial) {
         int wanted = mode(); double now = mc.level.getGameTime() + partial;
-        float elapsed = lastFrame < 0 ? 0 : (float)Math.clamp((now - lastFrame) / 20, 0, .25);
+        float elapsed = lastFrame < 0 ? 0 : (float)net.minecraft.util.Mth.clamp((now - lastFrame) / 20, 0, .25);
         lastFrame = now;
         if (displayedMode == 0) displayedMode = wanted;
         boolean entering = wanted != 0 && wanted == displayedMode;
-        strength = Math.clamp(strength + elapsed * (entering ? 5 : -5), 0, 1);
+        strength = net.minecraft.util.Mth.clamp(strength + elapsed * (entering ? 5 : -5), 0, 1);
         if (strength == 0 && !entering) { closeEffect(); displayedMode = wanted; }
         return displayedMode;
     }
@@ -65,7 +65,7 @@ public final class VisionPowerRenderer {
             if (effect == null || effectMode != mode) {
                 closeEffect();
                 effect = new PostChain(mc.getTextureManager(), mc.getResourceManager(), mc.getMainRenderTarget(),
-                        ResourceLocation.fromNamespaceAndPath("blacklight", "shaders/post/" + (mode == 1 ? "thermal" : "infected") + ".json"));
+                        new ResourceLocation("blacklight", "shaders/post/" + (mode == 1 ? "thermal" : "infected") + ".json"));
                 effectMode = mode;
                 width = height = -1;
             }
@@ -77,7 +77,7 @@ public final class VisionPowerRenderer {
             }
             depthCopy.copyDepthFrom(mc.getMainRenderTarget());
             savedDepth = true;
-            effect.setUniform("Strength", strength * strength * (3 - 2 * strength));
+            com.codex.blacklight.client.ClientPostUniforms.set(effect,"Strength", strength * strength * (3 - 2 * strength));
             effect.process(partial);
             mc.getMainRenderTarget().copyDepthFrom(depthCopy);
         } catch (Exception ex) {
@@ -90,7 +90,7 @@ public final class VisionPowerRenderer {
         if (e.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL || drawing) return;
         var mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;
-        float partial = e.getPartialTick().getGameTimeDeltaPartialTick(false);
+        float partial = e.getPartialTick();
         int mode = transition(mc, partial);
         if (mode == 0 || strength <= 0) return;
         mc.renderBuffers().bufferSource().endBatch();
@@ -128,22 +128,25 @@ public final class VisionPowerRenderer {
         Tint(VertexConsumer out, int color, float opacity, boolean thermal, float baseY, float height, boolean burning) {
             this.out=out;this.color=color;this.opacity=opacity;this.thermal=thermal;this.baseY=baseY;this.height=Math.max(.1F,height);this.burning=burning;
         }
-        public VertexConsumer addVertex(float x, float y, float z) { vertexY=y;if (out != null) out.addVertex(x,y,z); return this; }
-        public VertexConsumer setColor(int r, int g, int b, int a) {
+        public void endVertex(){if(out!=null)out.endVertex();}
+        public void defaultColor(int r,int g,int b,int a){if(out!=null)out.defaultColor(r,g,b,a);}
+        public void unsetDefaultColor(){if(out!=null)out.unsetDefaultColor();}
+        public VertexConsumer vertex(double x, double y, double z) { vertexY=(float)y;if (out != null) out.vertex(x,y,z); return this; }
+        public VertexConsumer color(int r, int g, int b, int a) {
             if (out != null) {
                 int alpha=(int)((color>>>24)*opacity);
                 if(thermal) {
                     // Minecraft body-height heat palette, not a claim of simulated temperatures.
-                    float h=Math.clamp((vertexY-baseY)/height,0,1);
+                    float h=net.minecraft.util.Mth.clamp((vertexY-baseY)/height,0,1);
                     float warmth=burning?1:.3F+.7F*(float)Math.exp(-12*(h-.58F)*(h-.58F));
-                    out.setColor(255,(int)(55+200*warmth),(int)(18+155*warmth*warmth),alpha);
-                } else out.setColor(color>>16&255,color>>8&255,color&255,alpha);
+                    out.color(255,(int)(55+200*warmth),(int)(18+155*warmth*warmth),alpha);
+                } else out.color(color>>16&255,color>>8&255,color&255,alpha);
             }
             return this;
         }
-        public VertexConsumer setUv(float u, float v) { if (out != null) out.setUv(.5F,.5F); return this; }
-        public VertexConsumer setUv1(int u, int v) { if (out != null) out.setUv1(0,10); return this; }
-        public VertexConsumer setUv2(int u, int v) { if (out != null) out.setUv2(240,240); return this; }
-        public VertexConsumer setNormal(float x, float y, float z) { if (out != null) out.setNormal(x,y,z); return this; }
+        public VertexConsumer uv(float u, float v) { if (out != null) out.uv(.5F,.5F); return this; }
+        public VertexConsumer overlayCoords(int u, int v) { if (out != null) out.overlayCoords(0,10); return this; }
+        public VertexConsumer uv2(int u, int v) { if (out != null) out.uv2(240,240); return this; }
+        public VertexConsumer normal(float x, float y, float z) { if (out != null) out.normal(x,y,z); return this; }
     }
 }

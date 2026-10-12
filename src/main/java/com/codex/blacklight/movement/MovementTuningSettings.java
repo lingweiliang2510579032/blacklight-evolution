@@ -1,7 +1,7 @@
 package com.codex.blacklight.movement;
 
 import com.codex.blacklight.BlacklightNeoMod;
-import net.neoforged.fml.loading.FMLPaths;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -135,7 +135,7 @@ public final class MovementTuningSettings {
     public static synchronized void setJumpMaxVelocity(double value) { jumpMaxVelocity = clamp(value, 0.8D, 1.65D); jumpMinVelocity=Math.min(jumpMinVelocity,jumpMaxVelocity); }
     /** One final launch limit shared by gameplay and the tuning preview. */
     public static double jumpLaunchVelocity(double charge,int upgradeMask){
-        double t=Math.clamp(charge,0,1),eased=t*t*(3-2*t);
+        double t=com.codex.blacklight.util.MathCompat.clamp(charge,0,1),eased=t*t*(3-2*t);
         return Math.min(2.2,(jumpMinVelocity()+(jumpMaxVelocity()-jumpMinVelocity())*eased)
                 *com.codex.blacklight.power.MovementUpgrade.jumpMultiplier(upgradeMask));
     }

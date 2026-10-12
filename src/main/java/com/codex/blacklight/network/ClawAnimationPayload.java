@@ -2,17 +2,17 @@ package com.codex.blacklight.network;
 
 import com.codex.blacklight.BlacklightNeoMod;
 import com.codex.blacklight.animation.PlayerAction;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.FriendlyByteBuf;
+import com.codex.blacklight.forge.codec.ByteBufCodecs;
+import com.codex.blacklight.forge.codec.StreamCodec;
+import com.codex.blacklight.forge.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
 /** Server acknowledgement that guarantees the controlling client starts the visual action. */
 public record ClawAnimationPayload(Animation animation) implements CustomPacketPayload {
     public static final Type<ClawAnimationPayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(BlacklightNeoMod.MOD_ID, "claw_animation"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, ClawAnimationPayload> STREAM_CODEC =
+            new ResourceLocation(BlacklightNeoMod.MOD_ID, "claw_animation"));
+    public static final StreamCodec<FriendlyByteBuf, ClawAnimationPayload> STREAM_CODEC =
             StreamCodec.composite(
                     ByteBufCodecs.VAR_INT.map(Animation::byId, Animation::id),
                     ClawAnimationPayload::animation,

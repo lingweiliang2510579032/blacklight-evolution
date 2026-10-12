@@ -97,6 +97,6 @@ public final class BiomassSurface {
         return WAVE[index] + (WAVE[index + 1] - WAVE[index]) * (at - index);
     }
     public static float smooth(float value) { float t = unit(value); return t * t * (3 - 2 * t); }
-    private static float unit(float value) { return Float.isFinite(value) ? Math.clamp(value, 0, 1) : 0; }
-    private static int channel(float value) { return Math.clamp(Math.round(value), 0, 255); }
+    private static float unit(float value) { return Float.isFinite(value) ? com.codex.blacklight.util.MathCompat.clamp(value, 0, 1) : 0; }
+    private static int channel(float value) { return com.codex.blacklight.util.MathCompat.clamp(Math.round(value), 0, 255); }
 }

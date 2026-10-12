@@ -1,5 +1,7 @@
 # Standalone dev.6 — native skins with approved infection geometry
 
+> 上游来源与历史验收记录。当前维护目标是 Minecraft 1.20.1 Forge；本文的原平台截图与测量不作为 Forge 验收证据。Forge 结果见 [维护状态](FORGE_1_20_1_STATUS.md)。
+
 Integrated into dev.7 with liquid weapon morphs and the checked-in complete
 runtime profile. Normal builds now use `art/motion-profile/` without an override.
 

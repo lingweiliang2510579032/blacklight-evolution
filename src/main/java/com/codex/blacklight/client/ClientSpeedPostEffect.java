@@ -10,11 +10,11 @@ import net.minecraft.client.renderer.PostChain;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 
 import java.io.IOException;
 
@@ -24,7 +24,7 @@ import java.io.IOException;
  */
 @EventBusSubscriber(modid = BlacklightNeoMod.MOD_ID, value = Dist.CLIENT)
 public final class ClientSpeedPostEffect {
-    private static final ResourceLocation EFFECT = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation EFFECT = new ResourceLocation(
             BlacklightNeoMod.MOD_ID, "shaders/post/prototype_speed.json");
 
     private static PostChain chain;
@@ -43,7 +43,7 @@ public final class ClientSpeedPostEffect {
     }
 
     @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(net.minecraftforge.event.TickEvent.ClientTickEvent event){if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) {
             // The world unloaded: release the PostChain so a resource reload can
@@ -60,7 +60,7 @@ public final class ClientSpeedPostEffect {
         float targetBiasX = 0.0F;
         float targetBiasY = 0.0F;
         if (minecraft.player != null && minecraft.level != null) {
-            var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
+            var state = com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.PLAYER_STATE);
             boolean running = state.isInfected() && state.isPrototypeMode()
                     && minecraft.player.onGround()
                     && ClientMovementEvents.isRunningForAttack(minecraft)
@@ -94,7 +94,7 @@ public final class ClientSpeedPostEffect {
 
     /** World logout also invalidates the chain; recreate it lazily on next render. */
     @SubscribeEvent
-    public static void onLogout(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
+    public static void onLogout(net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
         closeChain();
         failed = false;
     }
@@ -104,7 +104,7 @@ public final class ClientSpeedPostEffect {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL || failed) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null || minecraft.player == null || minecraft.screen != null) return;
-        float partial = event.getPartialTick().getGameTimeDeltaPartialTick(false);
+        float partial = event.getPartialTick();
         float renderedIntensity = Mth.lerp(partial, previousIntensity, intensity);
 
         try {
@@ -114,10 +114,10 @@ public final class ClientSpeedPostEffect {
             // zero-intensity fast path after that makes shader failures deterministic
             // instead of hiding them until the player happens to sprint.
             if (renderedIntensity < 0.015F) return;
-            chain.setUniform("Time", (minecraft.player.tickCount + partial) / 20.0F);
-            chain.setUniform("Intensity", renderedIntensity);
-            chain.setUniform("BiasX", Mth.lerp(partial, previousBiasX, biasX));
-            chain.setUniform("BiasY", Mth.lerp(partial, previousBiasY, biasY));
+            com.codex.blacklight.client.ClientPostUniforms.set(chain,"Time", (minecraft.player.tickCount + partial) / 20.0F);
+            com.codex.blacklight.client.ClientPostUniforms.set(chain,"Intensity", renderedIntensity);
+            com.codex.blacklight.client.ClientPostUniforms.set(chain,"BiasX", Mth.lerp(partial, previousBiasX, biasX));
+            com.codex.blacklight.client.ClientPostUniforms.set(chain,"BiasY", Mth.lerp(partial, previousBiasY, biasY));
             RenderSystem.disableBlend();
             RenderSystem.disableDepthTest();
             RenderSystem.resetTextureMatrix();

@@ -21,7 +21,7 @@ import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.codex.blacklight.forge.PacketDistributor;
 import org.joml.Vector3f;
 
 /** Server-side, performance-bounded physical feedback for Prototype traversal. */
@@ -116,12 +116,12 @@ public final class PrototypeMovementEffects {
         level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, wallState),
                 contact.x, contact.y, contact.z, 18,
                 0.30D, 0.48D, 0.30D, 0.14D);
-        level.sendParticles(ParticleTypes.GUST_EMITTER_LARGE,
+        level.sendParticles(ParticleTypes.EXPLOSION_EMITTER,
                 contact.x, contact.y, contact.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
         level.sendParticles(ModParticles.DESTRUCTION_BURST.get(),
                 contact.x, contact.y, contact.z, 2,
                 0.10D, 0.22D, 0.10D, 0.025D);
-        level.playSound(null, wallPos, SoundEvents.MACE_SMASH_GROUND,
+        level.playSound(null, wallPos, SoundEvents.IRON_GOLEM_ATTACK,
                 SoundSource.PLAYERS, 0.62F, 0.82F);
         feedback(player, PhysicalFeedbackPayload.Effect.WALL_RUN_START, 0.86F);
     }
@@ -133,7 +133,7 @@ public final class PrototypeMovementEffects {
                 12, 0.32D, 0.16D, 0.32D, 0.08D);
         level.sendParticles(BIOMASS_RED, edge.x, edge.y, edge.z,
                 10, 0.24D, 0.20D, 0.24D, 0.06D);
-        level.sendParticles(ParticleTypes.SMALL_GUST, edge.x, edge.y, edge.z,
+        level.sendParticles(ParticleTypes.CLOUD, edge.x, edge.y, edge.z,
                 3, 0.24D, 0.16D, 0.24D, 0.0D);
         level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
                 SoundSource.PLAYERS, 0.7F, 0.78F);
@@ -168,7 +168,7 @@ public final class PrototypeMovementEffects {
                 16, 0.42D, 0.10D, 0.42D, 0.13D);
         level.sendParticles(ParticleTypes.CLOUD, burst.x, player.getY() + 0.16D, burst.z,
                 10, 0.38D, 0.12D, 0.38D, 0.10D);
-        level.sendParticles(ParticleTypes.GUST_EMITTER_LARGE,
+        level.sendParticles(ParticleTypes.EXPLOSION_EMITTER,
                 burst.x, player.getY() + 0.35D, burst.z,
                 1, 0.0D, 0.0D, 0.0D, 0.0D);
         level.sendParticles(BIOMASS_RED, burst.x, player.getY() + 0.30D, burst.z,
@@ -186,7 +186,7 @@ public final class PrototypeMovementEffects {
     public static void tickSprint(ServerPlayer player, Vec3 forward, double speed) {
         float intensity = PrototypeLocomotion.sprintVisualIntensity(speed,
                 MovementTuningSettings.sprintMaxSpeed() * MovementUpgrade.sprintMultiplier(
-                        player.getData(ModAttachments.PLAYER_STATE).getMovementUpgradeMask()));
+                        com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).getMovementUpgradeMask()));
         if (intensity > 0.22F && player.tickCount % 2 == 0) {
             pushSprintSlipstream(player, forward, intensity);
         }
@@ -230,10 +230,10 @@ public final class PrototypeMovementEffects {
                     1, 0.0D, 0.0D, 0.0D, 0.0D);
         }
         if (intensity > 0.58F) {
-            level.sendParticles(ParticleTypes.DUST_PLUME, foot.x,
+            level.sendParticles(ParticleTypes.POOF, foot.x,
                     player.getY() + 0.06D, foot.z, 1,
                     0.08D, 0.02D, 0.08D, 0.012D);
-            level.sendParticles(ParticleTypes.SMALL_GUST, tail.x,
+            level.sendParticles(ParticleTypes.CLOUD, tail.x,
                     player.getY() + 0.45D, tail.z, 1,
                     0.18D, 0.28D, 0.18D, 0.0D);
             level.sendParticles(ParticleTypes.WHITE_ASH,
@@ -268,13 +268,13 @@ public final class PrototypeMovementEffects {
                 contact.x, contact.y, contact.z,
                 12 + Math.round(intensity * 18.0F), 0.34D, 0.55D, 0.34D,
                 0.10D + intensity * 0.08D);
-        level.sendParticles(ParticleTypes.GUST_EMITTER_LARGE,
+        level.sendParticles(ParticleTypes.EXPLOSION_EMITTER,
                 contact.x, contact.y, contact.z, 1,
                 0.0D, 0.0D, 0.0D, 0.0D);
         level.sendParticles(ModParticles.DESTRUCTION_BURST.get(),
                 contact.x, contact.y, contact.z, 2,
                 0.16D, 0.28D, 0.16D, 0.035D);
-        level.playSound(null, wall, SoundEvents.MACE_SMASH_GROUND_HEAVY,
+        level.playSound(null, wall, SoundEvents.GENERIC_EXPLODE,
                 SoundSource.PLAYERS, 0.48F + intensity * 0.45F,
                 0.72F - intensity * 0.16F);
         feedback(player, PhysicalFeedbackPayload.Effect.SPRINT_COLLISION,
@@ -363,7 +363,7 @@ public final class PrototypeMovementEffects {
         level.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 0.12D, player.getZ(),
                 Math.max(5, debrisTotal / 2), radius * 0.46D, 0.12D,
                 radius * 0.46D, 0.055D + impact.intensity() * 0.025D);
-        level.sendParticles(ParticleTypes.DUST_PLUME,
+        level.sendParticles(ParticleTypes.POOF,
                 player.getX(), player.getY() + 0.09D, player.getZ(),
                 1 + rings, radius * 0.24D, 0.06D, radius * 0.24D, 0.025D);
         if (strength != LandingImpact.Strength.LIGHT) {
@@ -378,7 +378,7 @@ public final class PrototypeMovementEffects {
                     player.getX(), player.getY() + 0.16D, player.getZ(),
                     strength == LandingImpact.Strength.DEVASTATING ? 3 : 2,
                     radius * 0.18D, 0.08D, radius * 0.18D, 0.018D);
-            level.sendParticles(ParticleTypes.GUST_EMITTER_LARGE,
+            level.sendParticles(ParticleTypes.EXPLOSION_EMITTER,
                     player.getX(), player.getY() + 0.18D, player.getZ(),
                     1, 0.0D, 0.0D, 0.0D, 0.0D);
         }
@@ -401,12 +401,12 @@ public final class PrototypeMovementEffects {
                 SoundSource.PLAYERS, 0.35F + intensity * 0.42F,
                 0.92F - Math.min(0.3F, intensity * 0.15F));
         if (strength != LandingImpact.Strength.LIGHT) {
-            level.playSound(null, centerSurface, SoundEvents.MACE_SMASH_GROUND_HEAVY,
+            level.playSound(null, centerSurface, SoundEvents.GENERIC_EXPLODE,
                     SoundSource.PLAYERS, 0.62F + intensity * 0.35F,
                     strength == LandingImpact.Strength.DEVASTATING ? 0.55F : 0.72F);
         }
         if (strength == LandingImpact.Strength.DEVASTATING) {
-            level.playSound(null, centerSurface, SoundEvents.GENERIC_EXPLODE.value(),
+            level.playSound(null, centerSurface, SoundEvents.GENERIC_EXPLODE,
                     SoundSource.PLAYERS, Math.min(1.5F, 0.55F + intensity * 0.48F), 0.58F);
             level.playSound(null, centerSurface, SoundEvents.WARDEN_SONIC_BOOM,
                     SoundSource.PLAYERS, 0.16F + intensity * 0.08F, 0.68F);

@@ -1,19 +1,19 @@
 package com.codex.blacklight.animation;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.FriendlyByteBuf;
+import com.codex.blacklight.forge.codec.StreamCodec;
 
 /** Transient server-owned action clock, synchronized to the actor and tracking clients. */
 public record NativeActionState(String clipId, long started, float clipOffset, float transition,
                                 float duration, float yaw, boolean looping, float heldTime, long revision) {
     public static final NativeActionState EMPTY = new NativeActionState("", 0, 0, 0, 0, 0, false, -1, 0);
-    public static final StreamCodec<RegistryFriendlyByteBuf, NativeActionState> CODEC = new StreamCodec<>() {
-        @Override public NativeActionState decode(RegistryFriendlyByteBuf buffer) {
+    public static final StreamCodec<FriendlyByteBuf, NativeActionState> CODEC = new StreamCodec<>() {
+        @Override public NativeActionState decode(FriendlyByteBuf buffer) {
             return new NativeActionState(buffer.readUtf(128), buffer.readVarLong(), buffer.readFloat(),
                     buffer.readFloat(), buffer.readFloat(), buffer.readFloat(), buffer.readBoolean(),
                     buffer.readFloat(), buffer.readVarLong());
         }
-        @Override public void encode(RegistryFriendlyByteBuf buffer, NativeActionState state) {
+        @Override public void encode(FriendlyByteBuf buffer, NativeActionState state) {
             buffer.writeUtf(state.clipId, 128); buffer.writeVarLong(state.started);
             buffer.writeFloat(state.clipOffset); buffer.writeFloat(state.transition);
             buffer.writeFloat(state.duration); buffer.writeFloat(state.yaw);

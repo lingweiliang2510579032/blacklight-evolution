@@ -71,10 +71,10 @@ public final class BlacklightInfectedHost extends Monster {
     public static AttributeSupplier.Builder attributes() {
         return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH,30).add(Attributes.ATTACK_DAMAGE,5)
                 .add(Attributes.MOVEMENT_SPEED,.30).add(Attributes.FLYING_SPEED,.35).add(Attributes.FOLLOW_RANGE,24)
-                .add(Attributes.STEP_HEIGHT,1).add(Attributes.KNOCKBACK_RESISTANCE,0);
+                .add(net.minecraftforge.common.ForgeMod.STEP_HEIGHT_ADDITION.get(),.4).add(Attributes.KNOCKBACK_RESISTANCE,0);
     }
-    @Override protected void defineSynchedData(SynchedEntityData.Builder b) {
-        super.defineSynchedData(b);b.define(HOST,new CompoundTag());b.define(FEED_TARGET,-1);b.define(FEED_STARTED,-1L);b.define(DEVOURER,false);b.define(NURSERY,new CompoundTag());b.define(FEED_NODE,-1);
+    @Override protected void defineSynchedData() {
+        super.defineSynchedData();entityData.define(HOST,new CompoundTag());entityData.define(FEED_TARGET,-1);entityData.define(FEED_STARTED,-1L);entityData.define(DEVOURER,false);entityData.define(NURSERY,new CompoundTag());entityData.define(FEED_NODE,-1);
     }
     public int feedingTargetId() { return entityData.get(FEED_TARGET); }
     public long feedingStarted() { return entityData.get(FEED_STARTED); }
@@ -246,7 +246,7 @@ public final class BlacklightInfectedHost extends Monster {
         entityData.set(HOST,data);refreshDimensions();
         float originalHealth=CombatScale.originalMaximum(source);
         getAttribute(Attributes.MAX_HEALTH).setBaseValue(colossal?profile.health():Math.max(18,originalHealth*1.4));
-        getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(colossal?profile.damage():Math.clamp(originalHealth*.14,4,18));
+        getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(colossal?profile.damage():com.codex.blacklight.util.MathCompat.clamp(originalHealth*.14,4,18));
         if(colossal)applyBossAttributes(profile);else if(encounterBoss())applyCompactEncounterAttributes(profile);
         setHealth(Math.max(1,getMaxHealth()*source.getHealth()/source.getMaxHealth()));
         setPersistenceRequired();setupNavigation();
@@ -257,7 +257,7 @@ public final class BlacklightInfectedHost extends Monster {
         getAttribute(Attributes.FLYING_SPEED).setBaseValue(profile.speed());
         getAttribute(Attributes.FOLLOW_RANGE).setBaseValue(96);
         getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);
-        getAttribute(Attributes.STEP_HEIGHT).setBaseValue(2);
+        getAttribute(net.minecraftforge.common.ForgeMod.STEP_HEIGHT_ADDITION.get()).setBaseValue(1.4);
         xpReward=profile==InfectedBossProfile.ENDER_DRAGON?1000:150;noCulling=true;
     }
     private void applyCompactEncounterAttributes(InfectedBossProfile profile) {
@@ -265,12 +265,15 @@ public final class BlacklightInfectedHost extends Monster {
         getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);
         xpReward=profile==InfectedBossProfile.ENDER_DRAGON?500:50;
     }
-    @Override public EntityDimensions getDefaultDimensions(Pose pose) {
+    @Override public EntityDimensions getDimensions(Pose pose) {
         var data=hostData();InfectedBossProfile profile=bossProfile();
-        if(profile!=null)return EntityDimensions.scalable(profile.width()*bodyScale(),profile.height()*bodyScale())
-                .withEyeHeight(profile.visualHeight()*bodyScale()*.77F);
-        if(!data.contains("Width"))return super.getDefaultDimensions(pose);
+        if(profile!=null)return EntityDimensions.scalable(profile.width()*bodyScale(),profile.height()*bodyScale());
+        if(!data.contains("Width"))return super.getDimensions(pose);
         return EntityDimensions.scalable(Mth.clamp(data.getFloat("Width"),.2F,16),Mth.clamp(data.getFloat("Height"),.2F,16));
+    }
+    @Override protected float getStandingEyeHeight(Pose pose,EntityDimensions dimensions) {
+        InfectedBossProfile profile=bossProfile();
+        return profile==null?super.getStandingEyeHeight(pose,dimensions):profile.visualHeight()*bodyScale()*.77F;
     }
     @Override public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
         super.onSyncedDataUpdated(key);
@@ -279,7 +282,7 @@ public final class BlacklightInfectedHost extends Monster {
             refreshDimensions();configureParts();
             // The client initially registered reserved IDs before HOST was received.
             // Drop unused parts once species is known; ordinary hordes do not need 20
-            // extra entries in NeoForge's global multipart collision queries.
+            // extra entries in Forge's global multipart collision queries.
             if(level().isClientSide&&level().getEntity(getId())==this)
                 level().getPartEntities().removeIf(p->p instanceof InfectedHostPart part&&part.getParent()==this&&!part.active());
             if(!level().isClientSide&&bossBar!=null)updateBossBar(true);
@@ -328,9 +331,9 @@ public final class BlacklightInfectedHost extends Monster {
         });
         goalSelector.addGoal(2,new MeleeAttackGoal(this,1.1,true) {
             @Override public boolean canUse() { return !DevourerFeedingSystem.controls(BlacklightInfectedHost.this)&&family().equals("ground")&&super.canUse(); }
-            @Override public boolean canContinueToUse() { return !getData(ModAttachments.CONSUME_VISUAL).active()&&super.canContinueToUse(); }
-            @Override protected void checkAndPerformAttack(LivingEntity target) {
-                if(attackCooldown==0&&canPerformAttack(target)) {
+            @Override public boolean canContinueToUse() { return !com.codex.blacklight.registry.ModAttachments.getData(BlacklightInfectedHost.this, ModAttachments.CONSUME_VISUAL).active()&&super.canContinueToUse(); }
+            @Override protected void checkAndPerformAttack(LivingEntity target,double distanceSquared) {
+                if(attackCooldown==0&&isTimeToAttack()&&BlacklightInfectedHost.this.isWithinMeleeAttackRange(target)&&getSensing().hasLineOfSight(target)) {
                     resetAttackCooldown();swing(InteractionHand.MAIN_HAND);doHurtTarget(target);attackCooldown=giantBoss()?40:20;
                 }
             }
@@ -362,7 +365,7 @@ public final class BlacklightInfectedHost extends Monster {
         DevourerFeedingSystem.tick(this);
         tickBoss();
         if(family().equals("water")||hasMultipartBody())setAirSupply(getMaxAirSupply());
-        if(getData(ModAttachments.CONSUME_VISUAL).active()||com.codex.blacklight.combat.ImpactControl.stunned(this)) { getNavigation().stop();return; }
+        if(com.codex.blacklight.registry.ModAttachments.getData(BlacklightInfectedHost.this, ModAttachments.CONSUME_VISUAL).active()||com.codex.blacklight.combat.ImpactControl.stunned(this)) { getNavigation().stop();return; }
         if(attackCooldown>0)attackCooldown--;
         if(!isAlive()||isNoAi()||level().getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL||family().equals("ground"))return;
         var target=getTarget();if(target==null||!validTarget(target))return;
@@ -399,9 +402,9 @@ public final class BlacklightInfectedHost extends Monster {
         for(InfectedHostPart part:parts)if(part.active()&&part.partName().equals("head")){origin=part.getBoundingBox().getCenter();break;}
         Vec3 aim=target.getBoundingBox().getCenter().subtract(origin).normalize();
         origin=origin.add(aim.scale(Math.max(.6,7*bodyScale())));
-        Entity projectile=bossProfile()==InfectedBossProfile.WITHER?new WitherSkull(level(),this,aim) {
+        Entity projectile=bossProfile()==InfectedBossProfile.WITHER?new WitherSkull(level(),this,aim.x,aim.y,aim.z) {
             @Override protected boolean canHitEntity(Entity target) { return !target.is(BlacklightInfectedHost.this)&&super.canHitEntity(target); }
-        }:new DragonFireball(level(),this,aim) {
+        }:new DragonFireball(level(),this,aim.x,aim.y,aim.z) {
             @Override protected boolean canHitEntity(Entity target) { return !target.is(BlacklightInfectedHost.this)&&super.canHitEntity(target); }
         };
         projectile.setPos(origin);level().addFreshEntity(projectile);swing(InteractionHand.MAIN_HAND);
@@ -429,7 +432,7 @@ public final class BlacklightInfectedHost extends Monster {
         bossBar.setVisible(visible);
         if(!visible){bossBar.removeAllPlayers();return;}
         bossBar.setName(encounterBarName());
-        bossBar.setProgress(Math.clamp(getHealth()/Math.max(1,getMaxHealth()),0,1));
+        bossBar.setProgress(com.codex.blacklight.util.MathCompat.clamp(getHealth()/Math.max(1,getMaxHealth()),0,1));
         if(refreshViewers) {
             for(var player:List.copyOf(bossBar.getPlayers()))
                 if(!trackingPlayers.contains(player)||!eligibleViewer(player))bossBar.removePlayer(player);
@@ -466,8 +469,8 @@ public final class BlacklightInfectedHost extends Monster {
             }
         }
     }
-    @Override protected void dropCustomDeathLoot(ServerLevel level,DamageSource source,boolean recentlyHit) {
-        super.dropCustomDeathLoot(level,source,recentlyHit);
+    @Override protected void dropCustomDeathLoot(DamageSource source,int looting,boolean recentlyHit) {
+        super.dropCustomDeathLoot(source,looting,recentlyHit);
         // This hook already observes doMobLoot, drop capture, and LivingDrops cancellation.
         if(bossProfile()==InfectedBossProfile.WITHER)spawnAtLocation(net.minecraft.world.item.Items.NETHER_STAR);
     }

@@ -7,10 +7,10 @@ import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.*;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.*;
 import org.joml.Vector3f;
 import java.util.*;
 
@@ -32,7 +32,7 @@ public final class ShieldShardEffects {
         Vec3 velocity=center.subtract(player.position().add(0,1,0)).normalize().scale(broken?.07:.025).add(0,.045,0);
         shards.add(new Shard(player.level().getGameTime()+partial,center,velocity,transformed,material,light,(material%3-1)*.08F+.025F));
     }
-    @SubscribeEvent public static void tick(ClientTickEvent.Post event) {
+    @SubscribeEvent public static void tick(net.minecraftforge.event.TickEvent.ClientTickEvent event){if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
         var current=Minecraft.getInstance().level;
         if(current!=level){shards.clear();level=current;}
         if(current!=null)shards.removeIf(s->current.getGameTime()-s.born>18);
@@ -40,7 +40,7 @@ public final class ShieldShardEffects {
     @SubscribeEvent public static void render(RenderLevelStageEvent event) {
         if(event.getStage()!=RenderLevelStageEvent.Stage.AFTER_ENTITIES||shards.isEmpty())return;
         var mc=Minecraft.getInstance();if(mc.level==null)return;
-        double now=mc.level.getGameTime()+event.getPartialTick().getGameTimeDeltaPartialTick(false);
+        double now=mc.level.getGameTime()+event.getPartialTick();
         var stack=event.getPoseStack();var camera=event.getCamera().getPosition();stack.pushPose();
         try {
             stack.translate(-camera.x,-camera.y,-camera.z);var pose=stack.last();
@@ -48,15 +48,15 @@ public final class ShieldShardEffects {
             for(var s:shards) {
                 float age=(float)(now-s.born);if(age<0||age>18)continue;
                 Vec3 center=s.center.add(s.velocity.scale(age)).add(0,-.004*age*age,0);
-                float alpha=1-Math.clamp((age-8)/10,0,1);Vector3f[] points=new Vector3f[8];
+                float alpha=1-net.minecraft.util.Mth.clamp((age-8)/10,0,1);Vector3f[] points=new Vector3f[8];
                 for(int i=0;i<8;i++)points[i]=new Vector3f(s.offsets[i]).rotateY(s.spin*age);
                 for(int[] face:FACES) {
                     var normal=new Vector3f(points[face[1]]).sub(points[face[0]]).cross(new Vector3f(points[face[2]]).sub(points[face[0]])).normalize();
                     for(int i=0;i<4;i++) {
                         var p=points[face[i]];float u=(s.material+((i==1||i==2)?.969F:.031F))/6;
-                        out.addVertex(pose,(float)center.x+p.x,(float)center.y+p.y,(float)center.z+p.z)
-                                .setColor(255,255,255,(int)(255*alpha)).setUv(u,i<2?.031F:.969F).setOverlay(OverlayTexture.NO_OVERLAY)
-                                .setLight(s.light).setNormal(pose,normal.x,normal.y,normal.z);
+                        out.vertex((pose).pose(),(float)center.x+p.x,(float)center.y+p.y,(float)center.z+p.z)
+                                .color(255,255,255,(int)(255*alpha)).uv(u,i<2?.031F:.969F).overlayCoords(OverlayTexture.NO_OVERLAY)
+                                .uv2(s.light).normal((pose).normal(),normal.x,normal.y,normal.z).endVertex();
                     }
                 }
             }

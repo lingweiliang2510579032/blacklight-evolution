@@ -28,9 +28,9 @@ import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.TickEvent.PlayerTickEvent;
+import com.codex.blacklight.forge.PacketDistributor;
 import org.joml.Vector3f;
 
 import java.util.Comparator;
@@ -52,10 +52,10 @@ public final class ClawCombatSystem {
         if (request == ClawActionPayload.Action.GRAB) { ConsumeSystem.request(player); return; }
         if (request == ClawActionPayload.Action.CONSUME) { ConsumeSystem.consume(player); return; }
         if (request == ClawActionPayload.Action.THROW) { ConsumeSystem.throwTarget(player); return; }
-        if (player.getData(ModAttachments.CONSUMING)) return;
+        if (com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUMING)) return;
         if (request == ClawActionPayload.Action.CYCLE_FORM) { com.codex.blacklight.power.PowerFormSystem.cycle(player); return; }
-        BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
-        ClawCombatState combat = player.getData(ModAttachments.CLAW_COMBAT);
+        BlacklightState state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
+        ClawCombatState combat = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CLAW_COMBAT);
         BlacklightNeoMod.LOGGER.debug("Claw request {} from {} (power={}, action={})",
                 request, player.getGameProfile().getName(), state.getActivePower().id(), combat.action());
 
@@ -79,7 +79,7 @@ public final class ClawCombatSystem {
 
         // Any accepted claw action cancels the short post-impact movement damping.
         // The visual landing recovery can still blend out underneath the attack.
-        player.getData(ModAttachments.MOVEMENT_STATE).cancelLandingRecovery();
+        com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.MOVEMENT_STATE).cancelLandingRecovery();
 
         switch (request) {
             case ATTACK -> requestAttack(player, combat);
@@ -116,8 +116,8 @@ public final class ClawCombatSystem {
                                        boolean activate) {
         if(activate)com.codex.blacklight.disguise.DisguiseSystem.visiblePower(player);
         state.activate(activate ? PowerForm.CLAWS : PowerForm.NONE);
-        player.setData(ModAttachments.PLAYER_STATE, state);
-        player.syncData(ModAttachments.PLAYER_STATE);
+        com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.PLAYER_STATE, state);
+        com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.PLAYER_STATE);
         playPrototypeTransition(player, activate);
         player.displayClientMessage(Component.translatable(
                 activate ? "message.blacklight.claws_enabled" : "message.blacklight.claws_disabled"), true);
@@ -125,7 +125,7 @@ public final class ClawCombatSystem {
 
     /** Plays the biological arm transition after a server-authoritative mode change. */
     public static void playPrototypeTransition(ServerPlayer player, boolean activate) {
-        ClawCombatState combat = player.getData(ModAttachments.CLAW_COMBAT);
+        ClawCombatState combat = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CLAW_COMBAT);
         combat.reset();
         combat.begin(ClawCombatState.Action.TRANSFORM);
         play(player, PlayerAction.TRANSFORM_CLAWS);
@@ -203,13 +203,13 @@ public final class ClawCombatSystem {
     }
 
     @SubscribeEvent
-    public static void onPlayerTick(PlayerTickEvent.Post event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+    public static void onPlayerTick(PlayerTickEvent event) {if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
+        if (!(event.player instanceof ServerPlayer player)) return;
         if(WeaponCombatSystem.busy(player))return;
 
-        if (player.getData(ModAttachments.CONSUMING)) return;
-        BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
-        ClawCombatState combat = player.getData(ModAttachments.CLAW_COMBAT);
+        if (com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUMING)) return;
+        BlacklightState state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
+        ClawCombatState combat = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CLAW_COMBAT);
         if (!canUseClaws(state)) {
             combat.reset();
             return;
@@ -403,11 +403,11 @@ public final class ClawCombatSystem {
     }
 
     static void eruptGroundSpike(ServerPlayer player) {
-        if (!canUseClaws(player.getData(ModAttachments.PLAYER_STATE))) return;
+        if (!canUseClaws(com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE))) return;
         ServerLevel level = player.serverLevel();
-        BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
+        BlacklightState state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         double rangeMultiplier = (state.hasClawUpgrade(ClawUpgrade.RANGE) ? 1.25D : 1.0D)*AttackReach.scale(player);
-        var weapon = player.getData(ModAttachments.WEAPON_VISUAL);
+        var weapon = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL);
         Vec3 forward = weapon.spec() == WeaponMove.CLAW_GROUNDSPIKE
                 ? Vec3.directionFromRotation(0, weapon.yaw()) : player.getLookAngle().multiply(1.0D, 0.0D, 1.0D);
         if (forward.lengthSqr() < 0.001D) forward = new Vec3(0.0D, 0.0D, 1.0D);
@@ -462,7 +462,7 @@ public final class ClawCombatSystem {
         level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, level.getBlockState(surface.below())),
                 x, y + 0.18D, z, 64, radius * 0.60D, 0.40D,
                 radius * 0.60D, 0.19D);
-        level.playSound(null, surface, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.2F, 0.58F);
+        level.playSound(null, surface, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.2F, 0.58F);
         ClawPhysicalEffects.onGroundSpikeImpact(player, new Vec3(x, y, z), radius, surface);
     }
 

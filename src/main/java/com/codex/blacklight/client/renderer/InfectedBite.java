@@ -45,7 +45,7 @@ final class InfectedBite {
         return !(fy<.25F&&fz<.16F)&&!(fy>.75F&&fz>.82F);
     }
     void compile(PoseStack.Pose pose,VertexConsumer output,int light,int overlay,int color){
-        cube.compile(pose,new Cut(output,new Matrix4f(pose.pose()).invert()),light,overlay,color);
+        cube.compile(pose,new Cut(output,new Matrix4f(pose.pose()).invert()),light,overlay,((color>>16)&255)/255F,((color>>8)&255)/255F,(color&255)/255F,((color>>>24)&255)/255F);
     }
 
     private final class Cut implements VertexConsumer {
@@ -57,7 +57,8 @@ final class InfectedBite {
         private final Vector3f temporary=new Vector3f();
         private int index,color,overlay,light;
         Cut(VertexConsumer out,Matrix4f inverse){this.out=out;this.inverse=inverse;}
-        @Override public void addVertex(float x,float y,float z,int color,float u,float v,int overlay,int light,float nx,float ny,float nz){
+        @Override public void vertex(float x,float y,float z,float red,float green,float blue,float alpha,float u,float v,int overlay,int light,float nx,float ny,float nz){
+            int color=((int)(alpha*255)<<24)|((int)(red*255)<<16)|((int)(green*255)<<8)|(int)(blue*255);
             float[] vertex=vertices[index];
             vertex[0]=x;vertex[1]=y;vertex[2]=z;vertex[3]=u;vertex[4]=v;
             vertex[5]=nx;vertex[6]=ny;vertex[7]=nz;
@@ -90,24 +91,25 @@ final class InfectedBite {
                 else{emit(ys[y],zs[z+1]);emit(ys[y+1],zs[z+1]);emit(ys[y+1],zs[z]);}
             }
         }
-        private void original(){for(var v:vertices)out.addVertex(v[0],v[1],v[2],color,v[3],v[4],overlay,light,v[5],v[6],v[7]);}
+        private void original(){for(var v:vertices)out.vertex(v[0],v[1],v[2],((color >> 16) & 255)/255F,((color >> 8) & 255)/255F,(color & 255)/255F,((color >>> 24) & 255)/255F,v[3],v[4],overlay,light,v[5],v[6],v[7]);}
         private void emit(float y,float z){
             float[] a=vertices[0],b=vertices[1],d=vertices[3];
             float by=b[9]-a[9],bz=b[10]-a[10],dy=d[9]-a[9],dz=d[10]-a[10];
             float s=((y-a[9])*by+(z-a[10])*bz)/(by*by+bz*bz);
             float t=((y-a[9])*dy+(z-a[10])*dz)/(dy*dy+dz*dz);
-            out.addVertex(a[0]+s*(b[0]-a[0])+t*(d[0]-a[0]),a[1]+s*(b[1]-a[1])+t*(d[1]-a[1]),
-                    a[2]+s*(b[2]-a[2])+t*(d[2]-a[2]),color,a[3]+s*(b[3]-a[3])+t*(d[3]-a[3]),
-                    a[4]+s*(b[4]-a[4])+t*(d[4]-a[4]),overlay,light,a[5],a[6],a[7]);
+            out.vertex(a[0]+s*(b[0]-a[0])+t*(d[0]-a[0]),a[1]+s*(b[1]-a[1])+t*(d[1]-a[1]),a[2]+s*(b[2]-a[2])+t*(d[2]-a[2]),((color >> 16) & 255)/255F,((color >> 8) & 255)/255F,(color & 255)/255F,((color >>> 24) & 255)/255F,a[3]+s*(b[3]-a[3])+t*(d[3]-a[3]),a[4]+s*(b[4]-a[4])+t*(d[4]-a[4]),overlay,light,a[5],a[6],a[7]);
         }
         // Cube.compile uses the packed overload above. These methods preserve a
         // compatible forwarding consumer for renderers which use the chained API.
-        @Override public VertexConsumer addVertex(float x,float y,float z){out.addVertex(x,y,z);return this;}
-        @Override public VertexConsumer setColor(int r,int g,int b,int a){out.setColor(r,g,b,a);return this;}
-        @Override public VertexConsumer setUv(float u,float v){out.setUv(u,v);return this;}
-        @Override public VertexConsumer setUv1(int u,int v){out.setUv1(u,v);return this;}
-        @Override public VertexConsumer setUv2(int u,int v){out.setUv2(u,v);return this;}
-        @Override public VertexConsumer setNormal(float x,float y,float z){out.setNormal(x,y,z);return this;}
+        public void endVertex(){if(out!=null)out.endVertex();}
+        public void defaultColor(int r,int g,int b,int a){if(out!=null)out.defaultColor(r,g,b,a);}
+        public void unsetDefaultColor(){if(out!=null)out.unsetDefaultColor();}
+        @Override public VertexConsumer vertex(double x,double y,double z){out.vertex(x,y,z);return this;}
+        @Override public VertexConsumer color(int r,int g,int b,int a){out.color(r,g,b,a);return this;}
+        @Override public VertexConsumer uv(float u,float v){out.uv(u,v);return this;}
+        @Override public VertexConsumer overlayCoords(int u,int v){out.overlayCoords(u,v);return this;}
+        @Override public VertexConsumer uv2(int u,int v){out.uv2(u,v);return this;}
+        @Override public VertexConsumer normal(float x,float y,float z){out.normal(x,y,z);return this;}
     }
     private static float clamp(float value,float low,float high){return Math.max(low,Math.min(high,value));}
 }

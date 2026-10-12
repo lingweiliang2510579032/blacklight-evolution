@@ -86,7 +86,7 @@ public final class DevourerFeedingFx {
         if(forward.lengthSqr()<.1)forward=new Vec3(0,0,1);
         Vec3 right=new Vec3(forward.z,0,-forward.x);
         double reach=HiveFeedingMotion.smooth((age-4)/16),pull=HiveFeedingMotion.smooth((age-38)/58);
-        double contraction=contraction(age),preyRadius=Math.clamp(prey.getBbWidth()*.56,.18,2.5)*contraction;
+        double contraction=contraction(age),preyRadius=net.minecraft.util.Mth.clamp(prey.getBbWidth()*.56,.18,2.5)*contraction;
         for(int strand=0;strand<6;strand++){
             double a=strand*Math.PI/3;
             Vec3 radial=right.scale(Math.cos(a)).add(0,Math.sin(a),0);
@@ -134,15 +134,15 @@ public final class DevourerFeedingFx {
         double[][] v={{-x,-y,-z},{x,-y,-z},{x,y,-z},{-x,y,-z},{-x,-y,z},{x,-y,z},{x,y,z},{-x,y,z}};
         int[][] faces={{0,3,2,1},{4,5,6,7},{0,4,7,3},{1,2,6,5},{0,1,5,4},{3,7,6,2}};
         float[][] normals={{0,0,-1},{0,0,1},{-1,0,0},{1,0,0},{0,-1,0},{0,1,0}};
-        for(int f=0;f<6;f++)for(int j:faces[f])out.addVertex(stack.last(),(float)(c.x+v[j][0]*.5),(float)(c.y+v[j][1]*.5),(float)(c.z+v[j][2]*.5))
-                .setColor(color).setUv(.5F,.5F).setOverlay(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY).setLight(light)
-                .setNormal(stack.last(),normals[f][0],normals[f][1],normals[f][2]);
+        for(int f=0;f<6;f++)for(int j:faces[f])out.vertex((stack.last()).pose(),(float)(c.x+v[j][0]*.5),(float)(c.y+v[j][1]*.5),(float)(c.z+v[j][2]*.5))
+                .color(color).uv(.5F,.5F).overlayCoords(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY).uv2(light)
+                .normal((stack.last()).normal(),normals[f][0],normals[f][1],normals[f][2]).endVertex();
     }
 
     private static Vec3 curve(Vec3 a, Vec3 b, Vec3 c, Vec3 d, double t) {
         double s = 1 - t;
         return a.scale(s * s * s).add(b.scale(3 * s * s * t)).add(c.scale(3 * s * t * t)).add(d.scale(t * t * t));
     }
-    private static double smooth(double t) { t = Math.clamp(t, 0, 1); return t * t * (3 - 2 * t); }
+    private static double smooth(double t) { t = net.minecraft.util.Mth.clamp(t, 0, 1); return t * t * (3 - 2 * t); }
     private static double contraction(float age) { return HiveFeedingMotion.contraction(age); }
 }

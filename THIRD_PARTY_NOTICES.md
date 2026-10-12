@@ -4,8 +4,8 @@ The Prototype velocity-corrected radial speed effect is inspired by and adapted
 from the design of **AnimeSpeedLines**, Copyright (c) 2024 2Retr0, distributed
 under the MIT License: https://github.com/2Retr0/AnimeSpeedLines
 
-The implementation in Blacklight Evolution is rewritten for NeoForge 1.21.1's
-native `PostChain`, with a distinct shader, radial blur, chromatic separation,
+This fork ports Blacklight's native `PostChain` implementation to Minecraft
+1.20.1 Forge, with a distinct shader, radial blur, chromatic separation,
 Blacklight tinting, and project-specific activation/synchronization logic.
 
 The complete upstream license below was retrieved from the project's official
@@ -39,11 +39,19 @@ SOFTWARE.
 
 ## Required runtime dependencies (installed separately)
 
-GeckoLib 4.9.2 for Minecraft 1.21.1 NeoForge is the only required additional
+GeckoLib 4.8.4 for Minecraft 1.20.1 Forge is the only required additional
 mod. Its installed JAR declares MIT and includes `GECKOLIB_LICENSE`.
-Minecraft and NeoForge remain required platform components. GeckoLib is not
+Minecraft and Forge remain required platform components. GeckoLib is not
 shaded into Blacklight's JAR. Local convenience packages may include its
 unchanged separate JAR and complete license.
+
+## Bundled MixinExtras runtime
+
+The Forge port embeds the unchanged MixinExtras Forge 0.4.1 library through
+Forge Jar-in-Jar. It supplies the custom Mixin injectors that NeoForge included
+in the original platform. MixinExtras is distributed under the MIT License;
+its upstream project and license are at https://github.com/LlamaLad7/MixinExtras.
+The embedded library retains its own license files.
 
 ## Independent animation and player geometry
 

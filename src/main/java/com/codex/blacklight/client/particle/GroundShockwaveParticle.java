@@ -12,8 +12,6 @@ import net.minecraft.core.particles.SimpleParticleType;
 
 /** A world-space horizontal ring; unlike a normal particle it never billboards to the camera. */
 public final class GroundShockwaveParticle extends TextureSheetParticle {
-    private static final SingleQuadParticle.FacingCameraMode HORIZONTAL =
-            (rotation, camera, partialTick) -> rotation.rotationX(-(float)Math.PI * 0.5F);
 
     private final SpriteSet sprites;
     private final float initialSize;
@@ -34,8 +32,18 @@ public final class GroundShockwaveParticle extends TextureSheetParticle {
     }
 
     @Override
-    public SingleQuadParticle.FacingCameraMode getFacingCameraMode() {
-        return HORIZONTAL;
+    public void render(com.mojang.blaze3d.vertex.VertexConsumer out, Camera camera, float partialTick) {
+        float px=(float)(net.minecraft.util.Mth.lerp(partialTick,xo,x)-camera.getPosition().x);
+        float py=(float)(net.minecraft.util.Mth.lerp(partialTick,yo,y)-camera.getPosition().y);
+        float pz=(float)(net.minecraft.util.Mth.lerp(partialTick,zo,z)-camera.getPosition().z);
+        var rotation=new org.joml.Quaternionf().rotationX(-(float)Math.PI*.5F).rotateZ(net.minecraft.util.Mth.lerp(partialTick,oRoll,roll));
+        org.joml.Vector3f[] points={new org.joml.Vector3f(-1,-1,0),new org.joml.Vector3f(-1,1,0),new org.joml.Vector3f(1,1,0),new org.joml.Vector3f(1,-1,0)};
+        float size=getQuadSize(partialTick);int light=getLightColor(partialTick);
+        float[] us={getU1(),getU1(),getU0(),getU0()},vs={getV1(),getV0(),getV0(),getV1()};
+        for(int i=0;i<4;i++){
+            points[i].rotate(rotation).mul(size).add(px,py,pz);
+            out.vertex(points[i].x,points[i].y,points[i].z).uv(us[i],vs[i]).color(rCol,gCol,bCol,alpha).uv2(light).endVertex();
+        }
     }
 
     @Override

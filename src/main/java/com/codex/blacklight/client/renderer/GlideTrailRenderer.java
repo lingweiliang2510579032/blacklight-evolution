@@ -8,10 +8,10 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 import java.util.*;
 
 /** World-space biomass slipstream: history follows turns instead of rotating with the camera. */
@@ -24,13 +24,13 @@ public final class GlideTrailRenderer {
         if (e.getStage()!=RenderLevelStageEvent.Stage.AFTER_ENTITIES) return;
         var mc=Minecraft.getInstance();
         if(mc.level==null){TRAILS.clear();return;}
-        float partial=e.getPartialTick().getGameTimeDeltaPartialTick(false);
+        float partial=e.getPartialTick();
         double now=mc.level.getGameTime()+partial;
         TRAILS.entrySet().removeIf(v->v.getKey().isRemoved()||v.getKey().level()!=mc.level);
         for(var player:mc.level.players()) {
             if(player.onGround()||player.isInWater()||player.isPassenger()
-                    ||player.getData(ModAttachments.GLIDE_UNTIL)<now
-                    ||player.getData(ModAttachments.WEAPON_VISUAL).spec()!=null) continue;
+                    ||com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.GLIDE_UNTIL)<now
+                    ||com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL).spec()!=null) continue;
             var velocity=player.getDeltaMovement();
             var dir=new Vec3(velocity.x,0,velocity.z).normalize();
             if(dir.lengthSqr()<.1) continue;
@@ -55,8 +55,8 @@ public final class GlideTrailRenderer {
                 if(previous!=null) for(int sign:new int[]{-1,1}) {
                     for(int strand=0;strand<2;strand++) {
                         Vec3 a=point(previous,now,sign,strand),b=point(current,now,sign,strand);
-                        double fadeA=Math.clamp(1-(now-previous.time)/6,0,1);
-                        double fadeB=Math.clamp(1-(now-current.time)/6,0,1);
+                        double fadeA=net.minecraft.util.Mth.clamp(1-(now-previous.time)/6,0,1);
+                        double fadeB=net.minecraft.util.Mth.clamp(1-(now-current.time)/6,0,1);
                         Vec3 wa=previous.side.scale(.045*fadeA),wb=current.side.scale(.045*fadeB);
                         quad(out,stack,a,b,wa,wb,(int)(210*fadeA)<<24|0x211016,(int)(210*fadeB)<<24|0x211016);
                         quad(out,stack,a,b,new Vec3(0,.026*fadeA,0),new Vec3(0,.026*fadeB,0),
@@ -78,7 +78,7 @@ public final class GlideTrailRenderer {
         vertex(out,stack,b.add(wb),cb);vertex(out,stack,b.subtract(wb),cb);
     }
     private static void vertex(VertexConsumer out,PoseStack stack,Vec3 p,int color) {
-        out.addVertex(stack.last(),(float)p.x,(float)p.y,(float)p.z).setColor(color).setUv(.5F,.5F)
-                .setOverlay(OverlayTexture.NO_OVERLAY).setLight(0xf000f0).setNormal(stack.last(),0,1,0);
+        out.vertex((stack.last()).pose(),(float)p.x,(float)p.y,(float)p.z).color(color).uv(.5F,.5F)
+                .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(0xf000f0).normal((stack.last()).normal(),0,1,0).endVertex();
     }
 }

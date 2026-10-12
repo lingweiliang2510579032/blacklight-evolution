@@ -13,7 +13,7 @@ public final class LocalWeaponMotion {
 
     public record ContactWindow(int startTick, int endTick) {
         public boolean contains(double tick) { return tick >= startTick && tick < endTick; }
-        public double progress(double tick) { return Math.clamp((tick-startTick)/Math.max(1,endTick-startTick-1),0,1); }
+        public double progress(double tick) { return com.codex.blacklight.util.MathCompat.clamp((tick-startTick)/Math.max(1,endTick-startTick-1),0,1); }
     }
     /** Swept blade bounds in actor-local right/up/forward axes, relative to the current feet. */
     public record ContactBounds(double minRight, double minUp, double minForward,
@@ -64,11 +64,11 @@ public final class LocalWeaponMotion {
                 var window = item.getAsJsonObject();
                 int from = LocalMotionAnimation.integer(window, "startTick"), to = LocalMotionAnimation.integer(window, "endTick");
                 if (from < start || to > end || from >= to
-                        || (!windows.isEmpty() && from < windows.getLast().endTick()))
+                        || (!windows.isEmpty() && from < windows.get(windows.size()-1).endTick()))
                     throw new IllegalArgumentException("Invalid or overlapping local contact windows");
                 windows.add(new ContactWindow(from, to));
             }
-            if (windows.isEmpty() || windows.getFirst().startTick() != start || windows.getLast().endTick() != end)
+            if (windows.isEmpty() || windows.get(0).startTick() != start || windows.get(windows.size()-1).endTick() != end)
                 throw new IllegalArgumentException("Contact windows must match the outer contact bounds");
         }
         var bounds = new HashMap<Integer,ContactBounds>();

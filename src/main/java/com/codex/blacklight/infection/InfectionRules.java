@@ -12,7 +12,7 @@ public final class InfectionRules {
     private InfectionRules() {}
 
     public static float splashChance(double distance) {
-        double fraction = Math.clamp(distance / VIAL_RADIUS, 0, 1);
+        double fraction = com.codex.blacklight.util.MathCompat.clamp(distance / VIAL_RADIUS, 0, 1);
         return (float)(SPLASH_CENTER_CHANCE + (SPLASH_EDGE_CHANCE - SPLASH_CENTER_CHANCE) * fraction);
     }
 }

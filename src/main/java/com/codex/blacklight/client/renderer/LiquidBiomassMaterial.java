@@ -9,10 +9,10 @@ import net.minecraft.Util;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RegisterShadersEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.RegisterShadersEvent;
 import org.slf4j.Logger;
 
 /** One entity pass for wet tissue. UV0.x carries wetness, not texture coordinates.
@@ -20,7 +20,7 @@ import org.slf4j.Logger;
 @EventBusSubscriber(modid = "blacklight", bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class LiquidBiomassMaterial extends RenderType {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final ResourceLocation SHADER = ResourceLocation.fromNamespaceAndPath("blacklight", "liquid_biomass");
+    private static final ResourceLocation SHADER = new ResourceLocation("blacklight", "liquid_biomass");
     private static ShaderInstance shader;
     private static final Function<ResourceLocation, RenderType> MESH = Util.memoize(texture -> create(
             "blacklight_liquid_biomass", DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS,

@@ -2,19 +2,19 @@ package com.codex.blacklight.network;
 
 import com.codex.blacklight.BlacklightNeoMod;
 import com.codex.blacklight.movement.MovementTuningSnapshot;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.FriendlyByteBuf;
+import com.codex.blacklight.forge.codec.StreamCodec;
+import com.codex.blacklight.forge.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
 /** Server-to-client snapshot that keeps movement prediction aligned with server physics. */
 public record MovementTuningPayload(MovementTuningSnapshot snapshot) implements CustomPacketPayload {
     public static final Type<MovementTuningPayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(BlacklightNeoMod.MOD_ID, "movement_tuning"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, MovementTuningPayload> STREAM_CODEC =
+            new ResourceLocation(BlacklightNeoMod.MOD_ID, "movement_tuning"));
+    public static final StreamCodec<FriendlyByteBuf, MovementTuningPayload> STREAM_CODEC =
             StreamCodec.of(MovementTuningPayload::encode, MovementTuningPayload::decode);
 
-    private static void encode(RegistryFriendlyByteBuf buffer, MovementTuningPayload payload) {
+    private static void encode(FriendlyByteBuf buffer, MovementTuningPayload payload) {
         MovementTuningSnapshot value = payload.snapshot;
         buffer.writeDouble(value.sprintAcceleration());
         buffer.writeDouble(value.sprintMaxSpeed());
@@ -30,7 +30,7 @@ public record MovementTuningPayload(MovementTuningSnapshot snapshot) implements 
         buffer.writeDouble(value.fovBoost());
     }
 
-    private static MovementTuningPayload decode(RegistryFriendlyByteBuf buffer) {
+    private static MovementTuningPayload decode(FriendlyByteBuf buffer) {
         return new MovementTuningPayload(new MovementTuningSnapshot(
                 buffer.readDouble(), buffer.readDouble(), buffer.readDouble(),
                 buffer.readDouble(), buffer.readDouble(), buffer.readDouble(),

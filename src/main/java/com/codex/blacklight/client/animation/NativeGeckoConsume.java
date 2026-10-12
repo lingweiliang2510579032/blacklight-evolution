@@ -6,15 +6,15 @@ import software.bernie.geckolib.model.GeoModel;
 public final class NativeGeckoConsume {
     private NativeGeckoConsume() {}
     public static boolean apply(GeoModel<?> model,LivingEntity entity,float partial) {
-        var visual=entity.getData(ModAttachments.CONSUME_VISUAL);if(!visual.consuming()&&!com.codex.blacklight.combat.GrappleMotion.active(visual))return false;
-        var form=com.codex.blacklight.power.PowerForm.values()[Math.clamp(visual.form(),0,com.codex.blacklight.power.PowerForm.values().length-1)];
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL);if(!visual.consuming()&&!com.codex.blacklight.combat.GrappleMotion.active(visual))return false;
+        var form=com.codex.blacklight.power.PowerForm.values()[net.minecraft.util.Mth.clamp(visual.form(),0,com.codex.blacklight.power.PowerForm.values().length-1)];
         boolean large=com.codex.blacklight.combat.ConsumeSequence.mountedStage(visual.stage());
         var projection=com.codex.blacklight.combat.ConsumePlacementTrack.projection(com.codex.blacklight.combat.GrappleMotion.sceneKey(entity,visual),com.codex.blacklight.combat.GrappleMotion.sceneProgress(entity,visual,partial));
         if(projection.isEmpty())return false;
         double[] frame=projection.get();
         String[] names={"hips","torso","body","head","right_arm","left_arm","right_forearm","left_forearm","right_thigh","left_thigh","right_leg","left_leg","right_shin","left_shin"};
         int[] joints={6,1,1,0,2,3,7,8,4,5,4,5,9,10};
-        var worlds=new java.util.IdentityHashMap<software.bernie.geckolib.cache.object.GeoBone,org.joml.Quaternionf>();
+        var worlds=new java.util.IdentityHashMap<software.bernie.geckolib.core.animatable.model.CoreGeoBone,org.joml.Quaternionf>();
         var root=model.getAnimationProcessor().getBone("root");
         if(root!=null){var bind=root.getInitialSnapshot();root.updateRotation(bind.getRotX(),bind.getRotY(),bind.getRotZ());}
         int bound=0;
@@ -37,7 +37,7 @@ public final class NativeGeckoConsume {
         ReceiverPoseDiagnostics.record(entity,model,com.codex.blacklight.combat.GrappleMotion.sceneKey(entity,visual),bound);
         return bound>0;
     }
-    private static org.joml.Quaternionf bindWorld(software.bernie.geckolib.cache.object.GeoBone bone){
+    private static org.joml.Quaternionf bindWorld(software.bernie.geckolib.core.animatable.model.CoreGeoBone bone){
         var bind=bone.getInitialSnapshot();
         var local=new org.joml.Quaternionf().rotationZYX(bind.getRotZ(),bind.getRotY(),bind.getRotX());
         return bone.getParent()==null?local:bindWorld(bone.getParent()).mul(local);

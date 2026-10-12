@@ -43,19 +43,17 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.EventPriority;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.ModList;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.CalculateDetachedCameraDistanceEvent;
-import net.neoforged.neoforge.client.event.InputEvent;
-import net.neoforged.neoforge.client.event.RenderArmEvent;
-import net.neoforged.neoforge.client.event.RenderFrameEvent;
-import net.neoforged.neoforge.client.event.RenderPlayerEvent;
-import net.neoforged.neoforge.client.event.ViewportEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.client.event.InputEvent;
+import net.minecraftforge.client.event.RenderArmEvent;
+import net.minecraftforge.client.event.RenderPlayerEvent;
+import net.minecraftforge.client.event.ViewportEvent;
+import com.codex.blacklight.forge.PacketDistributor;
 import org.lwjgl.stb.STBImageWrite;
 
 /**
@@ -66,7 +64,7 @@ import org.lwjgl.stb.STBImageWrite;
 @EventBusSubscriber(modid=BlacklightNeoMod.MOD_ID,value=Dist.CLIENT)
 public final class StandaloneMorphSmoke {
     private static final String PROPERTY="blacklight.test.standaloneMorph";
-    private static final Path QA_DIRECTORY=Path.of("D:/Blacklight-Standalone/run-native-qa").toAbsolutePath().normalize();
+    private static final Path QA_DIRECTORY=Path.of(System.getProperty("blacklight.test.qaDirectory","run-forge-qa")).toAbsolutePath().normalize();
     private static final String QA_SAVE="Blacklight Standalone QA v4";
     private static final float[] MILESTONES={0,.25F,.5F,.75F,1};
     private enum Kind { SHORT,LONG,RAPID }
@@ -140,7 +138,8 @@ public final class StandaloneMorphSmoke {
     private static void advance(Stage next){stage=next;stageTicks=0;}
 
     @SubscribeEvent(priority=EventPriority.HIGHEST)
-    public static void isolate(ClientTickEvent.Pre event) {
+    public static void isolate(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.START) return;
         if(!active())return;var mc=Minecraft.getInstance();mc.mouseHandler.releaseMouse();
         for(var key:savedKeys.keySet()){key.setDown(false);while(key.consumeClick()){} }
         var c=current();if(c!=null)mc.options.setCameraType(c.camera());
@@ -149,7 +148,8 @@ public final class StandaloneMorphSmoke {
     @SubscribeEvent(priority=EventPriority.HIGHEST)
     public static void mouse(InputEvent.MouseButton.Pre event){if(active()){event.setCanceled(true);Minecraft.getInstance().mouseHandler.releaseMouse();}}
     @SubscribeEvent(priority=EventPriority.HIGHEST)
-    public static void beforeFrame(RenderFrameEvent.Pre event){if(active()){
+    public static void beforeFrame(TickEvent.RenderTickEvent event) {
+        if (event.phase != TickEvent.Phase.START) return;if(active()){
         frameStartedNanos=System.nanoTime();frameIntervalNanos=previousFrameStartedNanos==0?0:frameStartedNanos-previousFrameStartedNanos;previousFrameStartedNanos=frameStartedNanos;frameReadbackNanos=0;
         rightNativeArms=0;leftNativeArms=0;thirdPersonPasses=0;
     }}
@@ -159,14 +159,14 @@ public final class StandaloneMorphSmoke {
         var mc=Minecraft.getInstance();if(mc.player==null)return;
         // Photographer fixture only. The actor, body pose and liquid material
         // clock keep their real production animation; native FPS is untouched.
-        // Camera.setup posts this event before resetting eye position and then
-        // flips THIRD_PERSON_FRONT by 180 degrees. Compensate that native flip.
+        // Forge posts this event after Camera.setup. Apply the fixture's angle
+        // and native collision-limited distance together after the normal setup.
         event.setYaw(-145);event.setPitch(-10);event.setRoll(0);
-    }
-    @SubscribeEvent(priority=EventPriority.LOWEST)
-    public static void distance(CalculateDetachedCameraDistanceEvent event) {
-        if(active()&&current()!=null&&current().camera()!=CameraType.FIRST_PERSON)
-            event.setDistance(3.6F/Math.max(.001F,event.getEntityScalingFactor()));
+        var camera=event.getCamera();
+        var access=(com.codex.blacklight.mixin.client.PrototypeCameraAccess)camera;
+        access.blacklight$setRotation(-145,-10);
+        access.blacklight$setPosition(mc.player.getEyePosition((float)event.getPartialTick()));
+        access.blacklight$move(-access.blacklight$getMaxZoom(3.6),0,0);
     }
     @SubscribeEvent(priority=EventPriority.LOWEST,receiveCanceled=true)
     public static void nativeArm(RenderArmEvent event) {
@@ -179,7 +179,8 @@ public final class StandaloneMorphSmoke {
     }
 
     @SubscribeEvent(priority=EventPriority.LOWEST)
-    public static void tick(ClientTickEvent.Post event) {
+    public static void tick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
         if(disabled||completed||System.getProperty(PROPERTY,"").isBlank())return;
         var mc=Minecraft.getInstance();var server=mc.getSingleplayerServer();
         if(server==null||mc.level==null||mc.player==null)return;
@@ -206,7 +207,7 @@ public final class StandaloneMorphSmoke {
                     prepareCase(mc);
                 }}
                 case RESET -> {
-                    if(stageTicks>=12&&mc.player.getData(ModAttachments.PLAYER_STATE).getActivePower()==PowerForm.NONE&&!sample.transitioning()
+                    if(stageTicks>=12&&com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE).getActivePower()==PowerForm.NONE&&!sample.transitioning()
                             &&serverGate!=null&&serverGate.form()==PowerForm.NONE&&serverGate.ready(current().form())) {
                         if(current().kind()==Kind.RAPID){advance(Stage.RAPID_CLAWS);request(mc,PowerForm.CLAWS,false);}
                         else {advance(Stage.GROW);request(mc,current().form(),current().kind()==Kind.LONG);}
@@ -214,7 +215,7 @@ public final class StandaloneMorphSmoke {
                 }
                 case HOLD -> {
                     if(current().kind()==Kind.LONG) {
-                        if(mc.player.getData(ModAttachments.POWER_MORPH).visible(mc.player,0))longStableHoldTicks=0;
+                        if(com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.POWER_MORPH).visible(mc.player,0))longStableHoldTicks=0;
                         else longStableHoldTicks++;
                     }
                     if(stageTicks>=8&&(current().kind()!=Kind.LONG||longStableHoldTicks>=8)){advance(Stage.RETRACT);request(mc,PowerForm.NONE,false);}
@@ -256,10 +257,10 @@ public final class StandaloneMorphSmoke {
                 for(var entity:level.getEntitiesOfClass(ItemEntity.class,new AABB(-9,251,-9,10,259,10)))entity.discard();
                 var p=server.getPlayerList().getPlayer(uuid);if(p==null)throw new IllegalStateException("QA player missing");
                 var state=new BlacklightState();state.infect();state.setPrototypeMode(true);for(var form:PowerForm.values())state.unlock(form);state.activate(PowerForm.NONE);state.addBiomass(1000);
-                p.setData(ModAttachments.PLAYER_STATE,state);p.syncData(ModAttachments.PLAYER_STATE);
-                p.setData(ModAttachments.UTILITY_POWERS,0);p.syncData(ModAttachments.UTILITY_POWERS);
-                p.setData(ModAttachments.POWER_MORPH,PowerMorph.NONE);p.syncData(ModAttachments.POWER_MORPH);
-                p.setData(ModAttachments.WEAPON_VISUAL,WeaponVisual.EMPTY);p.syncData(ModAttachments.WEAPON_VISUAL);
+                com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.PLAYER_STATE,state);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.PLAYER_STATE);
+                com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.UTILITY_POWERS,0);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.UTILITY_POWERS);
+                com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.POWER_MORPH,PowerMorph.NONE);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.POWER_MORPH);
+                com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.WEAPON_VISUAL,WeaponVisual.EMPTY);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.WEAPON_VISUAL);
                 NativePlayerActionBackend.clear(p);com.codex.blacklight.combat.CombatTargeting.requestLock(p,-1);
                 p.setGameMode(GameType.CREATIVE);p.getAbilities().flying=false;p.onUpdateAbilities();p.getInventory().clearContent();
                 p.connection.teleport(.5,251,.5,180,0);p.setDeltaMovement(0,0,0);p.yBodyRot=p.yBodyRotO=180;p.yHeadRot=p.yHeadRotO=180;
@@ -276,12 +277,12 @@ public final class StandaloneMorphSmoke {
         // Repeating NONE creates a fresh server cooldown and has no wire ACK
         // by which a 12-client-tick delay can prove that it has expired.
         var sample=WeaponMorphTracker.sample(mc.player,0);
-        if(serverGate==null||serverGate.form()!=PowerForm.NONE||mc.player.getData(ModAttachments.PLAYER_STATE).getActivePower()!=PowerForm.NONE||sample.transitioning())
+        if(serverGate==null||serverGate.form()!=PowerForm.NONE||com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE).getActivePower()!=PowerForm.NONE||sample.transitioning())
             request(mc,PowerForm.NONE,false);
     }
     private static void request(Minecraft mc,PowerForm form,boolean longTransform) {
         var row=new JsonObject();row.addProperty("case",current().name());row.addProperty("stage",stage.name());row.addProperty("form",form.id());row.addProperty("longTransform",longTransform);row.addProperty("clientGameTime",mc.level.getGameTime());requests.add(row);
-        row.addProperty("clientUnlockedMask",mc.player.getData(ModAttachments.PLAYER_STATE).getUnlockedMask());row.addProperty("clientPrototypeMode",mc.player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode());
+        row.addProperty("clientUnlockedMask",com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE).getUnlockedMask());row.addProperty("clientPrototypeMode",com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE).isPrototypeMode());
         var gate=serverGate;if(gate!=null){row.addProperty("serverGateGameTime",gate.gameTime());row.addProperty("serverGatePlayerTick",gate.playerTick());row.addProperty("serverGateForm",gate.form().id());row.addProperty("serverGateCanSelectDesired",gate.ready(form));row.addProperty("serverGateCombatAction",gate.action());row.addProperty("serverGateCooldownReady",gate.cooldownReady());row.addProperty("serverGateUnlockedMask",gate.unlockedMask());row.addProperty("serverGateConsuming",gate.consuming());}
         PacketDistributor.sendToServer(new PowerSelectPayload(form.ordinal(),longTransform));
     }
@@ -289,28 +290,29 @@ public final class StandaloneMorphSmoke {
         var server=mc.getSingleplayerServer();var uuid=mc.player.getUUID();String label=stage.name();String c=current()==null?"done":current().name();
         server.execute(()->{
             var p=server.getPlayerList().getPlayer(uuid);if(p==null)return;
-            var state=p.getData(ModAttachments.PLAYER_STATE);var combat=p.getData(ModAttachments.CLAW_COMBAT);
-            serverGate=new ServerGate(p.level().getGameTime(),p.tickCount,state.getActivePower(),p.isAlive()&&!p.isSpectator()&&!p.isDeadOrDying(),state.isInfected(),state.isPrototypeMode(),p.getData(ModAttachments.CONSUMING),combat.action().name(),combat.canToggleTransform(p.tickCount),state.getUnlockedMask());
-            var row=new JsonObject();row.addProperty("case",c);row.addProperty("stage",label);row.addProperty("gameTime",p.level().getGameTime());row.addProperty("form",p.getData(ModAttachments.PLAYER_STATE).getActivePower().id());
+            var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);var combat=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CLAW_COMBAT);
+            serverGate=new ServerGate(p.level().getGameTime(),p.tickCount,state.getActivePower(),p.isAlive()&&!p.isSpectator()&&!p.isDeadOrDying(),state.isInfected(),state.isPrototypeMode(),com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CONSUMING),combat.action().name(),combat.canToggleTransform(p.tickCount),state.getUnlockedMask());
+            var row=new JsonObject();row.addProperty("case",c);row.addProperty("stage",label);row.addProperty("gameTime",p.level().getGameTime());row.addProperty("form",com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).getActivePower().id());
             row.addProperty("playerTickCount",serverGate.playerTick());row.addProperty("canAct",serverGate.alive());row.addProperty("infected",serverGate.infected());row.addProperty("prototypeMode",serverGate.prototype());row.addProperty("consuming",serverGate.consuming());
             row.addProperty("combatAction",serverGate.action());row.addProperty("transformCooldownReady",serverGate.cooldownReady());row.addProperty("unlockedMask",serverGate.unlockedMask());
-            row.addProperty("powerMorphFormId",p.getData(ModAttachments.POWER_MORPH).formId());row.addProperty("powerMorphStart",p.getData(ModAttachments.POWER_MORPH).started());
+            row.addProperty("powerMorphFormId",com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.POWER_MORPH).formId());row.addProperty("powerMorphStart",com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.POWER_MORPH).started());
             synchronized(serverTicks){serverTicks.add(row);}
         });
     }
 
     @SubscribeEvent(priority=EventPriority.LOWEST)
-    public static void frame(RenderFrameEvent.Post event) {
+    public static void frame(TickEvent.RenderTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
         if(!active())return;var mc=Minecraft.getInstance();if(mc.player==null||mc.level==null)return;
         long qaStartedNanos=System.nanoTime();JsonObject performanceRow=null;
         try {
-            float partial=event.getPartialTick().getGameTimeDeltaPartialTick(false);double now=clock(mc,partial);
+            float partial=event.renderTickTime;double now=clock(mc,partial);
             var sample=WeaponMorphTracker.sample(mc.player,partial);validateFrame(mc,sample,now);
             performanceRow=frameTrace.get(frameTrace.size()-1).getAsJsonObject();
             performanceRow.addProperty("nativeFrameIntervalWallMs",frameIntervalNanos/1E6);
             performanceRow.addProperty("nativeRenderWallMs",(qaStartedNanos-frameStartedNanos)/1E6);
             performanceRow.addProperty("wallSecondsSinceQaStart",(qaStartedNanos-runStartedNanos)/1E9);
-            if(stage==Stage.GROW&&sample.target()==current().form()&&mc.player.getData(ModAttachments.PLAYER_STATE).getActivePower()==current().form()) {
+            if(stage==Stage.GROW&&sample.target()==current().form()&&com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE).getActivePower()==current().form()) {
                 if(!observedGrow) {
                     observedGrow=true;require(sample.phase()<.12F,"first client morph frame skipped the onset for "+current().name());
                     if(current().kind()==Kind.SHORT&&current().form()==PowerForm.BLADE){sequenceStart=now;sequenceDirectory=current().name();}
@@ -319,7 +321,7 @@ public final class StandaloneMorphSmoke {
                     if(capture(mc,current().name()+"_grow_"+String.format("%03d",Math.round(MILESTONES[i]*100)),sample,partial,MILESTONES[i]))growthMask|=1<<i;
                 }
                 if(current().kind()==Kind.LONG) {
-                    var morph=mc.player.getData(ModAttachments.POWER_MORPH);float age=morph.seconds(mc.player,partial)*20;
+                    var morph=com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.POWER_MORPH);float age=morph.seconds(mc.player,partial)*20;
                     float onset=WeaponMorphTiming.onset(current().form());
                     if(morph.formId()==current().form().ordinal()&&age>=onset-11&&age<onset-2&&sample.phase()<.001F) {
                         if(!longDelayedFrame)longDelayedFrame=capture(mc,current().name()+"_original_delay",sample,partial,null);
@@ -333,7 +335,7 @@ public final class StandaloneMorphSmoke {
                     require(sample.projectionForm(true)==(paired(current().form())?current().form():PowerForm.NONE),"steady left-hand projection is wrong for "+current().name());
                     advance(Stage.HOLD);
                 }
-            } else if(stage==Stage.RETRACT&&sample.target()==PowerForm.NONE&&mc.player.getData(ModAttachments.PLAYER_STATE).getActivePower()==PowerForm.NONE) {
+            } else if(stage==Stage.RETRACT&&sample.target()==PowerForm.NONE&&com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE).getActivePower()==PowerForm.NONE) {
                 if(!observedRetract){observedRetract=true;require(sample.phase()<.12F,"first retraction frame skipped the onset for "+current().name());}
                 for(int i=0;i<MILESTONES.length;i++)if((retractMask&(1<<i))==0&&sample.phase()+1e-5>=MILESTONES[i]) {
                     if(capture(mc,current().name()+"_retract_"+String.format("%03d",Math.round(MILESTONES[i]*100)),sample,partial,MILESTONES[i]))retractMask|=1<<i;
@@ -357,7 +359,7 @@ public final class StandaloneMorphSmoke {
         double materialTime=sample.materialTime();
         boolean rawMonotonic=Double.isFinite(now)&&now+1e-3>=previousClock;
         boolean materialMonotonic=Double.isFinite(materialTime)&&materialTime+1e-6>=previousMaterialClock;
-        long longStart=sample.longTransform()?mc.player.getData(ModAttachments.POWER_MORPH).started():Long.MIN_VALUE;
+        long longStart=sample.longTransform()?com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.POWER_MORPH).started():Long.MIN_VALUE;
         boolean sameTransition=previousTransitioning&&sample.transitioning()&&previousTarget==sample.target()&&previousFrom==sample.from()
                 &&previousLongTransform==sample.longTransform()&&previousLongStart==longStart;
         boolean phaseMonotonic=!sameTransition||sample.phase()+1e-5F>=previousPhase;
@@ -422,7 +424,7 @@ public final class StandaloneMorphSmoke {
         }
         var trace=new JsonObject();trace.addProperty("gameTime",now);trace.addProperty("rawGameTime",now);trace.addProperty("materialTime",materialTime);trace.addProperty("materialRawClampTicks",clamp);trace.addProperty("stage",stage.name());trace.addProperty("target",sample.target().id());trace.addProperty("phase",sample.phase());trace.addProperty("flow",sample.flow());
         trace.addProperty("transitioning",sample.transitioning());trace.addProperty("rightNativeArmPasses",rightNativeArms);trace.addProperty("leftNativeArmPasses",leftNativeArms);trace.addProperty("thirdPersonPasses",thirdPersonPasses);
-        trace.addProperty("clientUnlockedMask",mc.player.getData(ModAttachments.PLAYER_STATE).getUnlockedMask());trace.addProperty("powerMorphVisible",mc.player.getData(ModAttachments.POWER_MORPH).visible(mc.player,0));trace.addProperty("stableHoldTicksAfterLongClip",longStableHoldTicks);
+        trace.addProperty("clientUnlockedMask",com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE).getUnlockedMask());trace.addProperty("powerMorphVisible",com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.POWER_MORPH).visible(mc.player,0));trace.addProperty("stableHoldTicksAfterLongClip",longStableHoldTicks);
         var amounts=new JsonObject();previousGrowth.forEach((form,growth)->amounts.addProperty(form.id(),growth));trace.add("growth",amounts);frameTrace.add(trace);
         if(!rawMonotonic||!materialMonotonic||!phaseMonotonic)write(false,null);
     }
@@ -430,7 +432,7 @@ public final class StandaloneMorphSmoke {
     private static void require(boolean condition,String message){if(!condition&&violations.add(message))BlacklightNeoMod.LOGGER.error("Liquid morph QA: {}",message);}
 
     private static void rapidFrame(Minecraft mc,WeaponMorphTracker.Sample sample,float partial) {
-        var actual=mc.player.getData(ModAttachments.PLAYER_STATE).getActivePower();
+        var actual=com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE).getActivePower();
         if(stage==Stage.RAPID_CLAWS&&stageTicks>=12&&sample.target()==PowerForm.CLAWS&&actual==PowerForm.CLAWS&&serverGate!=null&&serverGate.form()==PowerForm.CLAWS&&serverGate.ready(PowerForm.BLADE)) {
             require(sample.transitioning(),"rapid CLAWS request did not interrupt an active liquid transition");
             if(capture(mc,current().name()+"_claws_before_retarget",sample,partial,null)){advance(Stage.RAPID_BLADE);request(mc,PowerForm.BLADE,false);}
@@ -475,7 +477,7 @@ public final class StandaloneMorphSmoke {
         var row=new JsonObject();row.addProperty("case",current()==null?"done":current().name());row.addProperty("stage",stage.name());row.addProperty("gameTime",clock(mc,partial));row.addProperty("rawGameTime",clock(mc,partial));row.addProperty("materialTime",sample.materialTime());
         row.addProperty("source","Minecraft framebuffer after actual native renderer");row.addProperty("cameraType",mc.options.getCameraType().name());
         row.addProperty("from",sample.from().id());row.addProperty("target",sample.target().id());row.addProperty("phase",sample.phase());row.addProperty("flow",sample.flow());row.addProperty("transitioning",sample.transitioning());row.addProperty("longTransform",sample.longTransform());
-        row.addProperty("serverSyncedForm",mc.player.getData(ModAttachments.PLAYER_STATE).getActivePower().id());row.addProperty("powerMorphFormId",mc.player.getData(ModAttachments.POWER_MORPH).formId());row.addProperty("powerMorphStart",mc.player.getData(ModAttachments.POWER_MORPH).started());
+        row.addProperty("serverSyncedForm",com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE).getActivePower().id());row.addProperty("powerMorphFormId",com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.POWER_MORPH).formId());row.addProperty("powerMorphStart",com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.POWER_MORPH).started());
         row.addProperty("rightNativeArmPasses",rightNativeArms);row.addProperty("leftNativeArmPasses",leftNativeArms);row.addProperty("thirdPersonPasses",thirdPersonPasses);
         row.addProperty("rightCoverage",sample.coverage(false));row.addProperty("leftCoverage",sample.coverage(true));row.addProperty("rightProjection",sample.projectionForm(false).id());row.addProperty("leftProjection",sample.projectionForm(true).id());
         row.addProperty("width",mc.getMainRenderTarget().width);row.addProperty("height",mc.getMainRenderTarget().height);

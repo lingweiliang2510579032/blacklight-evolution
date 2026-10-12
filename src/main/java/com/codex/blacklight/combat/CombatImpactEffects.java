@@ -9,7 +9,7 @@ import net.minecraft.sounds.*;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.*;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.codex.blacklight.forge.PacketDistributor;
 
 /** Different cues for a swing, a solid ground contact, and a successful body hit. */
 public final class CombatImpactEffects {
@@ -39,7 +39,7 @@ public final class CombatImpactEffects {
             if(surface.getType()!=HitResult.Type.BLOCK||surface.getDirection()!=net.minecraft.core.Direction.UP)continue;
             var at=surface.getLocation();var block=level.getBlockState(surface.getBlockPos());
             level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK,block),at.x,at.y+.05,at.z,0,Math.cos(angle)*(.12+ring*.055),.18+ring*.05,Math.sin(angle)*(.12+ring*.055),1);
-            if((i&3)==0)level.sendParticles(ParticleTypes.DUST_PLUME,at.x,at.y+.08,at.z,2,.12,.06,.12,.025);
+            if((i&3)==0)level.sendParticles(ParticleTypes.POOF,at.x,at.y+.08,at.z,2,.12,.06,.12,.025);
             if(ring==1&&i%(move.quake()?2:4)==0){
                 float size=move.quake()?.44F:.27F;
                 var outward=new Vec3(Math.cos(angle)*.15,move.quake()?.36:.25,Math.sin(angle)*.15);
@@ -47,13 +47,13 @@ public final class CombatImpactEffects {
             }
         }
         CombatEnvironmentEffects.disturbLooseItems(p,center,radius,move.quake()?.35:.18);
-        level.playSound(null,hit.getBlockPos(),SoundEvents.MACE_SMASH_GROUND_HEAVY,SoundSource.PLAYERS,move.quake()?1.4F:1F,move.quake()?.57F:.8F);
+        level.playSound(null,hit.getBlockPos(),SoundEvents.GENERIC_EXPLODE,SoundSource.PLAYERS,move.quake()?1.4F:1F,move.quake()?.57F:.8F);
         PacketDistributor.sendToPlayer(p,new PhysicalFeedbackPayload(move.quake()?PhysicalFeedbackPayload.Effect.GROUND_SPIKE:PhysicalFeedbackPayload.Effect.CLAW_HEAVY,move.quake()?1:.42F));
     }
     public static void target(ServerPlayer p,LivingEntity v,WeaponMove move){
         if(move.form==PowerForm.BLADE){BladeEffects.hit(p,v,move);return;}
         boolean hammer=move.form==PowerForm.HAMMERFISTS;
-        boolean bare=p.getData(ModAttachments.PLAYER_STATE).getActivePower()==PowerForm.NONE;
+        boolean bare=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).getActivePower()==PowerForm.NONE;
         if(!hammer&&!bare)return;
         var c=v.getBoundingBox().getCenter();
         PacketDistributor.sendToPlayersTrackingEntityAndSelf(p,new CombatImpactPayload(c.x,c.y,c.z,hammer?.8F:.38F,false));

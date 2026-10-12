@@ -15,7 +15,7 @@ public final class GrappleMotion {
         return moving?(owner.isSprinting()?"carry_run":"carry_walk"):"hold";
     }
     public static float progress(LivingEntity owner,ConsumeVisual visual,float partial){
-        if(visual.stage()==ConsumeVisual.CAPTURE)return Math.clamp((owner.level().getGameTime()-visual.started()+partial-Math.max(0,visual.duration()-26))/26F,0,1);
+        if(visual.stage()==ConsumeVisual.CAPTURE)return com.codex.blacklight.util.MathCompat.clamp((owner.level().getGameTime()-visual.started()+partial-Math.max(0,visual.duration()-26))/26F,0,1);
         String key=key(owner,visual);
         int ticks=LocalVisualMotion.find("consume_"+key+"_actor").map(d->Math.max(1,d.durationTicks()-1)).orElse(30);
         return ((owner.level().getGameTime()-visual.started()+partial)%ticks)/ticks;
@@ -25,7 +25,7 @@ public final class GrappleMotion {
     }
     public static String sceneKey(LivingEntity entity,ConsumeVisual visual){
         if(active(visual))return key(owner(entity,visual),visual);
-        var form=com.codex.blacklight.power.PowerForm.values()[Math.clamp(visual.form(),0,com.codex.blacklight.power.PowerForm.values().length-1)];
+        var form=com.codex.blacklight.power.PowerForm.values()[com.codex.blacklight.util.MathCompat.clamp(visual.form(),0,com.codex.blacklight.power.PowerForm.values().length-1)];
         return ConsumeSequence.clipKey(form,ConsumeSequence.mountedStage(visual.stage()));
     }
     public static float sceneProgress(LivingEntity entity,ConsumeVisual visual,float partial){

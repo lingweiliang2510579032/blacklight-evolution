@@ -11,8 +11,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.*;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.*;
 import software.bernie.geckolib.util.GeckoLibUtil;
 import java.util.EnumSet;
 
@@ -27,8 +27,8 @@ public final class BlacklightMutant extends Monster implements GeoEntity {
     public BlacklightMutant(EntityType<? extends BlacklightMutant> type,Level level,Kind kind){super(type,level);this.kind=kind;xpReward=kind==Kind.BRUTE?18:8;}
     public Kind kind(){return kind;}
     public String asset(){return "blacklight_"+kind.name().toLowerCase(java.util.Locale.ROOT);}
-    public static AttributeSupplier.Builder attributes(Kind k){return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH,k==Kind.BRUTE?80:k==Kind.SPITTER?28:24).add(Attributes.ATTACK_DAMAGE,k==Kind.BRUTE?10:5).add(Attributes.MOVEMENT_SPEED,k==Kind.STALKER?.34:.24).add(Attributes.FOLLOW_RANGE,28).add(Attributes.KNOCKBACK_RESISTANCE,k==Kind.BRUTE?.7:.1).add(Attributes.STEP_HEIGHT,1);}
-    @Override protected void defineSynchedData(SynchedEntityData.Builder b){super.defineSynchedData(b);b.define(ATTACK,0);}
+    public static AttributeSupplier.Builder attributes(Kind k){return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH,k==Kind.BRUTE?80:k==Kind.SPITTER?28:24).add(Attributes.ATTACK_DAMAGE,k==Kind.BRUTE?10:5).add(Attributes.MOVEMENT_SPEED,k==Kind.STALKER?.34:.24).add(Attributes.FOLLOW_RANGE,28).add(Attributes.KNOCKBACK_RESISTANCE,k==Kind.BRUTE?.7:.1).add(net.minecraftforge.common.ForgeMod.STEP_HEIGHT_ADDITION.get(),.4);}
+    @Override protected void defineSynchedData(){super.defineSynchedData();entityData.define(ATTACK,0);}
     @Override protected void registerGoals(){
         goalSelector.addGoal(0,new FloatGoal(this));goalSelector.addGoal(1,new MoveTowardsRestrictionGoal(this,1.1));goalSelector.addGoal(2,new AssaultGoal());goalSelector.addGoal(5,new WaterAvoidingRandomStrollGoal(this,.7));goalSelector.addGoal(6,new LookAtPlayerGoal(this,Player.class,12));
         targetSelector.addGoal(1,new HurtByTargetGoal(this));targetSelector.addGoal(2,new NearestAttackableTargetGoal<>(this,Player.class,true));
@@ -36,7 +36,7 @@ public final class BlacklightMutant extends Monster implements GeoEntity {
     @Override public void tick(){
         super.tick();if(level().isClientSide)return;
         if(com.codex.blacklight.combat.ImpactControl.stunned(this)){entityData.set(ATTACK,0);return;}
-        if(getData(com.codex.blacklight.registry.ModAttachments.CONSUME_VISUAL).active()){entityData.set(ATTACK,0);return;}
+        if(com.codex.blacklight.registry.ModAttachments.getData(this, com.codex.blacklight.registry.ModAttachments.CONSUME_VISUAL).active()){entityData.set(ATTACK,0);return;}
         if(cooldown>0)cooldown--;int t=entityData.get(ATTACK);if(t<=0)return;
         getNavigation().stop();
         if(kind==Kind.STALKER&&t<=12&&t>=8)move(MoverType.SELF,aim.subtract(position()).multiply(1,0,1).normalize().scale(.34));
@@ -51,7 +51,7 @@ public final class BlacklightMutant extends Monster implements GeoEntity {
         }
         entityData.set(ATTACK,t-1);
     }
-    @Override public void registerControllers(AnimatableManager.ControllerRegistrar c){c.add(new AnimationController<>(this,"body",3,s->s.setAndContinue(RawAnimation.begin().thenLoop(getData(com.codex.blacklight.registry.ModAttachments.CONSUME_VISUAL).active()?"consume":entityData.get(ATTACK)>0?"attack":s.isMoving()?"run":"idle"))));}
+    @Override public void registerControllers(AnimatableManager.ControllerRegistrar c){c.add(new AnimationController<>(this,"body",3,s->s.setAndContinue(RawAnimation.begin().thenLoop(com.codex.blacklight.registry.ModAttachments.getData(this, com.codex.blacklight.registry.ModAttachments.CONSUME_VISUAL).active()?"consume":entityData.get(ATTACK)>0?"attack":s.isMoving()?"run":"idle"))));}
     @Override public AnimatableInstanceCache getAnimatableInstanceCache(){return cache;}
     private final class AssaultGoal extends Goal {
         AssaultGoal(){setFlags(EnumSet.of(Flag.MOVE,Flag.LOOK));}

@@ -1,13 +1,13 @@
 package com.codex.blacklight.state;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.FriendlyByteBuf;
+import com.codex.blacklight.forge.codec.StreamCodec;
 
 /** Kept separate so plain JVM tests for progression state do not need Minecraft networking classes. */
 public final class BlacklightStateStreamCodec {
-    public static final StreamCodec<RegistryFriendlyByteBuf, BlacklightState> CODEC = new StreamCodec<>() {
+    public static final StreamCodec<FriendlyByteBuf, BlacklightState> CODEC = new StreamCodec<>() {
         @Override
-        public BlacklightState decode(RegistryFriendlyByteBuf buffer) {
+        public BlacklightState decode(FriendlyByteBuf buffer) {
             return new BlacklightState(
                     buffer.readBoolean(),
                     buffer.readVarInt(),
@@ -24,7 +24,7 @@ public final class BlacklightStateStreamCodec {
         }
 
         @Override
-        public void encode(RegistryFriendlyByteBuf buffer, BlacklightState state) {
+        public void encode(FriendlyByteBuf buffer, BlacklightState state) {
             buffer.writeBoolean(state.isInfected());
             buffer.writeVarInt(state.getBiomass());
             buffer.writeVarInt(state.getEvolutionPoints());

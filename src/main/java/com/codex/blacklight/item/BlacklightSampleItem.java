@@ -15,14 +15,13 @@ import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ProjectileItem;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
 
 import java.util.List;
 
-public final class BlacklightSampleItem extends Item implements ProjectileItem {
+public final class BlacklightSampleItem extends Item {
     public BlacklightSampleItem(Properties properties) {
         super(properties);
     }
@@ -52,12 +51,12 @@ public final class BlacklightSampleItem extends Item implements ProjectileItem {
 
         player.awardStat(Stats.ITEM_USED.get(this));
         player.getCooldowns().addCooldown(this, 12);
-        stack.consume(1, player);
+        if(!player.getAbilities().instabuild)stack.shrink(1);
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
     }
 
     @Override
-    public int getUseDuration(ItemStack stack, LivingEntity entity) {
+    public int getUseDuration(ItemStack stack) {
         return 40;
     }
 
@@ -71,7 +70,7 @@ public final class BlacklightSampleItem extends Item implements ProjectileItem {
         if (entity instanceof Player player && BlacklightInfectionSystem.awaken(player)) {
             player.awardStat(Stats.ITEM_USED.get(this));
             player.getCooldowns().addCooldown(this, 20);
-            stack.consume(1, player);
+            if(!player.getAbilities().instabuild)stack.shrink(1);
             level.playSound(null, player.blockPosition(), SoundEvents.SCULK_CATALYST_BLOOM,
                     SoundSource.PLAYERS, 1.0F, 0.6F);
             if (level instanceof net.minecraft.server.level.ServerLevel server) {
@@ -82,7 +81,6 @@ public final class BlacklightSampleItem extends Item implements ProjectileItem {
         return stack;
     }
 
-    @Override
     public Projectile asProjectile(Level level, Position position, ItemStack stack, Direction direction) {
         BlacklightVirusVialEntity vial = new BlacklightVirusVialEntity(
                 level, position.x(), position.y(), position.z());
@@ -91,7 +89,7 @@ public final class BlacklightSampleItem extends Item implements ProjectileItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context,
+    public void appendHoverText(ItemStack stack, Level context,
                                 List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable("tooltip.blacklight.blacklight_sample.1"));
         tooltip.add(Component.translatable("tooltip.blacklight.blacklight_sample.2"));

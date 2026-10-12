@@ -3,12 +3,12 @@ package com.codex.blacklight.client;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderFrameEvent;
-import net.neoforged.neoforge.client.event.RenderGuiEvent;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.client.event.RenderGuiEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 import org.joml.Matrix4f;
 
 /** Explicit target feedback is native to Blacklight and follows every user-selected perspective. */
@@ -21,12 +21,12 @@ public final class TargetLockHud {
     private static Marker marker;
     private TargetLockHud() { }
     public static Marker lastMarker(){return marker;}
-    @SubscribeEvent public static void begin(RenderFrameEvent.Pre event){frame++;marker=null;}
+    @SubscribeEvent public static void begin(TickEvent.RenderTickEvent event){if(event.phase!=TickEvent.Phase.START)return;frame++;marker=null;}
     @SubscribeEvent public static void captureWorld(RenderLevelStageEvent event) {
         if(event.getStage()!=RenderLevelStageEvent.Stage.AFTER_LEVEL)return;
         var mc=Minecraft.getInstance();
-        world=new WorldFrame(mc.level,frame,new Matrix4f(event.getModelViewMatrix()),new Matrix4f(event.getProjectionMatrix()),
-                event.getCamera().getPosition(),event.getPartialTick().getGameTimeDeltaPartialTick(false));
+        world=new WorldFrame(mc.level,frame,new Matrix4f(event.getPoseStack().last().pose()),new Matrix4f(event.getProjectionMatrix()),
+                event.getCamera().getPosition(),event.getPartialTick());
     }
     @SubscribeEvent public static void render(RenderGuiEvent.Post event) {
         var mc=Minecraft.getInstance();var g=event.getGuiGraphics();
@@ -66,7 +66,7 @@ public final class TargetLockHud {
     }
     private static void panel(GuiGraphics g,String text,int x,int y,int color) {
         var font=Minecraft.getInstance().font;text=font.plainSubstrByWidth(text,Math.max(20,g.guiWidth()-24));
-        int w=font.width(text);x=Math.clamp(x,w/2+6,Math.max(w/2+6,g.guiWidth()-w/2-6));
+        int w=font.width(text);x=net.minecraft.util.Mth.clamp(x,w/2+6,Math.max(w/2+6,g.guiWidth()-w/2-6));
         g.fill(x-w/2-4,y-2,x+w/2+5,y+11,0xA6090B10);
         g.drawCenteredString(font,text,x,y,color);
     }

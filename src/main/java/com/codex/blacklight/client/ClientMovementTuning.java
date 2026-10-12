@@ -3,10 +3,10 @@ package com.codex.blacklight.client;
 import com.codex.blacklight.movement.MovementTuningSettings;
 import com.codex.blacklight.movement.MovementTuningSnapshot;
 import net.minecraft.client.Minecraft;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 
 /** Multiplayer tuning is a session override, never the next singleplayer preset. */
 @EventBusSubscriber(modid="blacklight",value=Dist.CLIENT)

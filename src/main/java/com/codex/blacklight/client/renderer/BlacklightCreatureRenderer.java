@@ -13,7 +13,7 @@ import java.util.function.Function;
 public final class BlacklightCreatureRenderer<T extends LivingEntity & GeoEntity> extends AnatomicalGeoRenderer<T> {
     public BlacklightCreatureRenderer(EntityRendererProvider.Context context,Function<T,String> asset){super(context,new BlacklightCreatureModel<>(asset));shadowRadius=.65F;}
     @Override public void render(T entity,float yaw,float partial,PoseStack stack,MultiBufferSource buffer,int light){
-        var visual=entity.getData(ModAttachments.CONSUME_VISUAL);float progress=visual.progress(entity.level().getGameTime(),partial);
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL);float progress=visual.progress(entity.level().getGameTime(),partial);
         var placement=com.codex.blacklight.client.ClientCarryPlacement.consumeOffset(entity,partial);
         stack.pushPose();if(visual.active())stack.translate(placement.x,placement.y,placement.z);
         ConsumeFracture fragments=ConsumeFracture.visible(entity,partial)?new ConsumeFracture(entity,partial,stack,buffer,ConsumeAbsorptionFx.destination(entity,partial,placement)):null;

@@ -10,10 +10,10 @@ import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 import org.joml.Vector3f;
 import java.util.*;
 
@@ -31,9 +31,9 @@ public final class WhipTetherRenderer {
     }
     public static Vec3 capturedHand(int entityId) { return HANDS.get(entityId); }
     public static boolean extended(AbstractClientPlayer player){
-        if(player.getData(ModAttachments.PLAYER_STATE).getActivePower()!=PowerForm.WHIPFIST)return false;
-        var visual=player.getData(ModAttachments.WEAPON_VISUAL);var move=visual.spec();
-        return move!=null&&move.form==PowerForm.WHIPFIST&&!visual.traveling()||player.getData(ModAttachments.GRAB_STAGE)!=0;
+        if(com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).getActivePower()!=PowerForm.WHIPFIST)return false;
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL);var move=visual.spec();
+        return move!=null&&move.form==PowerForm.WHIPFIST&&!visual.traveling()||com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.GRAB_STAGE)!=0;
     }
     /** Actual rendered claw palm, also used by the opt-in contact acceptance harness. */
     public static void captureGrip(AbstractClientPlayer player,PoseStack stack) {
@@ -49,12 +49,12 @@ public final class WhipTetherRenderer {
         }
         if(event.getStage()!=RenderLevelStageEvent.Stage.AFTER_ENTITIES)return;
         var mc=Minecraft.getInstance();if(mc.level==null)return;
-        float partial=event.getPartialTick().getGameTimeDeltaPartialTick(false);
+        float partial=event.getPartialTick();
         var buffers=mc.renderBuffers().bufferSource();var type=RenderType.entityCutoutNoCull(ConsumedMobVisuals.WHITE);
         var out=buffers.getBuffer(type);var stack=event.getPoseStack();
         for(var entity:mc.level.entitiesForRendering()) {
             if(!(entity instanceof LivingEntity mob))continue;
-            var data=mob.getData(ModAttachments.CONSUME_VISUAL);
+            var data=com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.CONSUME_VISUAL);
             if(!data.active()||data.form()!=PowerForm.WHIPFIST.ordinal())continue;
             var owner=mc.level.getEntity(data.consumerId());if(owner==null)continue;
             float t=ConsumedMobVisuals.tetherProgress(mob,partial);if(t<.075F||t>.9F)continue;
@@ -63,9 +63,9 @@ public final class WhipTetherRenderer {
             Vec3 right=new Vec3(-delta.z,0,delta.x).normalize().scale(.38);
             Vec3 hand=HANDS.getOrDefault(owner.getId(),owner.getPosition(partial).add(right).add(0,1.05,0));
             Vec3 placement=com.codex.blacklight.client.ClientCarryPlacement.consumeOffset(mob,partial);
-            double wrapRadius=mob.getBbWidth()*.58*(1-Math.clamp((t-.85)/.05,0,1));
+            double wrapRadius=mob.getBbWidth()*.58*(1-net.minecraft.util.Mth.clamp((t-.85)/.05,0,1));
             Vec3 body=mob.getPosition(partial).add(placement).add(ConsumeVictimPose.effectPoint(mob,new Vec3(wrapRadius,mob.getBbHeight()*.22,0),partial));
-            float reach=Math.clamp((t-.075F)/.11F,0,1);
+            float reach=net.minecraft.util.Mth.clamp((t-.075F)/.11F,0,1);
             Vec3 end=hand.lerp(body,reach);
             Vec3 side=new Vec3(-delta.z,0,delta.x).normalize();
             double sweep=Math.sin(Math.PI*reach)*.8;
