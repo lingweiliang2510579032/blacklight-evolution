@@ -36,8 +36,7 @@ public final class UtilityPowerLayer extends net.minecraft.client.renderer.entit
             var joint = com.codex.blacklight.animation.PlayerMotionController.skeleton().searchJointByName(name); if (joint == null) continue;
             boolean limb = name.startsWith("Arm_") || name.startsWith("Hand_");
             if(firstPerson&&(!limb||side>=0&&!name.endsWith(side==1?"_L":"_R")))continue;
-            boolean weaponArm = limb && (form == PowerForm.CLAWS || form == PowerForm.HAMMERFISTS || form == PowerForm.MUSCLE_MASS
-                    || (form == PowerForm.BLADE || form == PowerForm.WHIPFIST) && name.endsWith("_R"));
+            boolean weaponArm = limb && com.codex.blacklight.client.renderer.WeaponMorphTracker.sample(player,partial).coverage(name.endsWith("_L"))>=.72F;
             stack.pushPose();
             try { apply(stack, poses[joint.getId()]); armor.renderJoint(name, player, stack, buffer, light, partial, weaponArm); }
             finally { stack.popPose(); }

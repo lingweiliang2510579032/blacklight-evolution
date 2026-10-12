@@ -31,7 +31,8 @@ public final class StandalonePlayerRendering {
         var mc=net.minecraft.client.Minecraft.getInstance();var player=mc.player;
         if(player==null||player.isScoping()||!player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode())return;
         var form=player.getData(ModAttachments.PLAYER_STATE).getActivePower();
-        boolean biological=form==PowerForm.CLAWS||form==PowerForm.BLADE||form==PowerForm.WHIPFIST||form==PowerForm.HAMMERFISTS||form==PowerForm.MUSCLE_MASS;
+        var morph=WeaponMorphTracker.sample(player,event.getPartialTick());
+        boolean biological=com.codex.blacklight.client.animation.WeaponMorphTiming.weapon(form)||morph.visible(false)||morph.visible(true);
         boolean armored=UtilityPowerSystem.visualWeight(player,PowerForm.ARMOR,event.getPartialTick())>0;
         boolean shielded=UtilityPowerSystem.visualWeight(player,PowerForm.SHIELD,event.getPartialTick())>0;
         if(!biological&&!armored&&!shielded)return;
@@ -42,7 +43,7 @@ public final class StandalonePlayerRendering {
         hands=new HandContext(player,renderer,event.getPartialTick());
         try {
             if(biological||armored)drawVanillaArm(access,event,HumanoidArm.RIGHT);
-            if(armored||form==PowerForm.CLAWS||form==PowerForm.HAMMERFISTS||form==PowerForm.MUSCLE_MASS)
+            if(armored||com.codex.blacklight.client.animation.WeaponMorphTiming.arm(form,true)||morph.visible(true))
                 drawVanillaArm(access,event,HumanoidArm.LEFT);
             if(shielded)drawVanillaShield(access,event,renderer);
         }finally{hands=null;}
@@ -71,7 +72,11 @@ public final class StandalonePlayerRendering {
     }
     @SubscribeEvent public static void arm(RenderArmEvent event) {
         var current=hands;if(current==null||current.player()!=event.getPlayer())return;
-        event.setCanceled(true);
+        boolean left=event.getArm()==HumanoidArm.LEFT;
+        var morph=WeaponMorphTracker.sample(event.getPlayer(),current.partial());
+        boolean covered=com.codex.blacklight.client.model.BlockArmorModel.get().covers(event.getPlayer(),left?"left_arm":"right_arm",current.partial());
+        // Vanilla draws the remaining skin while liquid has not yet covered the arm.
+        if(covered||morph.coverage(left)>=.72F)event.setCanceled(true);
         current.renderer().renderPoweredArm(event.getPlayer(),event.getPoseStack(),event.getMultiBufferSource(),event.getPackedLight(),current.partial(),event.getArm()==HumanoidArm.LEFT);
     }
     @SubscribeEvent(priority=EventPriority.HIGHEST)

@@ -94,6 +94,39 @@ class FirstPersonPoseTest {
             projectGeometry(form,view,frame,left,geometry(form),false);
         }
     }
+    @Test void mixedMorphBoundsProtectOutgoingFormsAndLiquidAtExtremeLookAngles() {
+        var rig=BlacklightSkeleton.get();var source=rig.getPoseMatrices(new com.codex.blacklight.animation.BlacklightPose());
+        var visible=List.of(PowerForm.CLAWS,PowerForm.BLADE,PowerForm.HAMMERFISTS,PowerForm.WHIPFIST);
+        var points=new ArrayList<Vertex>();
+        for(var form:visible)points.addAll(geometry(new Form(form,false,false,"")));
+        for(var target:List.of(PowerForm.BLADE,PowerForm.WHIPFIST))for(float look:new float[]{-60,0,60})for(float swing:new float[]{0,.3F,.7F}) {
+            var frame=new Matrix4f().rotateX((float)Math.toRadians(look)).mul(nativeFrame(false,swing,0,false));
+            var view=FirstPersonPose.convertArm(source,target,false,false,new Matrix4f(),1,1,PROJECTION,frame,1,false,visible,.045F);
+            var frames=new HashMap<String,Matrix4f>();float near=Float.POSITIVE_INFINITY;
+            for(var point:points)if(point.bone.endsWith("_R")) {
+                var transform=frames.computeIfAbsent(point.bone,bone->new Matrix4f(frame).mul(view.matrices()[rig.searchJointByName(bone).getId()]));
+                var cameraPoint=transform.transformPosition(new Vector3f(point.point));
+                // Any bounded liquid displacement can point toward the camera.
+                near=Math.min(near,-cameraPoint.z-.045F);
+            }
+            assertTrue(near>=.1498F,"outgoing liquid crosses depth plane: "+target+" look="+look+" swing="+swing+" depth="+near);
+            for(var bone:rig.bones())if(bone.getName().endsWith("_L"))
+                assertTrue(source[bone.getId()].equals(view.matrices()[bone.getId()],0),"right-arm depth protection moved the left anchor");
+        }
+    }
+    @Test void singularStableBoundsKeepTheExistingNativeArmMatricesExactly() {
+        var rig=BlacklightSkeleton.get();var source=rig.getPoseMatrices(new com.codex.blacklight.animation.BlacklightPose());
+        for(var form:FORMS)for(boolean left:new boolean[]{false,true})if(poweredSide(form,left)) {
+            var frame=nativeFrame(left,.35F,.2F,false);
+            var old=convert(form,source,frame,left,1);
+            var union=FirstPersonPose.convertArm(source,form.form,form.armor,form.shield,
+                    form.shield?NativeShieldGrip.sample("shield_run",0,1):new Matrix4f(),1,1,PROJECTION,frame,1,left,List.of(form.form),0);
+            for(int i=0;i<source.length;i++)assertTrue(old.matrices()[i].equals(union.matrices()[i],0),form+" stable native placement changed");
+            assertEquals(old.nearestDepth(),union.nearestDepth(),0);
+            assertEquals(old.maximumProjectedX(),union.maximumProjectedX(),0);
+            assertEquals(old.maximumProjectedY(),union.maximumProjectedY(),0);
+        }
+    }
     private static void projectGeometry(Form form,FirstPersonPose.Result view,Matrix4f frame,boolean left,List<Vertex> vertices,boolean idle) {
         var rig=BlacklightSkeleton.get();float near=Float.POSITIVE_INFINITY,maxX=0,maxY=0;int count=0,visible=0;
         var grip=form.shield?NativeShieldGrip.sample("shield_run",0,1):new Matrix4f();
