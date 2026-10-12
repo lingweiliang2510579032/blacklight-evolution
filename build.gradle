@@ -129,6 +129,9 @@ if (project.hasProperty('wallTraversalTest')) {
     sourceSets.main.java.srcDir('src/traversalTest/java')
     sourceSets.main.resources.srcDir('src/traversalTest/resources')
 }
+if (project.hasProperty('standaloneInfected')) {
+    sourceSets.main.java.srcDir('src/infectedVisualTest/java')
+}
 if (project.hasProperty('standaloneVisual') || project.hasProperty('standaloneGait') || project.hasProperty('standaloneLock')) {
     sourceSets.main.java.srcDir('src/standaloneVisualTest/java')
 }
@@ -150,6 +153,7 @@ tasks.named('jar', Jar).configure {
     if (!bundledMotionDirectory.isPresent()) exclude 'blacklight/bundled_motions/**'
     exclude 'com/codex/blacklight/gametest/**'
     exclude 'com/codex/blacklight/client/Standalone*Smoke*.class'
+    exclude 'com/codex/blacklight/client/InfectedCompositionSmoke*.class'
     exclude 'data/blacklight/structure/wall_test.nbt'
 }
 
@@ -170,6 +174,10 @@ neoForge {
     runs {
         client {
             client()
+            if (project.hasProperty('standaloneInfected')) {
+                systemProperty 'blacklight.test.infectedComposition', file(project.property('standaloneInfected')).absolutePath
+                programArguments.addAll '--width', '1440', '--height', '1000'
+            }
             if (project.hasProperty('clientRunDirectory')) gameDirectory = file(project.property('clientRunDirectory'))
             if (project.hasProperty('standaloneVisual')) {
                 systemProperty 'blacklight.test.standaloneVisual', file(project.property('standaloneVisual')).absolutePath
