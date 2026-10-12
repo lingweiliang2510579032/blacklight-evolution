@@ -11,7 +11,7 @@
 
 ## 验证
 
-针对 `CarrySteeringTest` 的三个回归覆盖 270 组镜头/人物朝向与方向键组合、后退及侧向转身、无输入保持姿态。构建还须检查重混淆成品、内嵌 MixinExtras、非空 refmap 和 224 个动作/HUD/镜头文件。
+2026-10-13，本机 Java 17 执行 `./gradlew.bat assemble test --tests "*CarrySteeringTest" --no-daemon --max-workers=2 -Dorg.gradle.jvmargs=-Xmx1G` 成功。三个回归全部通过（0 失败、0 跳过），覆盖 270 组镜头/人物朝向与方向键组合、后退及侧向转身、无输入保持姿态。Forge 重混淆、内嵌 MixinExtras、非空 refmap 与成品内 224 个动作/HUD/镜头文件校验通过，生成 bundled JAR 和 ZIP。
 
 dev.2 原有全量测试记录为 202/206 通过，四个旧预设/断言差异见 [移植状态](FORGE_1_20_1_STATUS.md)。本次针对性回归不代表这些旧失败已解决。Forge 客户端抓取试玩、专用服务器和多人验收仍需验证。
 
