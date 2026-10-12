@@ -17,14 +17,17 @@ final class InfectedSkinBuffers implements MultiBufferSource {
         return new Skin(delegate.getBuffer(type));
     }
     private record Skin(VertexConsumer out) implements VertexConsumer,ConsumeAnatomy.Consumer {
-        @Override public VertexConsumer addVertex(float x,float y,float z){out.addVertex(x,y,z);return this;}
+        public void endVertex(){if(out!=null)out.endVertex();}
+        public void defaultColor(int r,int g,int b,int a){if(out!=null)out.defaultColor(r,g,b,a);}
+        public void unsetDefaultColor(){if(out!=null)out.unsetDefaultColor();}
+        @Override public VertexConsumer vertex(double x,double y,double z){out.vertex(x,y,z);return this;}
         // Decay is local geometry, not an opaque dark-red coat over every species.
         // Keep sheep colours, cow spots, fish variants and village clothing readable.
-        @Override public VertexConsumer setColor(int r,int g,int b,int a){out.setColor((int)(r*.94F),(int)(g*.87F),(int)(b*.83F),a);return this;}
-        @Override public VertexConsumer setUv(float u,float v){out.setUv(u,v);return this;}
-        @Override public VertexConsumer setUv1(int u,int v){out.setUv1(u,v);return this;}
-        @Override public VertexConsumer setUv2(int u,int v){out.setUv2(u,v);return this;}
-        @Override public VertexConsumer setNormal(float x,float y,float z){out.setNormal(x,y,z);return this;}
+        @Override public VertexConsumer color(int r,int g,int b,int a){out.color((int)(r*.94F),(int)(g*.87F),(int)(b*.83F),a);return this;}
+        @Override public VertexConsumer uv(float u,float v){out.uv(u,v);return this;}
+        @Override public VertexConsumer overlayCoords(int u,int v){out.overlayCoords(u,v);return this;}
+        @Override public VertexConsumer uv2(int u,int v){out.uv2(u,v);return this;}
+        @Override public VertexConsumer normal(float x,float y,float z){out.normal(x,y,z);return this;}
         @Override public void anatomy(int id){if(out instanceof ConsumeAnatomy.Consumer c)c.anatomy(id);}
         @Override public void anatomy(float[] weights){if(out instanceof ConsumeAnatomy.Consumer c)c.anatomy(weights);}
         @Override public void anatomy(ModelPart p){if(out instanceof ConsumeAnatomy.Consumer c)c.anatomy(p);}

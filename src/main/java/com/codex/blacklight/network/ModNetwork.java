@@ -9,42 +9,54 @@ import com.codex.blacklight.movement.MovementTuningSettings;
 import com.codex.blacklight.mode.PrototypeModeSystem;
 import com.codex.blacklight.power.UpgradeSystem;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import com.codex.blacklight.forge.PacketDistributor;
+import com.codex.blacklight.BlacklightNeoMod;
+import com.codex.blacklight.forge.ForgePayloadRegistrar;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class ModNetwork {
+    private static final String PROTOCOL = "forge-1.20.1-1";
+    private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
+            new ResourceLocation(BlacklightNeoMod.MOD_ID, "main"), () -> PROTOCOL, PROTOCOL::equals, PROTOCOL::equals);
+    private static boolean registered;
+
+    public static SimpleChannel channel() { return CHANNEL; }
     private ModNetwork() {
     }
 
-    public static void register(RegisterPayloadHandlersEvent event) {
-        event.registrar("standalone-2")
-                .playToClient(NativeRootMotionPayload.TYPE, NativeRootMotionPayload.STREAM_CODEC, (payload, context) ->
+    public static void register() {
+        if (registered) throw new IllegalStateException("Blacklight network registered twice");
+        registered = true;
+        new ForgePayloadRegistrar(CHANNEL)
+                .playToClient(NativeRootMotionPayload.class, NativeRootMotionPayload.STREAM_CODEC, (payload, context) ->
                     context.enqueueWork(() -> com.codex.blacklight.animation.PlayerMotionController.acceptRootMotion(payload)))
-                .playToServer(DisguiseTogglePayload.TYPE,DisguiseTogglePayload.CODEC,(payload,context)->
+                .playToServer(DisguiseTogglePayload.class,DisguiseTogglePayload.CODEC,(payload,context)->
                     context.enqueueWork(()->{
                         if(context.player() instanceof ServerPlayer player && canAct(player))
                             com.codex.blacklight.disguise.DisguiseSystem.request(player);
                     }))
-                .playToServer(TargetLockPayload.TYPE,TargetLockPayload.STREAM_CODEC,(payload,context)->
+                .playToServer(TargetLockPayload.class,TargetLockPayload.STREAM_CODEC,(payload,context)->
                     context.enqueueWork(()->{
                         if(context.player() instanceof ServerPlayer player){
                             com.codex.blacklight.combat.CombatTargeting.requestLock(player,payload.entityId());
                             PacketDistributor.sendToPlayer(player,new TargetLockAckPayload(payload.requestId(),
-                                    player.getData(com.codex.blacklight.registry.ModAttachments.TARGET_LOCK_ID)));
+                                    com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.TARGET_LOCK_ID)));
                         }
                     }))
-                .playToClient(TargetLockAckPayload.TYPE,TargetLockAckPayload.STREAM_CODEC,(payload,context)->
+                .playToClient(TargetLockAckPayload.class,TargetLockAckPayload.STREAM_CODEC,(payload,context)->
                     context.enqueueWork(()->com.codex.blacklight.client.ClientTargetLock.acceptAck(payload)))
-                .playToServer(WeaponInputPayload.TYPE,WeaponInputPayload.STREAM_CODEC,(payload,context)->
+                .playToServer(WeaponInputPayload.class,WeaponInputPayload.STREAM_CODEC,(payload,context)->
                     context.enqueueWork(()->{
                         if(context.player() instanceof ServerPlayer player){
                             if(payload.cancelled())com.codex.blacklight.combat.WeaponCombatSystem.cancelHeldInput(player);
                             else com.codex.blacklight.combat.WeaponCombatSystem.acceptInput(player,payload.attack(),payload.special(),payload.action(),payload.jump());
                         }
                     }))
-                .playToServer(PowerSelectPayload.TYPE,PowerSelectPayload.STREAM_CODEC,(payload,context)->{
+                .playToServer(PowerSelectPayload.class,PowerSelectPayload.STREAM_CODEC,(payload,context)->{
                     context.enqueueWork(()->{
                         if(context.player() instanceof ServerPlayer player && canAct(player)) {
                             var forms=com.codex.blacklight.power.PowerForm.values();
@@ -56,49 +68,52 @@ public final class ModNetwork {
                         }
                     });
                 })
-                .playToClient(WeaponAnimationPayload.TYPE,WeaponAnimationPayload.STREAM_CODEC,(payload,context)->
+                .playToClient(WeaponAnimationPayload.class,WeaponAnimationPayload.STREAM_CODEC,(payload,context)->
                     context.enqueueWork(()->com.codex.blacklight.client.ClientWeaponCombat.animate(payload)))
-                .playToClient(CombatImpactPayload.TYPE,CombatImpactPayload.STREAM_CODEC,(payload,context)->
+                .playToClient(CombatImpactPayload.class,CombatImpactPayload.STREAM_CODEC,(payload,context)->
                     context.enqueueWork(()->com.codex.blacklight.client.renderer.CombatImpactRenderer.accept(payload)))
-                .playToServer(ClawActionPayload.TYPE, ClawActionPayload.STREAM_CODEC, (payload, context) -> {
+                .playToServer(ClawActionPayload.class, ClawActionPayload.STREAM_CODEC, (payload, context) -> {
                     if (context.player() instanceof ServerPlayer player && canAct(player)) {
                         context.enqueueWork(() -> ClawCombatSystem.handle(player, payload.action()));
                     }
                 })
-                .playToServer(MovementInputPayload.TYPE, MovementInputPayload.STREAM_CODEC, (payload, context) -> {
+                .playToServer(MovementInputPayload.class, MovementInputPayload.STREAM_CODEC, (payload, context) -> {
                     if (context.player() instanceof ServerPlayer player && canAct(player)) {
                         context.enqueueWork(() -> {
                             if (!PrototypeModeSystem.isActive(player)) return;
-                            player.getData(com.codex.blacklight.registry.ModAttachments.MOVEMENT_STATE).setCameraYaw(payload.cameraYaw());
+                            com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.MOVEMENT_STATE).setCameraYaw(payload.cameraYaw());
                             PrototypeMovementSystem.acceptInput(player, payload.jumpHeld(),
                                     payload.dashPressed(), payload.forward(), payload.sideways(), payload.sprinting(), payload.detach());
                         });
                     }
                 })
-                .playToServer(PrototypeModePayload.TYPE, PrototypeModePayload.STREAM_CODEC, (payload, context) -> {
+                .playToServer(PrototypeModePayload.class, PrototypeModePayload.STREAM_CODEC, (payload, context) -> {
                     if (context.player() instanceof ServerPlayer player && canAct(player)) {
                         context.enqueueWork(() -> PrototypeModeSystem.handle(player, payload.enabled()));
                     }
                 })
-                .playToServer(UpgradePurchasePayload.TYPE, UpgradePurchasePayload.STREAM_CODEC, (payload, context) -> {
+                .playToServer(UpgradePurchasePayload.class, UpgradePurchasePayload.STREAM_CODEC, (payload, context) -> {
                     if (context.player() instanceof ServerPlayer player && canAct(player)) {
                         context.enqueueWork(() -> UpgradeSystem.purchase(player, payload.upgradeId()));
                     }
                 })
-                .playToClient(MovementTuningPayload.TYPE, MovementTuningPayload.STREAM_CODEC, (payload, context) -> {
+                .playToClient(MovementTuningPayload.class, MovementTuningPayload.STREAM_CODEC, (payload, context) -> {
                     context.enqueueWork(() -> com.codex.blacklight.client.ClientMovementTuning.receive(payload.snapshot()));
                 })
-                .playToClient(PhysicalFeedbackPayload.TYPE, PhysicalFeedbackPayload.STREAM_CODEC, (payload, context) -> {
+                .playToClient(PhysicalFeedbackPayload.class, PhysicalFeedbackPayload.STREAM_CODEC, (payload, context) -> {
                     context.enqueueWork(() -> ClientPhysicalFeedback.accept(payload));
                 })
-                .playToClient(ClawAnimationPayload.TYPE, ClawAnimationPayload.STREAM_CODEC, (payload, context) -> {
+                .playToClient(ClawAnimationPayload.class, ClawAnimationPayload.STREAM_CODEC, (payload, context) -> {
                     context.enqueueWork(() -> ClientClawAnimation.accept(payload));
                 })
-                .playToClient(WallMotionPayload.TYPE, WallMotionPayload.STREAM_CODEC, (payload, context) -> {
+                .playToClient(WallMotionPayload.class, WallMotionPayload.STREAM_CODEC, (payload, context) -> {
                     context.enqueueWork(() -> com.codex.blacklight.client.ClientWallMotion.accept(payload));
                 })
-                .playToClient(LandingVisualPayload.TYPE, LandingVisualPayload.STREAM_CODEC, (payload, context) -> {
+                .playToClient(LandingVisualPayload.class, LandingVisualPayload.STREAM_CODEC, (payload, context) -> {
                     context.enqueueWork(() -> ClientLandingVisuals.accept(payload));
+                })
+                .playToClient(AttachmentSyncPayload.class, AttachmentSyncPayload.STREAM_CODEC, (payload, context) -> {
+                    context.enqueueWork(() -> com.codex.blacklight.forge.ClientAttachmentSync.accept(payload));
                 });
     }
 
@@ -128,7 +143,10 @@ public final class ModNetwork {
 
     @SubscribeEvent
     public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player) synchronizePersistentState(player);
+        if (event.getEntity() instanceof ServerPlayer player) {
+            com.codex.blacklight.registry.ModAttachments.storage(player).clearTransient();
+            synchronizePersistentState(player);
+        }
     }
 
     private static void synchronizePersistentState(ServerPlayer player) {
@@ -136,10 +154,11 @@ public final class ModNetwork {
         com.codex.blacklight.power.GrowthSystem.updateHealth(player);
         // Copy-on-death restores server data; explicitly publish it for the new client
         // entity as well. Client mode reconciliation tolerates either packet order.
-        player.syncData(com.codex.blacklight.registry.ModAttachments.PLAYER_STATE);
-        player.syncData(com.codex.blacklight.registry.ModAttachments.GROWTH);
-        player.syncData(com.codex.blacklight.registry.ModAttachments.UTILITY_STATE);
-        player.syncData(com.codex.blacklight.registry.ModAttachments.DISGUISE_IDENTITY);
-        player.syncData(com.codex.blacklight.registry.ModAttachments.DISGUISE_MORPH);
+        com.codex.blacklight.registry.ModAttachments.syncData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE);
+        com.codex.blacklight.registry.ModAttachments.syncData(player, com.codex.blacklight.registry.ModAttachments.GROWTH);
+        com.codex.blacklight.registry.ModAttachments.syncData(player, com.codex.blacklight.registry.ModAttachments.UTILITY_STATE);
+        com.codex.blacklight.registry.ModAttachments.syncData(player, com.codex.blacklight.registry.ModAttachments.DISGUISE_IDENTITY);
+        com.codex.blacklight.registry.ModAttachments.syncData(player, com.codex.blacklight.registry.ModAttachments.DISGUISE_MORPH);
+        com.codex.blacklight.registry.ModAttachments.syncAll(player, player);
     }
 }

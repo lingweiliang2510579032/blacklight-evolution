@@ -12,7 +12,7 @@ public final class ReceiverPoseDiagnostics {
     private ReceiverPoseDiagnostics() {}
 
     public static void record(LivingEntity entity, Object model, String clip, int bound) {
-        var visual = entity.getData(ModAttachments.CONSUME_VISUAL);
+        var visual = com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL);
         String key = visual.started()+":"+visual.stage()+":"+clip+":"+bound;
         var models = LAST.computeIfAbsent(entity, e -> new java.util.HashMap<>());
         if (key.equals(models.put(model.getClass(), key))) return;

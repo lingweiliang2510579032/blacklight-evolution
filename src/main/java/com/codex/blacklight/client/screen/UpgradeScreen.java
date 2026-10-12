@@ -11,7 +11,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.codex.blacklight.forge.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -58,7 +58,7 @@ public final class UpgradeScreen extends Screen {
 
     @Override
     protected void init() {
-        railWidth = Math.clamp(width / 5,80,124);
+        railWidth = net.minecraft.util.Mth.clamp(width / 5,80,124);
         contentX = railWidth + 14;
         contentWidth = width - contentX - 14;
         listBottom=Math.max(LIST_TOP+35,height-23);
@@ -93,7 +93,7 @@ public final class UpgradeScreen extends Screen {
             }
         }
         totalHeight=y;
-        scrollOffset=Math.clamp(scrollOffset,0,maxScroll());
+        scrollOffset=net.minecraft.util.Mth.clamp(scrollOffset,0,maxScroll());
         layoutRows();
     }
 
@@ -116,11 +116,11 @@ public final class UpgradeScreen extends Screen {
         for(var row:rows){
             int y=LIST_TOP+row.y-scrollOffset;
             row.button.setY(y+row.buttonOffset);
-            row.button.visible=row.button.getY()>=LIST_TOP&&row.button.getBottom()<=listBottom;
+            row.button.visible=row.button.getY()>=LIST_TOP&&(row.button.getY()+row.button.getHeight())<=listBottom;
         }
     }
 
-    @Override public void renderBackground(GuiGraphics graphics,int mouseX,int mouseY,float partialTick){
+    @Override public void renderBackground(GuiGraphics graphics){
         // Screen.render invokes this before its widgets. The opaque panel below owns
         // its background; invoking vanilla blur here would blur our already drawn text.
     }
@@ -190,7 +190,7 @@ public final class UpgradeScreen extends Screen {
     }
 
     private void renderAttributes(GuiGraphics graphics){
-        totalHeight=attributeHeight();scrollOffset=Math.clamp(scrollOffset,0,maxScroll());
+        totalHeight=attributeHeight();scrollOffset=net.minecraft.util.Mth.clamp(scrollOffset,0,maxScroll());
         int y=LIST_TOP-scrollOffset;
         for(var entry:PlayerAttributesView.entries()){
             var lines=font.split(entry.value(),Math.max(40,contentWidth-20));
@@ -241,14 +241,14 @@ public final class UpgradeScreen extends Screen {
         return mouseY>=LIST_TOP&&mouseY<listBottom&&super.mouseClicked(mouseX, mouseY, button);
     }
 
-    @Override public boolean mouseScrolled(double mouseX,double mouseY,double horizontal,double vertical){
+    @Override public boolean mouseScrolled(double mouseX,double mouseY,double vertical){
         if(mouseX<contentX||mouseY<LIST_TOP||mouseY>listBottom)return false;
-        scrollOffset=Math.clamp(scrollOffset-(int)(vertical*30),0,maxScroll());layoutRows();return true;
+        scrollOffset=net.minecraft.util.Mth.clamp(scrollOffset-(int)(vertical*30),0,maxScroll());layoutRows();return true;
     }
 
     private static boolean owned(BlacklightState state, String id) {
         var growth=com.codex.blacklight.power.GrowthUpgrade.byId(id);
-        if(growth!=null){var p=Minecraft.getInstance().player;return p!=null&&p.getData(ModAttachments.GROWTH).owns(growth);}
+        if(growth!=null){var p=Minecraft.getInstance().player;return p!=null&&com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.GROWTH).owns(growth);}
         var form = com.codex.blacklight.power.PowerForm.byId(id);
         if (form != com.codex.blacklight.power.PowerForm.NONE) return state.hasUnlocked(form);
         ClawUpgrade claw = ClawUpgrade.byId(id);
@@ -260,14 +260,14 @@ public final class UpgradeScreen extends Screen {
     private static BlacklightState currentState() {
         Minecraft minecraft = Minecraft.getInstance();
         return minecraft.player == null ? null
-                : minecraft.player.getData(ModAttachments.PLAYER_STATE);
+                : com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.PLAYER_STATE);
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if(keyCode==GLFW.GLFW_KEY_PAGE_DOWN||keyCode==GLFW.GLFW_KEY_PAGE_UP||keyCode==GLFW.GLFW_KEY_HOME||keyCode==GLFW.GLFW_KEY_END){
             int page=Math.max(30,listBottom-LIST_TOP-20);
-            scrollOffset=keyCode==GLFW.GLFW_KEY_HOME?0:keyCode==GLFW.GLFW_KEY_END?maxScroll():Math.clamp(scrollOffset+(keyCode==GLFW.GLFW_KEY_PAGE_DOWN?page:-page),0,maxScroll());
+            scrollOffset=keyCode==GLFW.GLFW_KEY_HOME?0:keyCode==GLFW.GLFW_KEY_END?maxScroll():net.minecraft.util.Mth.clamp(scrollOffset+(keyCode==GLFW.GLFW_KEY_PAGE_DOWN?page:-page),0,maxScroll());
             layoutRows();return true;
         }
         if (keyCode == GLFW.GLFW_KEY_U) {

@@ -9,18 +9,18 @@ import io.netty.buffer.Unpooled;
 import java.util.UUID;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.fml.ModList;
-import net.neoforged.neoforge.common.util.FakePlayerFactory;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.common.util.FakePlayerFactory;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.gametest.GameTestHolder;
+import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
 /** Production gameplay runs in Minecraft with the independent renderer's prerequisites only. */
 @GameTestHolder("blacklight") @PrefixGameTestTemplate(false)
@@ -33,20 +33,19 @@ public final class StandaloneCoreGameTest {
         var profile=new GameProfile(UUID.randomUUID(),name);
         ServerPlayer p;
         if(damageable) {
-            // NeoForge FakePlayer is permanently invulnerable and its tick is a no-op.
+            // Forge FakePlayer is permanently invulnerable and its tick is a no-op.
             // Exercise the real ServerPlayer hurt pipeline, with networking isolated.
-            p=new ServerPlayer(h.getLevel().getServer(),h.getLevel(),profile,
-                    net.minecraft.server.level.ClientInformation.createDefault());
+            p=new ServerPlayer(h.getLevel().getServer(),h.getLevel(),profile);
             // This fixture invokes no inbound movement or interaction handlers.
             p.connection=FakePlayerFactory.get(h.getLevel(),profile).connection;
             for(int tick=0;tick<61;tick++)p.tick();
         } else p=FakePlayerFactory.get(h.getLevel(),profile);
         p.setGameMode(GameType.SURVIVAL);p.setPos(h.absoluteVec(new Vec3(3,2,3)));
         p.setYRot(0);p.setXRot(0);p.yBodyRot=0;p.setOnGround(true);p.tickCount=100;
-        var state=p.getData(ModAttachments.PLAYER_STATE);state.infect();state.setPrototypeMode(true);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);state.infect();state.setPrototypeMode(true);
         for(var power:PowerForm.values())state.unlock(power);
-        state.activate(form);p.setData(ModAttachments.PLAYER_STATE,state);
-        p.getData(ModAttachments.CLAW_COMBAT).reset();p.getData(ModAttachments.MOVEMENT_STATE).reset();
+        state.activate(form);com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.PLAYER_STATE,state);
+        com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CLAW_COMBAT).reset();com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.MOVEMENT_STATE).reset();
         return p;
     }
 
@@ -75,12 +74,12 @@ public final class StandaloneCoreGameTest {
                 PowerForm.MUSCLE_MASS,PowerForm.BLADE,PowerForm.NONE}) {
             p.tickCount+=100;
             h.assertTrue(PowerFormSystem.select(p,form,false),"unlocked form can be selected: "+form);
-            h.assertTrue(p.getData(ModAttachments.PLAYER_STATE).getActivePower()==form,"server retains selected form: "+form);
+            h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).getActivePower()==form,"server retains selected form: "+form);
         }
         p.tickCount+=100;PowerFormSystem.select(p,PowerForm.BLADE,false);p.tickCount+=100;
         double normalSpeed=p.getAttributeValue(Attributes.MOVEMENT_SPEED);
         h.assertTrue(PowerFormSystem.select(p,PowerForm.ARMOR,false)&&UtilityPowerSystem.active(p,PowerForm.ARMOR),"armor remains an independently activated mode");
-        h.assertTrue(p.getData(ModAttachments.PLAYER_STATE).getActivePower()==PowerForm.BLADE,"armor coexists with blade");
+        h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).getActivePower()==PowerForm.BLADE,"armor coexists with blade");
         h.assertTrue(p.getAttributeValue(Attributes.MOVEMENT_SPEED)<normalSpeed
                 &&p.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE)>=.6,"armor weight and stability remain authoritative");
         p.tickCount+=100;PowerFormSystem.select(p,PowerForm.THERMAL_VISION,false);p.tickCount+=100;
@@ -108,9 +107,9 @@ public final class StandaloneCoreGameTest {
                 "armor preserves its actual damage ratio against the same mob source: baseline="+baseline+" protected="+(before-p.getHealth()));
         UtilityPowerSystem.toggle(p,PowerForm.SHIELD);p.invulnerableTime=0;
         p.setDeltaMovement(Vec3.ZERO);p.yBodyRot=0;before=p.getHealth();
-        float shield=p.getData(ModAttachments.UTILITY_STATE).shield();
+        float shield=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.UTILITY_STATE).shield();
         p.hurt(p.damageSources().mobAttack(enemy),4);
-        h.assertTrue(p.getHealth()==before&&p.getData(ModAttachments.UTILITY_STATE).shield()<shield,"front shield absorbs damage and spends durability");
+        h.assertTrue(p.getHealth()==before&&com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.UTILITY_STATE).shield()<shield,"front shield absorbs damage and spends durability");
         enemy.discard();h.succeed();
     }
 
@@ -118,19 +117,19 @@ public final class StandaloneCoreGameTest {
     public static void synchronizedActionsSeekForLateObserversAndClearWithMode(GameTestHelper h) {
         var p=player(h,"standalone-clock",PowerForm.CLAWS);
         PlayerActions.get().play(p,PlayerAction.CLAW_AUTO_1,0);
-        var action=p.getData(ModAttachments.PLAYER_ACTION);
+        var action=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_ACTION);
         h.assertTrue(!action.clipId().isEmpty()&&action.revision()>0,"server publishes own action");
-        var buffer=new RegistryFriendlyByteBuf(Unpooled.buffer(),h.getLevel().registryAccess());
+        var buffer=new FriendlyByteBuf(Unpooled.buffer());
         try {
             NativeActionState.CODEC.encode(buffer,action);var observer=NativeActionState.CODEC.decode(buffer);
             h.assertTrue(observer.equals(action),"attachment protocol preserves clip identity and shared clock");
             h.assertTrue(Math.abs(observer.seconds(action.started()+5.5)-.275F)<.0001,"late observer seeks into existing action instead of restarting");
         } finally {buffer.release();}
         var enemy=h.spawn(EntityType.COW,3,2,5);enemy.setNoAi(true);CombatTargeting.requestLock(p,enemy.getId());
-        h.assertTrue(p.getData(ModAttachments.TARGET_LOCK_ID)==enemy.getId(),"target facing is synchronized by Blacklight");
+        h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.TARGET_LOCK_ID)==enemy.getId(),"target facing is synchronized by Blacklight");
         PlayerActions.get().synchronizeMode(p,false);
-        h.assertTrue(p.getData(ModAttachments.PLAYER_ACTION).clipId().isEmpty()
-                &&p.getData(ModAttachments.TARGET_LOCK_ID)==-1,"ordinary mode clears transient action and target lock");
+        h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_ACTION).clipId().isEmpty()
+                &&com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.TARGET_LOCK_ID)==-1,"ordinary mode clears transient action and target lock");
         enemy.discard();h.succeed();
     }
 
@@ -138,7 +137,7 @@ public final class StandaloneCoreGameTest {
     public static void serverClawRootStepStopsAtRealWorldCollision(GameTestHelper h) {
         var p=player(h,"standalone-collision",PowerForm.CLAWS);
         for(int x=0;x<9;x++)for(int y=2;y<6;y++)h.setBlock(x,y,4,Blocks.STONE);
-        var combat=p.getData(ModAttachments.CLAW_COMBAT);combat.begin(ClawCombatState.Action.AUTO_1);
+        var combat=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CLAW_COMBAT);combat.begin(ClawCombatState.Action.AUTO_1);
         combat.setAttackDirection(0,1);PlayerActions.get().play(p,PlayerAction.CLAW_AUTO_1,0);
         double start=p.getZ(),wall=h.absoluteVec(new Vec3(0,0,4)).z;
         for(int tick=0;tick<10;tick++){combat.advance();NativeRootMotion.claw(p,combat);}
@@ -152,24 +151,24 @@ public final class StandaloneCoreGameTest {
         var p=player(h,"standalone-consume",PowerForm.MUSCLE_MASS);p.setHealth(p.getMaxHealth()*.5F);
         var cow=h.spawn(EntityType.COW,3,2,5);cow.setNoAi(true);cow.setPos(p.position().add(0,0,1.5));
         ConsumeSystem.request(p);
-        h.assertTrue(p.getData(ModAttachments.CONSUMING)&&cow.getData(ModAttachments.CONSUME_VISUAL).active(),"muscle capture claims actor and receiver");
+        h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CONSUMING)&&com.codex.blacklight.registry.ModAttachments.getData(cow, ModAttachments.CONSUME_VISUAL).active(),"muscle capture claims actor and receiver");
         p.setDeltaMovement(Vec3.ZERO);p.knockback(2,1,0);
         h.assertTrue(p.getDeltaMovement().horizontalDistanceSqr()<.000001,"native capture super armor suppresses knockback");
         for(int tick=0;tick<ConsumeVisual.captureDuration(PowerForm.MUSCLE_MASS)+5;tick++) {
-            p.tickCount++;ConsumeSystem.tick(new PlayerTickEvent.Post(p));
+            p.tickCount++;ConsumeSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));
         }
         h.assertTrue(ConsumeSystem.holding(p)&&cow.isAlive(),"capture reaches holding without consuming automatically");
-        int biomass=p.getData(ModAttachments.PLAYER_STATE).getBiomass(),ep=p.getData(ModAttachments.PLAYER_STATE).getEvolutionPoints();
+        int biomass=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).getBiomass(),ep=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).getEvolutionPoints();
         ConsumeSystem.consume(p);ConsumeSystem.consume(p);
         for(int tick=0;tick<ConsumeVisual.duration(PowerForm.MUSCLE_MASS)+2;tick++) {
-            p.tickCount++;ConsumeSystem.tick(new PlayerTickEvent.Post(p));
+            p.tickCount++;ConsumeSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));
         }
-        h.assertTrue(cow.isRemoved()&&!p.getData(ModAttachments.CONSUMING),"confirmed muscle consume completes and releases both actors");
-        h.assertTrue(p.getData(ModAttachments.PLAYER_STATE).getBiomass()>biomass
-                &&p.getData(ModAttachments.PLAYER_STATE).getEvolutionPoints()>ep,"consume retains biomass and evolution rewards");
-        int paid=p.getData(ModAttachments.PLAYER_STATE).getEvolutionPoints();
-        ConsumeSystem.consume(p);ConsumeSystem.tick(new PlayerTickEvent.Post(p));
-        h.assertTrue(p.getData(ModAttachments.PLAYER_STATE).getEvolutionPoints()==paid,"repeated confirmation cannot award twice");
+        h.assertTrue(cow.isRemoved()&&!com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CONSUMING),"confirmed muscle consume completes and releases both actors");
+        h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).getBiomass()>biomass
+                &&com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).getEvolutionPoints()>ep,"consume retains biomass and evolution rewards");
+        int paid=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).getEvolutionPoints();
+        ConsumeSystem.consume(p);ConsumeSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));
+        h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).getEvolutionPoints()==paid,"repeated confirmation cannot award twice");
         h.succeed();
     }
     @GameTest(template="wall_test",timeoutTicks=100)

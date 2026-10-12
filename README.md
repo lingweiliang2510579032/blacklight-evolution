@@ -1,13 +1,15 @@
 # Blacklight: Ascension
 
-> **独立开发版 `0.3.0-standalone-dev.5`。** 基于现有 RC59 工作区，核心、动作、模型、输入、镜头和服务端同步已改由黑光自身驱动，运行不再要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。无这些模组的客户端和 GameTestServer 已实际启动。当前仍在检查脱离前置后的姿态与移动回归，结果见 [独立化记录](docs/STANDALONE_MIGRATION.md)。
+> **Forge 1.20.1 独立维护分支，移植开发中。** 本分支由维护者负责 Minecraft 1.20.1 / Forge；末者的上游继续负责 1.21.1 / NeoForge。目标环境是 Java 17、Forge 47.4.10、GeckoLib 4.8.4。下方保留的上游开发与验收记录对应原版本；1.20.1 的编译和运行结果单独记录在 [移植状态](docs/FORGE_1_20_1_STATUS.md)。公开仓库仍缺完整动作资料，source-only 构建只能验证源码。
+
+> **上游背景 `0.3.0-standalone-dev.5`。** 核心、动作、模型、输入、镜头和服务端同步由黑光自身驱动，不要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。[独立化记录](docs/STANDALONE_MIGRATION.md) 中的启动与玩法验收对应上游 1.21.1。
 
 **黑光：进化 · 作者：末者**
-Minecraft 1.21.1 / NeoForge 的黑光病毒同人 Mod，包含生物武器、抓取吸收、伪装、强化移动、感染生物与组织蜂巢。
+Minecraft 1.20.1 / Forge 的黑光病毒同人 Mod，包含生物武器、抓取吸收、伪装、强化移动、感染生物与组织蜂巢。原作者末者；本分支由雨夜独立维护。
 
 ## 当前版本与发布状态
 
-当前为 **0.3.0-standalone-dev.5，本地独立开发版**，尚未公开发行，也未将完整人工验收标记为通过。项目按现有黑光能力与感染生存玩法收尾，不宣称完整复刻原游戏。
+当前为 **0.3.0-forge-1.20.1-dev.1，Forge 源码移植开发版**，尚未公开发行，玩法验收未完成。不宣称完整复刻原游戏。
 
 **公开资源方案仍是发布阻塞。** 普通源码构建不含本地解包动作；当前动画初始化又要求完整动作资料，缺失时会报错。因此 source-only 构建只用于源码编译，不能当作可直接游玩的公开成品。含私有资料的 local-preview 包仅供本地预览，授权尚未明确，不公开上传。
 
@@ -21,17 +23,19 @@ Minecraft 1.21.1 / NeoForge 的黑光病毒同人 Mod，包含生物武器、抓
 
 | 项目 | 当前使用版本 | 是否必需 |
 | --- | --- | --- |
-| Minecraft Java 版 | 1.21.1 | 是 |
-| Java | 21 | 是 |
-| NeoForge | 21.1.244 | 是 |
-| GeckoLib | 4.9.2，NeoForge 1.21.1 版 | 是，单独安装 |
-| ParCool | 3.4.3.3 | 可选兼容；不是动作来源 |
+| Minecraft Java 版 | 1.20.1 | 是 |
+| Java | 17 | 是 |
+| Forge | 47.4.10 | 是 |
+| GeckoLib | 4.8.4，Forge 1.20.1 版 | 是，单独安装 |
+| ParCool | 1.20.1-3.4.3.3 | 可选兼容；不是动作来源 |
 
-Blacklight JAR 不内置前置 Mod。请使用上表的明确版本，不以“最新版”代替；可选模组装入后也要满足兼容范围。安装包不是完整游戏或完整整合包。多人客户端和服务端需要匹配的 Mod 版本、依赖与动作资料；联机行为仍待验收。
+Blacklight JAR 不内置 GeckoLib；内置的 MixinExtras 由 Forge 自动加载。请使用上表的明确版本。多人客户端和服务端需要匹配的 Mod 版本、依赖与完整动作资料；联机行为仍待验收。
 
-退出游戏并备份存档、配置，把对应 NeoForge 版本的依赖与 Blacklight JAR 放入实例的 mods 目录，移除旧的 Blacklight JAR，只保留一份。当前本地试玩使用资料完整的 local-preview 包；不要用 source-only JAR 替换后直接试玩。具体步骤见 [安装文档](docs/INSTALL_ZH.md)。
+仅在有完整且获准使用的动作资料时，用独立 Forge 实例验证 local-preview 包。source-only JAR 不能直接试玩。具体边界见 [安装文档](docs/INSTALL_ZH.md)。
 
 ## 生存开始
+
+以下能力说明来自上游；Forge 分支的完整玩法验收尚未完成。
 
 1. 寻找雪地村庄的制图师，升至学徒，取得冰下研究站地图。已生成交易的旧村民不会自动换表；研究站只在符合条件的新区域生成。
 2. 按地图探索研究站，在冷藏箱取得病毒安瓿。附近没有可定位的研究站时，制图师可能仍售原版地图。
@@ -98,8 +102,8 @@ gradlew.bat clean assemble --no-daemon
 
 文件保留 Minecraft 和 Mod 两个版本号：
 
-- 源码编译产物：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.5-source-only.jar` / `.zip`。
-- 私有本地预览：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.5-local-preview.jar` / `.zip`。
-- 原始源码快照：`Blacklight-Ascension-MC1.21.1-NeoForge-0.3.0-standalone-dev.5-sources.zip`。
+- 源码编译产物：`Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.1-source-only.jar` / `.zip`。
+- 有完整资料时的私有预览：`Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.1-local-preview.jar` / `.zip`。
+- 源码快照：`Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.1-sources.zip`。
 
 这些名称区分用途，不表示已经发布。原创代码与原创资源的许可见 [LICENSE](LICENSE)；私有派生资源不随该声明取得分发授权，见 [资源来源说明](THIRD_PARTY_ASSETS.md)。[公开仓库](https://github.com/mengyuyuan/blacklight-evolution) · [贡献说明](CONTRIBUTING.md)。

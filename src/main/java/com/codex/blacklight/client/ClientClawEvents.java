@@ -21,16 +21,16 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.renderer.entity.ThrownItemRenderer;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.EventPriority;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.InputEvent;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import net.neoforged.neoforge.client.event.ScreenEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.client.event.InputEvent;
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import net.minecraftforge.client.event.ScreenEvent;
+import com.codex.blacklight.forge.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
 
 @EventBusSubscriber(modid = BlacklightNeoMod.MOD_ID, value = Dist.CLIENT)
@@ -78,6 +78,8 @@ public final class ClientClawEvents {
     private ClientClawEvents() {
     }
 
+    @EventBusSubscriber(modid=BlacklightNeoMod.MOD_ID,value=Dist.CLIENT,bus=EventBusSubscriber.Bus.MOD)
+    public static final class Registration {
     @SubscribeEvent
     public static void registerKeys(RegisterKeyMappingsEvent event) {
         event.register(GRAB);
@@ -108,10 +110,12 @@ public final class ClientClawEvents {
         event.registerLayerDefinition(ClawArmModel.LAYER, ClawArmModel::createLayer);
     }
 
+    }
+
     @SubscribeEvent
-    public static void lockConsumptionMovement(net.neoforged.neoforge.client.event.MovementInputUpdateEvent event) {
-        if (!event.getEntity().getData(ModAttachments.CONSUMING)
-                || !com.codex.blacklight.combat.ConsumeVisual.blocksInput(event.getEntity().getData(ModAttachments.GRAB_STAGE))) return;
+    public static void lockConsumptionMovement(net.minecraftforge.client.event.MovementInputUpdateEvent event) {
+        if (!com.codex.blacklight.registry.ModAttachments.getData(event.getEntity(), ModAttachments.CONSUMING)
+                || !com.codex.blacklight.combat.ConsumeVisual.blocksInput(com.codex.blacklight.registry.ModAttachments.getData(event.getEntity(), ModAttachments.GRAB_STAGE))) return;
         var input = event.getInput();
         input.forwardImpulse = 0; input.leftImpulse = 0; input.jumping = false;
         input.up = false; input.down = false; input.left = false; input.right = false;
@@ -124,7 +128,7 @@ public final class ClientClawEvents {
         if (event.getAction() != GLFW.GLFW_PRESS || minecraft.player == null
                 || minecraft.getConnection() == null) return;
 
-        var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
+        var state = com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.PLAYER_STATE);
         if (minecraft.screen == null && PROTOTYPE_MODE.matches(event.getKey(), event.getScanCode())) {
             PacketDistributor.sendToServer(new PrototypeModePayload(!state.isPrototypeMode()));
             return;
@@ -136,7 +140,7 @@ public final class ClientClawEvents {
         if (!state.isPrototypeMode()) return;
         ClientTargetLock.sync();
         if (minecraft.screen == null && CYCLE_FORM.matches(event.getKey(), event.getScanCode())) {
-            if(!minecraft.player.getData(ModAttachments.CONSUMING))minecraft.setScreen(new com.codex.blacklight.client.screen.PowerWheelScreen(CYCLE_FORM)); return;
+            if(!com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.CONSUMING))minecraft.setScreen(new com.codex.blacklight.client.screen.PowerWheelScreen(CYCLE_FORM)); return;
         }
         if (minecraft.screen == null && GRAB.matches(event.getKey(), event.getScanCode())) {
             pollGrabPress(true);
@@ -165,7 +169,7 @@ public final class ClientClawEvents {
 
     /** Opens the timeline once for repeatable development screenshots and nothing else. */
     @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(net.minecraftforge.event.TickEvent.ClientTickEvent event){if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
         resetInputOwner();
         pollGrabPress(physicalGrabDown());
         suppressPrototypePlayerList();
@@ -186,7 +190,7 @@ public final class ClientClawEvents {
     public static void onRawMouseButton(InputEvent.MouseButton.Pre event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.screen != null) return;
-        var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
+        var state = com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.PLAYER_STATE);
         if(ClientWeaponCombat.active()&&(event.getButton()==0||event.getButton()==1)){
             event.setCanceled(true);ClientWeaponCombat.poll();return;
         }
@@ -197,7 +201,7 @@ public final class ClientClawEvents {
                     state.isInfected(), state.isPrototypeMode(), state.getActivePower().id(),
                     minecraft.player.onGround());
         }
-        if(state.isPrototypeMode() && minecraft.player.getData(ModAttachments.CONSUMING)
+        if(state.isPrototypeMode() && com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.CONSUMING)
                 && (event.getButton()==GLFW.GLFW_MOUSE_BUTTON_LEFT||event.getButton()==GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
             event.setCanceled(true);tickGrabButtons();return;
         }
@@ -244,10 +248,10 @@ public final class ClientClawEvents {
         long window=mc.getWindow().getWindow();
         boolean left=GLFW.glfwGetMouseButton(window,GLFW.GLFW_MOUSE_BUTTON_LEFT)==GLFW.GLFW_PRESS;
         boolean right=GLFW.glfwGetMouseButton(window,GLFW.GLFW_MOUSE_BUTTON_RIGHT)==GLFW.GLFW_PRESS;
-        if(mc.player!=null&&mc.screen==null&&mc.player.getData(ModAttachments.CONSUMING)) {
+        if(mc.player!=null&&mc.screen==null&&com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.CONSUMING)) {
             clearLeftAttackHold();
             mc.options.keyAttack.setDown(false);mc.options.keyUse.setDown(false);
-            int stage=mc.player.getData(ModAttachments.GRAB_STAGE);
+            int stage=com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.GRAB_STAGE);
             boolean holding=com.codex.blacklight.combat.ConsumeVisual.holding(stage);
             if(right&&!lastGrabRight&&(holding||com.codex.blacklight.combat.ConsumeVisual.acquiring(stage)))
                 PacketDistributor.sendToServer(new ClawActionPayload(ClawActionPayload.Action.CONSUME));
@@ -317,7 +321,7 @@ public final class ClientClawEvents {
     private static void suppressPrototypePlayerList() {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.screen != null) return;
-        var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
+        var state = com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.PLAYER_STATE);
         if (state.isPrototypeMode() && TARGET_LOCK.isDown()) {
             minecraft.options.keyPlayerList.setDown(false);
         }
@@ -342,8 +346,8 @@ public final class ClientClawEvents {
             lastPhysicalLeftDown = physicallyDown;
             return;
         }
-        var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
-        if (ClientWeaponCombat.active() || minecraft.player.getData(ModAttachments.CONSUMING) || !state.isInfected() || !state.isPrototypeMode()
+        var state = com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.PLAYER_STATE);
+        if (ClientWeaponCombat.active() || com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.CONSUMING) || !state.isInfected() || !state.isPrototypeMode()
                 || state.getActivePower() != PowerForm.CLAWS) {
             clearLeftAttackHold();
             lastPhysicalLeftDown = physicallyDown;
@@ -422,7 +426,7 @@ public final class ClientClawEvents {
         if(!groundSpikeHeld){releaseGroundSpikePlantPose();return;}
         var mc=Minecraft.getInstance();
         if(mc.player==null||mc.level==null){clearGroundSpikePlaybackState(mc);return;}
-        var state=mc.player.getData(ModAttachments.PLAYER_STATE);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE);
         if(!state.isInfected()||!state.isPrototypeMode()||state.getActivePower()!=PowerForm.CLAWS){
             clearGroundSpikePlaybackState(mc);return;
         }
@@ -476,9 +480,9 @@ public final class ClientClawEvents {
     public static void onAttack(InputEvent.InteractionKeyMappingTriggered event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.screen != null) return;
-        var state = minecraft.player.getData(ModAttachments.PLAYER_STATE);
+        var state = com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.PLAYER_STATE);
         if(ClientWeaponCombat.active()) {event.setSwingHand(false);event.setCanceled(true);ClientWeaponCombat.poll();return;}
-        if(state.isPrototypeMode()&&minecraft.player.getData(ModAttachments.CONSUMING)) {
+        if(state.isPrototypeMode()&&com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.CONSUMING)) {
             event.setSwingHand(false);event.setCanceled(true);tickGrabButtons();return;
         }
         if (!state.isInfected() || !state.isPrototypeMode()

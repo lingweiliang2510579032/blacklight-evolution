@@ -98,7 +98,7 @@ public final class ConsumeSequence {
         // Source event profiles run in seconds. Extending an effect tail must not
         // stretch the paired skeleton clips or replay their final motion.
         if(ConsumeReceiverScene.profile(form,large)!=null)
-            return Math.clamp(t*duration/(20*ConsumeReceiverScene.clipSeconds(form)),0,1);
+            return com.codex.blacklight.util.MathCompat.clamp(t*duration/(20*ConsumeReceiverScene.clipSeconds(form)),0,1);
         float strike=contact(form,large),half=1F/Math.max(20,duration),a=strike-half,b=strike+half;
         return t<a?t*strike/a:t<=b?strike:strike+(t-b)*(1-strike)/(1-b);
     }

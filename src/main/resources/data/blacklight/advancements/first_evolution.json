@@ -1,7 +1,7 @@
 {
   "display": {
     "icon": {
-      "id": "blacklight:blacklight_sample"
+      "item": "blacklight:blacklight_sample"
     },
     "title": {
       "translate": "advancement.blacklight.first_evolution"

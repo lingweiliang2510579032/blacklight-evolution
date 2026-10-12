@@ -18,7 +18,7 @@ public final class ConsumePlacementTrack {
     }
     private static Optional<double[]> sample(Map<String,List<double[]>> map,String key,float t,boolean rotations) {
         var frames=map.get(key);if(frames==null)return Optional.empty();
-        double f=Math.clamp(t,0,1)*(frames.size()-1);int i=(int)f;float u=(float)(f-i);
+        double f=com.codex.blacklight.util.MathCompat.clamp(t,0,1)*(frames.size()-1);int i=(int)f;float u=(float)(f-i);
         double[] a=frames.get(i),b=frames.get(Math.min(i+1,frames.size()-1)),out=new double[a.length];
         for(int n=0;n<out.length;n++)out[n]=a[n]+(b[n]-a[n])*u;
         if(rotations)for(int n=3;n<out.length;n+=4){
@@ -74,7 +74,7 @@ public final class ConsumePlacementTrack {
     public static Vec3 actorAnchor(Vec3 origin,float yaw,PowerForm form,float t,boolean large){
         double[] p=sample(data().actorMotion,ConsumeSequence.clipKey(form,large),t,false).orElse(new double[3]);
         Vec3 local=new Vec3(p[0],p[1],p[2]).scale(.9375);
-        if(large)local=new Vec3(Math.clamp(local.x,-.35,.35),Math.clamp(local.y,-.18,.3),Math.clamp(local.z,-.2,.12));
+        if(large)local=new Vec3(com.codex.blacklight.util.MathCompat.clamp(local.x,-.35,.35),com.codex.blacklight.util.MathCompat.clamp(local.y,-.18,.3),com.codex.blacklight.util.MathCompat.clamp(local.z,-.2,.12));
         Vec3 forward=Vec3.directionFromRotation(0,yaw),right=new Vec3(-forward.z,0,forward.x);
         return origin.add(right.scale(local.x)).add(forward.scale(local.z)).add(0,local.y,0);
     }
@@ -89,7 +89,7 @@ public final class ConsumePlacementTrack {
         return heldAnchor(contactOrigin,yaw,victim,form,contactTime).map(base->{
             double[] from=sample(data().motion,form,contactTime,false).orElse(new double[3]);
             double[] to=sample(data().motion,form,t,false).orElse(from);
-            double scale=ConsumeSequence.humanoid(victim)?(victim.isBaby()?.5:1):Math.clamp(victim.getBbHeight()/1.8,.3,1.5);
+            double scale=ConsumeSequence.humanoid(victim)?(victim.isBaby()?.5:1):com.codex.blacklight.util.MathCompat.clamp(victim.getBbHeight()/1.8,.3,1.5);
             Vec3 forward=Vec3.directionFromRotation(0,yaw),right=new Vec3(-forward.z,0,forward.x);
             // Scene travel is shared world distance, not the receiver's body scale.
             // Scaling a pig's path by its height made it land inside the actor.
@@ -133,7 +133,7 @@ public final class ConsumePlacementTrack {
     /** Carrying keeps a neck contact while each participant plays its own full pose. */
     public static Optional<Vec3> carryAnchor(Vec3 origin,float yaw,LivingEntity victim,String key,float t){
         return contactFrame(key,t).map(p->{
-            double scale=ConsumeSequence.humanoid(victim)?(victim.isBaby()?.5:1):Math.clamp(victim.getBbHeight()/1.8,.3,1.5);
+            double scale=ConsumeSequence.humanoid(victim)?(victim.isBaby()?.5:1):com.codex.blacklight.util.MathCompat.clamp(victim.getBbHeight()/1.8,.3,1.5);
             Vec3 actor=new Vec3(p[0],p[1],p[2]).scale(.9375);
             Vec3 receiver=new Vec3(p[3],p[4],p[5]).scale(scale);
             if(rigidReceiver(victim)){
@@ -155,7 +155,7 @@ public final class ConsumePlacementTrack {
     }
     private static Optional<Vec3> heldAnchor(Vec3 origin,float yaw,LivingEntity victim,PowerForm form,float t) {
         return contactFrame(form,t).map(p->{
-            double scale=ConsumeSequence.humanoid(victim)?(victim.isBaby()?.5:1):Math.clamp(victim.getBbHeight()/1.8,.3,1.5);
+            double scale=ConsumeSequence.humanoid(victim)?(victim.isBaby()?.5:1):com.codex.blacklight.util.MathCompat.clamp(victim.getBbHeight()/1.8,.3,1.5);
             Vec3 actor=new Vec3(p[0],p[1],p[2]).scale(.9375);
             Vec3 receiver=ConsumeSequence.humanoid(victim)?new Vec3(p[3],p[4],p[5]).scale(scale)
                     :new Vec3(0,victim.getBbHeight()*(form==PowerForm.CLAWS||form==PowerForm.HAMMERFISTS?.82:.62),0);

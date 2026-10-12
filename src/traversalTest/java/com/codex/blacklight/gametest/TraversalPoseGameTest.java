@@ -7,7 +7,7 @@ import com.codex.blacklight.animation.MatrixMotionClip;
 import com.codex.blacklight.animation.WallSurfacePose;
 import net.minecraft.gametest.framework.*;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.gametest.*;
+import net.minecraftforge.gametest.*;
 
 /** Exercises Blacklight's independent matrix sampler, decomposition and skeletal binding. */
 @GameTestHolder("blacklight") @PrefixGameTestTemplate(false)
@@ -35,7 +35,7 @@ public final class TraversalPoseGameTest {
                 var gate=new java.util.concurrent.CountDownLatch(1);
                 var tasks=new java.util.ArrayList<java.util.concurrent.Future<MatrixMotionClip>>();
                 for(int i=0;i<8;i++)tasks.add(pool.submit(()->{gate.await();return MotionLibrary.clip("basic_wall_run_left");}));
-                gate.countDown();var first=tasks.getFirst().get(10,java.util.concurrent.TimeUnit.SECONDS);
+                gate.countDown();var first=tasks.get(0).get(10,java.util.concurrent.TimeUnit.SECONDS);
                 for(var task:tasks)h.assertTrue(task.get(10,java.util.concurrent.TimeUnit.SECONDS)==first,"Concurrent lookup published different/incomplete clips");
                 h.assertTrue(first.duration()>0,"Concurrent load lost the clip");
             }

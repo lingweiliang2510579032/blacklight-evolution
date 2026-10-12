@@ -28,7 +28,7 @@ public final class BlacklightClawLayer extends net.minecraft.client.renderer.ent
             renderSkeleton(player,stack,buffer,light,poses,age,yaw,pitch,partial);
         }finally{stack.popPose();}
     }
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(
+    private static final ResourceLocation TEXTURE = new ResourceLocation(
             BlacklightNeoMod.MOD_ID, "textures/entity/claw_white.png");
     // Lazily baked on first render instead of at field-initialization time, so the
     // layer no longer depends on LayerDefinition registration order (Blacklight's
@@ -43,7 +43,7 @@ public final class BlacklightClawLayer extends net.minecraft.client.renderer.ent
         renderFirstPerson(player,stack,buffer,light,poses,partial,-1);
     }
     public void renderFirstPerson(AbstractClientPlayer player,PoseStack stack,MultiBufferSource buffer,int light,org.joml.Matrix4f[] poses,float partial,int side) {
-        var state=player.getData(com.codex.blacklight.registry.ModAttachments.PLAYER_STATE);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE);
         var form=state.getActivePower();
         boolean weapon=form==com.codex.blacklight.power.PowerForm.BLADE||form==com.codex.blacklight.power.PowerForm.WHIPFIST
                 ||form==com.codex.blacklight.power.PowerForm.HAMMERFISTS||form==com.codex.blacklight.power.PowerForm.MUSCLE_MASS;
@@ -69,14 +69,14 @@ public final class BlacklightClawLayer extends net.minecraft.client.renderer.ent
                                float yRot,
                                float xRot,
                                float partialTicks) {
-        var state = player.getData(com.codex.blacklight.registry.ModAttachments.PLAYER_STATE);
+        var state = com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE);
         var form = state.getActivePower();
         if(state.isPrototypeMode()) {
-            int charge=player==Minecraft.getInstance().player?com.codex.blacklight.client.ClientMovementEvents.visualJumpCharge():player.getData(com.codex.blacklight.registry.ModAttachments.JUMP_CHARGE);
+            int charge=player==Minecraft.getInstance().player?com.codex.blacklight.client.ClientMovementEvents.visualJumpCharge():com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.JUMP_CHARGE);
             float now=player.tickCount+partialTicks;
-            if(charge>0)coils.put(player,new Coil(Math.clamp(charge/(float)com.codex.blacklight.movement.MovementTuningSettings.jumpChargeTicks(),0,1),now));
+            if(charge>0)coils.put(player,new Coil(net.minecraft.util.Mth.clamp(charge/(float)com.codex.blacklight.movement.MovementTuningSettings.jumpChargeTicks(),0,1),now));
             var coil=coils.get(player);
-            float intensity=coil==null?0:coil.intensity()*Math.clamp(1-(now-coil.lastCharged())/6,0,1);
+            float intensity=coil==null?0:coil.intensity()*net.minecraft.util.Mth.clamp(1-(now-coil.lastCharged())/6,0,1);
             if(intensity>.001F){
                 var out=buffer.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
                 for(String joint:new String[]{"Thigh_R","Leg_R","Thigh_L","Leg_L"}) {
@@ -96,7 +96,7 @@ public final class BlacklightClawLayer extends net.minecraft.client.renderer.ent
                 com.codex.blacklight.client.renderer.WeaponTrailRenderer.capture(player,poseStack,side==1);poseStack.popPose();
             }
         }
-        var attack=player.getData(com.codex.blacklight.registry.ModAttachments.WEAPON_VISUAL).spec();
+        var attack=com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.WEAPON_VISUAL).spec();
         if(state.isPrototypeMode()&&attack!=null&&(attack.id.contains("kick")||attack.id.contains("knee")||attack.id.contains("spin")||attack==com.codex.blacklight.combat.WeaponMove.COMBO_AXE)){
             for(int side=0;side<2;side++){
                 var bone=com.codex.blacklight.animation.PlayerMotionController.skeleton().searchJointByName(side==0?"Leg_R":"Leg_L");
@@ -138,7 +138,7 @@ public final class BlacklightClawLayer extends net.minecraft.client.renderer.ent
         var handJoint = hand == InteractionHand.MAIN_HAND ? armature.handR : armature.handL;
         var armJoint = hand == InteractionHand.MAIN_HAND ? armature.armR : armature.armL;
         HandSide side = mirror ? HandSide.LEFT : HandSide.RIGHT;
-        boolean claw = player.getData(com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower() == com.codex.blacklight.power.PowerForm.CLAWS;
+        boolean claw = com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower() == com.codex.blacklight.power.PowerForm.CLAWS;
         float width = claw ? (float) ClawTransformSettings.limbWidth(side) : 1;
 
         // Arm_R/L is the shoulder pivot; Hand_R/L is the actual elbow pivot.
@@ -158,16 +158,16 @@ public final class BlacklightClawLayer extends net.minecraft.client.renderer.ent
         applyJoint(poseStack, poses[handJoint.getId()]);
         poseStack.scale(width, 1.0F, width);
         BiomassTendrils.render(poseStack,consumer,packedLight,morphProgress,.44F,player.tickCount);
-        var visual=player.getData(com.codex.blacklight.registry.ModAttachments.WEAPON_VISUAL);
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.WEAPON_VISUAL);
         if(!mirror&&visual.charging()&&visual.spec()!=null&&visual.spec().form==com.codex.blacklight.power.PowerForm.BLADE){
             float age=player.level().getGameTime()-visual.started();
-            BiomassTendrils.charge(poseStack,consumer,packedLight,Math.clamp(.35F+age/18F,0,1),.68F,player.tickCount);
+            BiomassTendrils.charge(poseStack,consumer,packedLight,net.minecraft.util.Mth.clamp(.35F+age/18F,0,1),.68F,player.tickCount);
         }
         org.joml.Matrix4f wristDelta=null;
         boolean traversal=com.codex.blacklight.movement.WallPoseState.get(player)!=null||!player.onGround();
-        boolean paired=player.getData(com.codex.blacklight.registry.ModAttachments.GRAB_STAGE)
+        boolean paired=com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.GRAB_STAGE)
                 !=com.codex.blacklight.combat.ConsumeVisual.NONE
-                ||player.getData(com.codex.blacklight.registry.ModAttachments.CONSUME_RECOVERY).active();
+                ||com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.CONSUME_RECOVERY).active();
         if(claw&&(traversal||paired)){
             var wrist=armature.searchJointByName(mirror?"Tool_L":"Tool_R");
             var relative=new org.joml.Matrix4f(poses[handJoint.getId()]).invert().mul(poses[wrist.getId()]);
@@ -176,14 +176,14 @@ public final class BlacklightClawLayer extends net.minecraft.client.renderer.ent
         boolean extendingWhip=!mirror&&com.codex.blacklight.client.renderer.WhipTetherRenderer.extended(player);
         model.renderJoint(mirror ? "Hand_L" : "Hand_R", poseStack, consumer, packedLight,
                  OverlayTexture.NO_OVERLAY, morphProgress, claw ? (float) ClawTransformSettings.talonLength(side) : 1,wristDelta,extendingWhip?.32F:Float.POSITIVE_INFINITY,hammer);
-        if(!mirror&&!extendingWhip&&player.getData(com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower()==com.codex.blacklight.power.PowerForm.WHIPFIST)
+        if(!mirror&&!extendingWhip&&com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower()==com.codex.blacklight.power.PowerForm.WHIPFIST)
             model.renderJoint("Tip_R",poseStack,consumer,packedLight,OverlayTexture.NO_OVERLAY,morphProgress,1);
-        if(mirror && claw && player.getData(com.codex.blacklight.registry.ModAttachments.GRAB_STAGE)
+        if(mirror && claw && com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.GRAB_STAGE)
                 ==com.codex.blacklight.combat.ConsumeVisual.HOLD)
             com.codex.blacklight.client.renderer.WhipTetherRenderer.captureGrip(player,poseStack);
-        if(!mirror && player.getData(com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower()==com.codex.blacklight.power.PowerForm.BLADE)
+        if(!mirror && com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower()==com.codex.blacklight.power.PowerForm.BLADE)
             com.codex.blacklight.client.renderer.WhipTetherRenderer.captureBlade(player,poseStack);
-        if (!mirror && player.getData(com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower() == com.codex.blacklight.power.PowerForm.WHIPFIST)
+        if (!mirror && com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getActivePower() == com.codex.blacklight.power.PowerForm.WHIPFIST)
             com.codex.blacklight.client.renderer.WhipTetherRenderer.capture(player, poseStack);
         com.codex.blacklight.client.renderer.WeaponTrailRenderer.capture(player,poseStack,mirror);
         poseStack.popPose();

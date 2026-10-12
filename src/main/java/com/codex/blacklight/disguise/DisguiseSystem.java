@@ -16,71 +16,71 @@ import net.minecraft.world.entity.monster.*;
 import net.minecraft.world.entity.monster.piglin.PiglinBrute;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.bus.api.EventPriority;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.TickEvent.PlayerTickEvent;
+import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
+import com.codex.blacklight.combat.ForgeDamageEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import java.util.List;
 
 /** Appearance, witnessed hostility, and Minecraft faction camouflage are separate decisions. */
 public final class DisguiseSystem {
     private DisguiseSystem(){}
     public static boolean active(Player p){
-        var s=p.getData(ModAttachments.PLAYER_STATE);
+        var s=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);
         return p.isAlive()&&s.isInfected()&&s.isPrototypeMode()&&s.isDisguised()
-                &&p.getData(ModAttachments.DISGUISE_IDENTITY).valid();
+                &&com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.DISGUISE_IDENTITY).valid();
     }
-    private static boolean enabled(Player p){var s=p.getData(ModAttachments.PLAYER_STATE);return p.isAlive()&&s.isInfected()&&s.isPrototypeMode();}
-    public static boolean morphing(Player p){return p.getData(ModAttachments.DISGUISE_MORPH).active(p.level().getGameTime());}
+    private static boolean enabled(Player p){var s=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);return p.isAlive()&&s.isInfected()&&s.isPrototypeMode();}
+    public static boolean morphing(Player p){return com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.DISGUISE_MORPH).active(p.level().getGameTime());}
     public static void captured(ServerPlayer p,DisguiseIdentity identity){
         if(!identity.valid())return;
         boolean seen=active(p)&&!witnesses(p).isEmpty();
-        p.setData(ModAttachments.DISGUISE_IDENTITY,identity);p.syncData(ModAttachments.DISGUISE_IDENTITY);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.DISGUISE_IDENTITY,identity);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.DISGUISE_IDENTITY);
         DisguiseAwareness.newIdentity(p);
-        var state=p.getData(ModAttachments.PLAYER_STATE);state.captureIdentity(identity.type());
+        var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);state.captureIdentity(identity.type());
         if(seen)DisguiseAwareness.expose(p,true);
-        p.setData(ModAttachments.PLAYER_STATE,state);syncAlert(p);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.PLAYER_STATE,state);syncAlert(p);
         p.displayClientMessage(Component.translatable("message.blacklight.identity_captured",identity.entityType().getDescription()),true);
     }
     public static void request(ServerPlayer p){
         if(!enabled(p)||p.isSpectator())return;
-        var s=p.getData(ModAttachments.PLAYER_STATE);var identity=p.getData(ModAttachments.DISGUISE_IDENTITY);
+        var s=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);var identity=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.DISGUISE_IDENTITY);
         if(!identity.valid()){message(p,"disguise_missing");return;}
-        if(morphing(p)||p.getData(ModAttachments.CONSUMING)||WeaponCombatSystem.busy(p)
-                ||p.getData(ModAttachments.CLAW_COMBAT).action()!=ClawCombatState.Action.IDLE
-                ||p.getData(ModAttachments.MOVEMENT_STATE).wallTraversal().attached()||p.isPassenger()){
+        if(morphing(p)||com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CONSUMING)||WeaponCombatSystem.busy(p)
+                ||com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CLAW_COMBAT).action()!=ClawCombatState.Action.IDLE
+                ||com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.MOVEMENT_STATE).wallTraversal().attached()||p.isPassenger()){
             message(p,"disguise_busy");return;
         }
         DisguiseAwareness.data(p);
         boolean entering=!s.isDisguised();
         if(entering){
             s.activate(PowerForm.NONE);
-            int mask=p.getData(ModAttachments.UTILITY_POWERS)&~UtilityPowerSystem.DEFENSE;
-            p.setData(ModAttachments.UTILITY_POWERS,mask);p.syncData(ModAttachments.UTILITY_POWERS);
-            p.setData(ModAttachments.POWER_MORPH,com.codex.blacklight.power.PowerMorph.NONE);p.syncData(ModAttachments.POWER_MORPH);
+            int mask=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.UTILITY_POWERS)&~UtilityPowerSystem.DEFENSE;
+            com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.UTILITY_POWERS,mask);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.UTILITY_POWERS);
+            com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.POWER_MORPH,com.codex.blacklight.power.PowerMorph.NONE);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.POWER_MORPH);
         }
         var knowledge=DisguiseAwareness.data(p);
         knowledge.putBoolean("MorphSeen",!witnesses(p).isEmpty());knowledge.putBoolean("MorphReported",false);
-        p.setData(ModAttachments.CONSUME_RECOVERY,ConsumeVisual.EMPTY);p.syncData(ModAttachments.CONSUME_RECOVERY);
-        p.setData(ModAttachments.PLAYER_STATE,s);p.syncData(ModAttachments.PLAYER_STATE);
-        p.setData(ModAttachments.DISGUISE_MORPH,new DisguiseMorph(p.level().getGameTime(),entering));p.syncData(ModAttachments.DISGUISE_MORPH);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.CONSUME_RECOVERY,ConsumeVisual.EMPTY);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.CONSUME_RECOVERY);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.PLAYER_STATE,s);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.PLAYER_STATE);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.DISGUISE_MORPH,new DisguiseMorph(p.level().getGameTime(),entering));com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.DISGUISE_MORPH);
         p.level().playSound(null,p.blockPosition(),SoundEvents.SCULK_CATALYST_BLOOM,SoundSource.PLAYERS,.65F,entering?.8F:1.15F);
     }
     /** Visible weapons/defence need Alex's body; returning to it is not itself a global alarm. */
     public static void visiblePower(ServerPlayer p){
         if(!enabled(p))return;
-        var s=p.getData(ModAttachments.PLAYER_STATE);boolean changed=s.isDisguised()||morphing(p);
+        var s=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);boolean changed=s.isDisguised()||morphing(p);
         boolean seen=!witnesses(p).isEmpty();
         if(seen){DisguiseAwareness.expose(p,s.isDisguised());DisguiseAwareness.expose(p,false);}
         if(changed){
             s.setDisguised(false);DisguiseAwareness.advanceEpoch(p);
-            p.setData(ModAttachments.DISGUISE_MORPH,DisguiseMorph.EMPTY);p.syncData(ModAttachments.DISGUISE_MORPH);
+            com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.DISGUISE_MORPH,DisguiseMorph.EMPTY);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.DISGUISE_MORPH);
             message(p,seen?"disguise_exposed":"disguise_power_body");
         }
-        p.setData(ModAttachments.PLAYER_STATE,s);syncAlert(p);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.PLAYER_STATE,s);syncAlert(p);
     }
     /** Consumption completes without a damage event for ordinary receivers. */
     public static void consumed(ServerPlayer p,LivingEntity victim){hostileAct(p,victim,false);}
@@ -94,7 +94,7 @@ public final class DisguiseSystem {
         boolean victimKnows=retaliate&&victim.isAlive()&&!victim.isRemoved()
                 &&victim instanceof Mob mob&&!mob.isNoAi()&&recognizer(mob)&&victim.distanceToSqr(p)<=24*24&&mob.hasLineOfSight(p);
         if(!victimKnows&&observers.isEmpty())return;
-        boolean disguised=p.getData(ModAttachments.PLAYER_STATE).isDisguised();
+        boolean disguised=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).isDisguised();
         boolean newlyExposed=DisguiseAwareness.exposure(p,disguised)==0;
         DisguiseAwareness.expose(p,disguised);
         if(morphing(p))DisguiseAwareness.data(p).putBoolean("MorphSeen",true);
@@ -135,7 +135,7 @@ public final class DisguiseSystem {
     }
     private static boolean factionMatches(Mob mob,Player p){
         if(!BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType()).getNamespace().equals("minecraft"))return false;
-        var id=p.getData(ModAttachments.DISGUISE_IDENTITY);
+        var id=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.DISGUISE_IDENTITY);
         return switch(id.family()){
             case "undead"->mob instanceof Zombie||mob instanceof AbstractSkeleton;
             case "illager"->mob instanceof AbstractIllager;
@@ -166,15 +166,15 @@ public final class DisguiseSystem {
         }
     }
     private static void syncAlert(ServerPlayer p){
-        var s=p.getData(ModAttachments.PLAYER_STATE);
+        var s=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);
         s.raiseAlert(DisguiseAwareness.exposure(p,s.isDisguised())-s.getAlert());
-        p.setData(ModAttachments.PLAYER_STATE,s);p.syncData(ModAttachments.PLAYER_STATE);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.PLAYER_STATE,s);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.PLAYER_STATE);
     }
     @SubscribeEvent public static void target(LivingChangeTargetEvent e){
-        if(e.getEntity() instanceof Mob mob&&e.getNewAboutToBeSetTarget() instanceof Player p&&fooled(mob,p))
-            e.setNewAboutToBeSetTarget(null);
+        if(e.getEntity() instanceof Mob mob&&e.getNewTarget() instanceof Player p&&fooled(mob,p))
+            e.setNewTarget(null);
     }
-    @SubscribeEvent public static void damage(LivingDamageEvent.Post e){
+    @SubscribeEvent public static void damage(ForgeDamageEvent.Post e){
         if(e.getNewDamage()<=0||!(e.getSource().getEntity() instanceof ServerPlayer p)||e.getEntity()==p)return;
         var direct=e.getSource().getDirectEntity();
         if(direct instanceof Projectile shot){if(!DisguiseAwareness.sameShotIdentity(shot,p))return;}
@@ -186,38 +186,38 @@ public final class DisguiseSystem {
                 &&e.getEntity() instanceof Projectile shot&&shot.getOwner() instanceof ServerPlayer p)
             DisguiseAwareness.shot(shot,p);
     }
-    @SubscribeEvent public static void tick(PlayerTickEvent.Post e){
-        if(!(e.getEntity() instanceof ServerPlayer p))return;
-        var s=p.getData(ModAttachments.PLAYER_STATE);var m=p.getData(ModAttachments.DISGUISE_MORPH);
+    @SubscribeEvent public static void tick(PlayerTickEvent e){if(e.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
+        if(!(e.player instanceof ServerPlayer p))return;
+        var s=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);var m=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.DISGUISE_MORPH);
         long now=p.level().getGameTime();
         if(!enabled(p)){
             if(s.isDisguised()){
                 s.setDisguised(false);DisguiseAwareness.advanceEpoch(p);
-                p.setData(ModAttachments.PLAYER_STATE,s);p.syncData(ModAttachments.PLAYER_STATE);
+                com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.PLAYER_STATE,s);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.PLAYER_STATE);
             }
-            if(m.started()>=0){p.setData(ModAttachments.DISGUISE_MORPH,DisguiseMorph.EMPTY);p.syncData(ModAttachments.DISGUISE_MORPH);}
+            if(m.started()>=0){com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.DISGUISE_MORPH,DisguiseMorph.EMPTY);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.DISGUISE_MORPH);}
             if(!s.isInfected()){
                 p.getPersistentData().remove(DisguiseAwareness.KEY);
-                if(p.getData(ModAttachments.DISGUISE_IDENTITY).valid()){
-                    p.setData(ModAttachments.DISGUISE_IDENTITY,DisguiseIdentity.EMPTY);p.syncData(ModAttachments.DISGUISE_IDENTITY);
+                if(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.DISGUISE_IDENTITY).valid()){
+                    com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.DISGUISE_IDENTITY,DisguiseIdentity.EMPTY);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.DISGUISE_IDENTITY);
                 }
             }
             return;
         }
         if(p.getPersistentData().contains(DisguiseAwareness.KEY)
                 &&DisguiseAwareness.data(p).getBoolean("LastForm")!=s.isDisguised())DisguiseAwareness.advanceEpoch(p);
-        if(active(p)&&(s.getActivePower()!=PowerForm.NONE||(p.getData(ModAttachments.UTILITY_POWERS)&UtilityPowerSystem.DEFENSE)!=0)){
+        if(active(p)&&(s.getActivePower()!=PowerForm.NONE||(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.UTILITY_POWERS)&UtilityPowerSystem.DEFENSE)!=0)){
             visiblePower(p);return;
         }
         if(m.started()>=0){
-            if(s.getActivePower()!=PowerForm.NONE||(p.getData(ModAttachments.UTILITY_POWERS)&UtilityPowerSystem.DEFENSE)!=0){visiblePower(p);return;}
+            if(s.getActivePower()!=PowerForm.NONE||(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.UTILITY_POWERS)&UtilityPowerSystem.DEFENSE)!=0){visiblePower(p);return;}
             var awareness=DisguiseAwareness.data(p);
             if(!witnesses(p).isEmpty())awareness.putBoolean("MorphSeen",true);
             boolean seen=awareness.getBoolean("MorphSeen");
             if(now-m.started()>=DisguiseMorph.CONTACT&&s.isDisguised()!=m.entering()){
                 s.setDisguised(m.entering());DisguiseAwareness.advanceEpoch(p);
                 if(seen){DisguiseAwareness.expose(p,false);DisguiseAwareness.expose(p,true);}
-                p.setData(ModAttachments.PLAYER_STATE,s);syncAlert(p);
+                com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.PLAYER_STATE,s);syncAlert(p);
                 if(!seen&&DisguiseAwareness.exposure(p,m.entering())==0)dropFooledTargets(p);
                 message(p,seen?"disguise_exposed":DisguiseAwareness.exposure(p,m.entering())>0?"disguise_known"
                         :m.entering()?"disguise_enabled":"disguise_disabled");
@@ -227,7 +227,7 @@ public final class DisguiseSystem {
                 DisguiseAwareness.expose(p,false);DisguiseAwareness.expose(p,true);
                 awareness.putBoolean("MorphReported",true);syncAlert(p);message(p,"disguise_exposed");
             }
-            if(!m.active(now)){p.setData(ModAttachments.DISGUISE_MORPH,DisguiseMorph.EMPTY);p.syncData(ModAttachments.DISGUISE_MORPH);}
+            if(!m.active(now)){com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.DISGUISE_MORPH,DisguiseMorph.EMPTY);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.DISGUISE_MORPH);}
             else if(p.tickCount%2==0)p.serverLevel().sendParticles(new DustParticleOptions(new org.joml.Vector3f(.24F,.025F,.035F),.65F),
                     p.getX(),p.getY()+p.getBbHeight()*.55,p.getZ(),5,.25,.55,.25,0);
         }
@@ -250,11 +250,11 @@ public final class DisguiseSystem {
     @SubscribeEvent public static void respawn(PlayerEvent.PlayerRespawnEvent e){
         if(e.getEntity() instanceof ServerPlayer p){
             if(e.isEndConquered()){DisguiseAwareness.advanceEpoch(p);syncAlert(p);return;}
-            var s=p.getData(ModAttachments.PLAYER_STATE);s.setDisguised(false);s.raiseAlert(-100);
+            var s=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);s.setDisguised(false);s.raiseAlert(-100);
             p.getPersistentData().remove(DisguiseAwareness.KEY);
-            p.setData(ModAttachments.PLAYER_STATE,s);p.syncData(ModAttachments.PLAYER_STATE);
-            p.setData(ModAttachments.DISGUISE_MORPH,DisguiseMorph.EMPTY);p.syncData(ModAttachments.DISGUISE_MORPH);
-            p.syncData(ModAttachments.DISGUISE_IDENTITY);
+            com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.PLAYER_STATE,s);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.PLAYER_STATE);
+            com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.DISGUISE_MORPH,DisguiseMorph.EMPTY);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.DISGUISE_MORPH);
+            com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.DISGUISE_IDENTITY);
         }
     }
     private static void message(ServerPlayer p,String key){p.displayClientMessage(Component.translatable("message.blacklight."+key),true);}

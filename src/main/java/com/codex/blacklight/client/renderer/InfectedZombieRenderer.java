@@ -18,7 +18,7 @@ public final class InfectedZombieRenderer extends ZombieRenderer {
         addLayer(new InfectedZombieLayer(this));
     }
     public static float progress(Zombie zombie,float partial) {
-        return InfectionTimeline.progress(zombie.getData(ModAttachments.INFECTION_START),zombie.level().getGameTime(),partial);
+        return InfectionTimeline.progress(com.codex.blacklight.registry.ModAttachments.getData(zombie, ModAttachments.INFECTION_START),zombie.level().getGameTime(),partial);
     }
     private static final class InfectionModel extends ZombieModel<Zombie> {
         InfectionModel(EntityRendererProvider.Context context){super(context.bakeLayer(ModelLayers.ZOMBIE));}

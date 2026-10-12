@@ -36,7 +36,7 @@ public final class ClawMorphTracker {
     }
 
     private static boolean isActive(AbstractClientPlayer player) {
-        var state = player.getData(ModAttachments.PLAYER_STATE);
+        var state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         return state.isInfected() && state.isPrototypeMode()
                 && state.getActivePower() == PowerForm.CLAWS;
     }

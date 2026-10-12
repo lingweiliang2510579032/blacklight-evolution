@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 @Mixin(Camera.class)
 public interface PrototypeCameraAccess {
     @Invoker("setPosition") void blacklight$setPosition(Vec3 position);
-    @Invoker("getMaxZoom") float blacklight$getMaxZoom(float distance);
-    @Invoker("move") void blacklight$move(float distance,float vertical,float horizontal);
-    @Invoker("setRotation") void blacklight$setRotation(float yaw,float pitch,float roll);
+    @Invoker("getMaxZoom") double blacklight$getMaxZoom(double distance);
+    @Invoker("move") void blacklight$move(double distance,double vertical,double horizontal);
+    @Invoker("setRotation") void blacklight$setRotation(float yaw,float pitch);
 }

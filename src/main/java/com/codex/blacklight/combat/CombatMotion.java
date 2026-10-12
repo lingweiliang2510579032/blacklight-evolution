@@ -28,7 +28,7 @@ public final class CombatMotion {
         return v;
     }
     public static double turn(WeaponMove move,boolean windup){
-        return Math.clamp(value(fields(move.uncharged(),windup?"windup":"release"),"TurningVelocity",windup?900:360)/20,0,180);
+        return com.codex.blacklight.util.MathCompat.clamp(value(fields(move.uncharged(),windup?"windup":"release"),"TurningVelocity",windup?900:360)/20,0,180);
     }
     public static boolean usesDirectionalInput(WeaponMove move){
         return !move.aerial()&&value(fields(move.uncharged(),"windup"),"UseInput",1)!=0;
@@ -48,12 +48,12 @@ public final class CombatMotion {
         max=value(f,"VelocityMax",f.has("Velocity")||f.has("VelocityXZMax")?min:max);
         // Original rates use seconds. The .87 retarget scale is shared with the
         // installed skeleton; this is a Minecraft conversion, not raw game metres.
-        return Math.clamp((min+(max-min)*charge)*.87/20,.35,3.1);
+        return com.codex.blacklight.util.MathCompat.clamp((min+(max-min)*charge)*.87/20,.35,3.1);
     }
     public static double acceleration(WeaponMove move){
-        return Math.clamp(value(fields(move,"flight"),"AccelerationXZ",50)*.87/400,.06,.4);
+        return com.codex.blacklight.util.MathCompat.clamp(value(fields(move,"flight"),"AccelerationXZ",50)*.87/400,.06,.4);
     }
-    public static double gravity(WeaponMove move){return Math.clamp(value(fields(move,"flight"),"Gravity",40)*.87/400,.04,.15);}
+    public static double gravity(WeaponMove move){return com.codex.blacklight.util.MathCompat.clamp(value(fields(move,"flight"),"Gravity",40)*.87/400,.04,.15);}
     public static boolean freeFlight(WeaponMove move){return move==WeaponMove.AIR_KICK||move==WeaponMove.AIR_PAIN;}
     /** Only actual aerial pursuit moves may bridge a distant target gap.
      * A grounded combo finisher's small hop is not a travel attack. */
@@ -67,11 +67,11 @@ public final class CombatMotion {
         var f=fields(move,"flight");
         double min=value(f,"TimeEndMin",move==WeaponMove.AIR_KICK?1.0/3:2.0/3);
         double max=value(f,"TimeEndMax",move==WeaponMove.AIR_KICK?.5:7.0/6);
-        return Math.clamp((int)Math.ceil((min+(max-min)*Math.clamp(charge,0,1))*20-.0001),1,60);
+        return com.codex.blacklight.util.MathCompat.clamp((int)Math.ceil((min+(max-min)*com.codex.blacklight.util.MathCompat.clamp(charge,0,1))*20-.0001),1,60);
     }
     /** Free attacks commit to a release heading. Camera pitch is bounded for the
      * Minecraft adaptation; it is not a claim about the native vector transform. */
-    public static Vec3 flightDirection(float yaw,float pitch){return Vec3.directionFromRotation(Math.clamp(pitch,-20,35),yaw);}
+    public static Vec3 flightDirection(float yaw,float pitch){return Vec3.directionFromRotation(com.codex.blacklight.util.MathCompat.clamp(pitch,-20,35),yaw);}
     public static Vec3 tossVelocity(float charge,Vec3 direction){
         var j=fields(WeaponMove.HAMMER_RAM,"jump");
         double distance=value(j,"DistanceMin",45)+(value(j,"DistanceMax",130)-value(j,"DistanceMin",45))*charge;
@@ -104,15 +104,15 @@ public final class CombatMotion {
         if(move.landingAttack())return .6;
         return 1.15;
     }
-    public static int travelBudget(double distance,double speed){return Math.clamp((int)Math.ceil(distance/Math.max(.35,speed))+60,60,640);}
+    public static int travelBudget(double distance,double speed){return com.codex.blacklight.util.MathCompat.clamp((int)Math.ceil(distance/Math.max(.35,speed))+60,60,640);}
     public static Vec3 chase(Vec3 delta,double standOff,double speed){
         double length=delta.horizontalDistance();
         return length<.001?Vec3.ZERO:delta.multiply(1,0,1).scale(Math.min(speed,Math.max(0,length-standOff)*.55)/length);
     }
     public static double brakeGravity(WeaponMove move,boolean rising){
-        var b=fields(move,"brake");return Math.clamp(value(b,rising?"GravityUp":"Gravity",0)*.87/400,0,.15);
+        var b=fields(move,"brake");return com.codex.blacklight.util.MathCompat.clamp(value(b,rising?"GravityUp":"Gravity",0)*.87/400,0,.15);
     }
-    public static double brakeHorizontal(WeaponMove move){return Math.clamp(value(fields(move,"brake"),"VelocityXZ",10)*.87/20,0,2.2);}
+    public static double brakeHorizontal(WeaponMove move){return com.codex.blacklight.util.MathCompat.clamp(value(fields(move,"brake"),"VelocityXZ",10)*.87/20,0,2.2);}
     public static double whip(String branch,String name,double fallback){
         var root=LOCAL.getAsJsonObject("whipGrab");
         return root!=null&&root.has(branch)?value(root.getAsJsonObject(branch),name,fallback):fallback;

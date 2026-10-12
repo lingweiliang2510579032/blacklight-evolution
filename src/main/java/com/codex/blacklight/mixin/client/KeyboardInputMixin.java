@@ -22,7 +22,7 @@ public abstract class KeyboardInputMixin extends Input {
                 || minecraft.player.isPassenger()
                 || minecraft.player.isInWater() && !com.codex.blacklight.movement.WaterRunning.onSurface(minecraft.player)
                 || minecraft.player.isInLava()) return;
-        if (minecraft.player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()) {
+        if (com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.PLAYER_STATE).isPrototypeMode()) {
             // ClientMovementEvents reads the physical key directly.  Clearing only the
             // vanilla Input flag prevents the immediate 0.42 jump and its server packet.
             // In water/lava the same flag supplies buoyancy, so it must stay untouched.

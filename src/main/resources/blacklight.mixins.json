@@ -2,8 +2,11 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.codex.blacklight.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "ServerEntityTickMixin",
+    "ScaledLivingDamageMixin",
+    "ScaledPlayerDamageMixin",
     "HealthAttributeLimitAccessor",
     "ScaledAbsorptionMixin",
     "InfectedDragonFightMixin",
@@ -16,6 +19,7 @@
     "ConsumeStunMixin"
   ],
   "client": [
+    "client.PostChainAccess",
     "client.KeyboardInputMixin",
     "client.NativeHandRendererAccess",
     "client.LocalPlayerMixin",
@@ -36,5 +40,6 @@
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "refmap": "blacklight.refmap.json"
 }

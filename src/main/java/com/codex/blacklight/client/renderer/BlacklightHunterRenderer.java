@@ -10,11 +10,11 @@ import net.minecraft.world.phys.Vec3;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
 public final class BlacklightHunterRenderer extends AnatomicalGeoRenderer<BlacklightHunter> {
-    private static final ResourceLocation WHITE = ResourceLocation.fromNamespaceAndPath("blacklight", "textures/entity/claw_white.png");
+    private static final ResourceLocation WHITE = new ResourceLocation("blacklight", "textures/entity/claw_white.png");
     public BlacklightHunterRenderer(EntityRendererProvider.Context context) { super(context, new BlacklightHunterModel()); shadowRadius = .65F; }
     @Override public void render(BlacklightHunter entity, float yaw, float partial, PoseStack stack, MultiBufferSource buffer, int light) {
         var owner = entity.level().getEntity(entity.consumerId());
-        var visual = entity.getData(com.codex.blacklight.registry.ModAttachments.CONSUME_VISUAL);
+        var visual = com.codex.blacklight.registry.ModAttachments.getData(entity, com.codex.blacklight.registry.ModAttachments.CONSUME_VISUAL);
         float t = visual.active() ? visual.progress(entity.level().getGameTime(), partial) : 0;
         Vec3 delta = owner == null ? Vec3.ZERO : owner.getPosition(partial).subtract(entity.getPosition(partial));
         stack.pushPose();

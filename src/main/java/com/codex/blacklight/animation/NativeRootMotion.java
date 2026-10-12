@@ -11,7 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.codex.blacklight.forge.PacketDistributor;
 
 /** Coord drives the physical actor once, on the server, before that tick's swept contacts. */
 public final class NativeRootMotion {
@@ -21,12 +21,12 @@ public final class NativeRootMotion {
         if (!player.isAlive() || player.isSpectator() || player.isPassenger() || !player.onGround()
                 || player.getAbilities().flying || player.isInWater() || player.isInLava()
                 || !com.codex.blacklight.mode.PrototypeModeSystem.isActive(player)
-                || player.getData(ModAttachments.CONSUMING)) return false;
-        var visual = player.getData(ModAttachments.WEAPON_VISUAL);
+                || com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUMING)) return false;
+        var visual = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL);
         var move = visual.spec();
         if (move != null) return !move.aerial() && !visual.traveling() && move != WeaponMove.BLADE_RUSH
                 && player.level().getGameTime() - visual.started() <= (visual.charging() ? 180 : move.duration);
-        return switch (player.getData(ModAttachments.CLAW_COMBAT).action()) {
+        return switch (com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CLAW_COMBAT).action()) {
             case AUTO_1, AUTO_2, AUTO_3 -> true;
             default -> false;
         };
@@ -54,7 +54,7 @@ public final class NativeRootMotion {
     }
 
     public static void weapon(ServerPlayer player, WeaponMove move, int elapsedTick, float offset, float yaw) {
-        var visual = player.getData(ModAttachments.WEAPON_VISUAL);
+        var visual = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL);
         // These actions already have authoritative flight/approach/ballistic velocity.
         if (move.aerial() || move == WeaponMove.BLADE_RUSH || visual.charging() || visual.traveling()) return;
         var definition = LocalWeaponMotion.find(move.id).orElseThrow(
@@ -92,7 +92,7 @@ public final class NativeRootMotion {
         // Legacy claws keep the live walk/run beneath their additive authored lunge.
         // Since this window suppresses stale absolute packets, its ordinary step is owned here too.
         if (controlsGroundRoot(player)) {
-            var movement = player.getData(ModAttachments.MOVEMENT_STATE);
+            var movement = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.MOVEMENT_STATE);
             var input = movement.wallInput();
             if (input.forward() != 0 || input.sideways() != 0) {
                 float yaw = movement.cameraYaw(player.getYRot())
@@ -112,7 +112,7 @@ public final class NativeRootMotion {
                 player.getX(),player.getBoundingBox().minY-1,player.getZ()));
         boolean soulSpeed=floor.is(net.minecraft.tags.BlockTags.SOUL_SPEED_BLOCKS)
                 &&net.minecraft.world.item.enchantment.EnchantmentHelper.getEnchantmentLevel(
-                        player.level().holderOrThrow(net.minecraft.world.item.enchantment.Enchantments.SOUL_SPEED),player)>0;
+                        net.minecraft.world.item.enchantment.Enchantments.SOUL_SPEED,player)>0;
         if(!soulSpeed)step=step.scale(floor.getBlock().getSpeedFactor());
         var before = player.position();
         boolean grounded = player.onGround();
@@ -124,7 +124,7 @@ public final class NativeRootMotion {
         if (player.position().distanceToSqr(before) < 1e-10) return;
         // Unregistered utility actors have no chunk subscription to update.
         if(player.serverLevel().players().contains(player))player.serverLevel().getChunkSource().move(player);
-        var action = player.getData(ModAttachments.PLAYER_ACTION);
+        var action = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_ACTION);
         PacketDistributor.sendToPlayer(player, new NativeRootMotionPayload(player.level().getGameTime(),
                 action.revision(), player.getX(), player.getY(), player.getZ()));
     }

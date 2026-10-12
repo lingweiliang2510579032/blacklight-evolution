@@ -2,10 +2,10 @@ package com.codex.blacklight.client.camera;
 
 import com.codex.blacklight.BlacklightNeoMod;
 import net.minecraft.client.Minecraft;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ViewportEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.ViewportEvent;
 
 @EventBusSubscriber(modid=BlacklightNeoMod.MOD_ID,value=Dist.CLIENT)
 public final class SourceCameraViewport {
@@ -32,12 +32,12 @@ public final class SourceCameraViewport {
         boolean owned=PrototypeChaseCamera.ownsView();
         if(owned!=previousOwned){handoff();previousOwned=owned;}
         double now=p.level().getGameTime()+event.getPartialTick();
-        double dt=lastTime<0?0:Math.clamp((now-lastTime)/20,0,.25);
+        double dt=lastTime<0?0:net.minecraft.util.Mth.clamp((now-lastTime)/20,0,.25);
         // 0x1033a4e0 -> 0x10338fa0: reciprocal zoom scales tan(FOV/2), not the FOV angle.
         if(owned) {
             double ratio=com.codex.blacklight.movement.PrototypeLocomotion.cinematicSpeedRatio(p.getDeltaMovement().horizontalDistance(),
                     com.codex.blacklight.movement.MovementTuningSettings.sprintMaxSpeed()
-                    *com.codex.blacklight.power.MovementUpgrade.sprintMultiplier(p.getData(com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getMovementUpgradeMask()));
+                    *com.codex.blacklight.power.MovementUpgrade.sprintMultiplier(com.codex.blacklight.registry.ModAttachments.getData(p, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getMovementUpgradeMask()));
             if(lastTime<0||now<lastTime-.1)speedRatio=ratio;
             else speedRatio+=(ratio-speedRatio)*(1-Math.exp(-dt/.12));
             double configured=event.getFOV()*(1+com.codex.blacklight.movement.MovementTuningSettings.fovBoost()*speedRatio*mc.options.fovEffectScale().get());
@@ -47,7 +47,7 @@ public final class SourceCameraViewport {
                     Math.tan(Math.toRadians(event.getFOV())*.5),Math.tan(Math.toRadians(film.fov())*.5)))));
         }else speedRatio=0;
         if(transitionAge<.18) {
-            double t=Math.clamp(transitionAge/.18,0,1),weight=t*t*(3-2*t);
+            double t=net.minecraft.util.Mth.clamp(transitionAge/.18,0,1),weight=t*t*(3-2*t);
             event.setFOV(Math.toDegrees(2*Math.atan(net.minecraft.util.Mth.lerp(weight,
                     Math.tan(Math.toRadians(transitionFrom)*.5),Math.tan(Math.toRadians(event.getFOV())*.5)))));
             transitionAge+=dt;

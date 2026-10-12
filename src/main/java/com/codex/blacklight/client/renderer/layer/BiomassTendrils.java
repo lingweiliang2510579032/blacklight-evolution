@@ -41,7 +41,7 @@ public final class BiomassTendrils {
     }
     private static void vertex(VertexConsumer out,PoseStack.Pose pose,float x,float y,float z,int color,int light) {
         float len=(float)Math.sqrt(x*x+z*z);
-        out.addVertex(pose,x,y,z).setColor(color).setUv(.5F,.5F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light)
-                .setNormal(pose,x/len,0,z/len);
+        out.vertex((pose).pose(),x,y,z).color(color).uv(.5F,.5F).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(light)
+                .normal((pose).normal(),x/len,0,z/len).endVertex();
     }
 }

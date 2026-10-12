@@ -15,8 +15,8 @@ import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.*;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.*;
 import software.bernie.geckolib.util.GeckoLibUtil;
 import java.util.EnumSet;
 
@@ -35,11 +35,11 @@ public final class BlacklightHunter extends Monster implements GeoEntity {
     public static AttributeSupplier.Builder attributes() {
         return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 48).add(Attributes.MOVEMENT_SPEED, .29)
                 .add(Attributes.ATTACK_DAMAGE, 7).add(Attributes.FOLLOW_RANGE, 24)
-                .add(Attributes.KNOCKBACK_RESISTANCE, .55).add(Attributes.STEP_HEIGHT, 1);
+                .add(Attributes.KNOCKBACK_RESISTANCE, .55).add(net.minecraftforge.common.ForgeMod.STEP_HEIGHT_ADDITION.get(), .4);
     }
-    @Override protected void defineSynchedData(SynchedEntityData.Builder b) {
-        super.defineSynchedData(b); b.define(ATTACK, 0); b.define(CONSUMER, -1); b.define(CONSUME_TICKS, 0);
-        b.define(REMAINS_STARTED, -1L);
+    @Override protected void defineSynchedData() {
+        super.defineSynchedData(); entityData.define(ATTACK, 0); entityData.define(CONSUMER, -1); entityData.define(CONSUME_TICKS, 0);
+        entityData.define(REMAINS_STARTED, -1L);
     }
     @Override protected void registerGoals() {
         goalSelector.addGoal(0, new FloatGoal(this));

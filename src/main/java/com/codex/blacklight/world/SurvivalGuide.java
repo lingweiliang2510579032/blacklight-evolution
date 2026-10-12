@@ -4,8 +4,8 @@ import com.codex.blacklight.power.GrowthSystem;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 
 /** The root advancement persists the one-time introduction across sessions/death. */
 public final class SurvivalGuide {
@@ -14,7 +14,7 @@ public final class SurvivalGuide {
     @SubscribeEvent
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
-        var root = player.server.getAdvancements().get(ResourceLocation.fromNamespaceAndPath("blacklight", "root"));
+        var root = player.server.getAdvancements().getAdvancement(new ResourceLocation("blacklight", "root"));
         if (root == null || player.getAdvancements().getOrStartProgress(root).isDone()) return;
         GrowthSystem.award(player, "root");
         player.displayClientMessage(Component.translatable("message.blacklight.survival_start",

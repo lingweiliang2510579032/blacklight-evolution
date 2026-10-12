@@ -12,9 +12,9 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.damagesource.DamageTypes;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
-import net.neoforged.neoforge.event.tick.EntityTickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import com.codex.blacklight.combat.ForgeDamageEvent;
+import com.codex.blacklight.combat.ForgeEntityTickEvent;
 
 import java.util.Comparator;
 
@@ -27,7 +27,7 @@ public final class BlacklightInfectionSystem {
     public static boolean infect(LivingEntity target, Entity source) {
         if (!canInfect(target)) return false;
         boolean applied = target.addEffect(new MobEffectInstance(
-                ModEffects.BLACKLIGHT_INFECTION,
+                ModEffects.BLACKLIGHT_INFECTION.get(),
                 MobEffectInstance.INFINITE_DURATION,
                 0,
                 false,
@@ -38,8 +38,8 @@ public final class BlacklightInfectionSystem {
         boolean dedicatedBoss=com.codex.blacklight.entity.InfectedBossProfile.forSpecies(
                 net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).toString())!=null;
         if (applied || dedicatedBoss) {
-            target.setData(ModAttachments.INFECTION_START, target.level().getGameTime());
-            target.syncData(ModAttachments.INFECTION_START);
+            com.codex.blacklight.registry.ModAttachments.setData(target, ModAttachments.INFECTION_START, target.level().getGameTime());
+            com.codex.blacklight.registry.ModAttachments.syncData(target, ModAttachments.INFECTION_START);
         }
         return applied || dedicatedBoss;
     }
@@ -52,11 +52,11 @@ public final class BlacklightInfectionSystem {
 
     public static boolean awaken(Player player) {
         if (player.level().isClientSide || player.isSpectator() || !player.isAlive()) return false;
-        BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
+        BlacklightState state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         if (state.isInfected()) return false;
         state.infect();
-        player.setData(ModAttachments.PLAYER_STATE, state);
-        player.syncData(ModAttachments.PLAYER_STATE);
+        com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.PLAYER_STATE, state);
+        com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.PLAYER_STATE);
         player.displayClientMessage(Component.translatable("message.blacklight.infected"), false);
         player.displayClientMessage(Component.translatable("message.blacklight.awakening_guide"), false);
         if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
@@ -67,10 +67,10 @@ public final class BlacklightInfectionSystem {
 
     public static boolean isInfected(LivingEntity entity) {
         if (entity instanceof Player player) {
-            return player.getData(ModAttachments.PLAYER_STATE).isInfected();
+            return com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).isInfected();
         }
-        return entity instanceof com.codex.blacklight.entity.HiveTendril || entity instanceof com.codex.blacklight.entity.BlacklightInfectedHost || entity instanceof com.codex.blacklight.entity.BlacklightHunter || entity instanceof com.codex.blacklight.entity.BlacklightMutant || entity instanceof com.codex.blacklight.entity.BlacklightHive || entity.hasEffect(ModEffects.BLACKLIGHT_INFECTION)
-                || (entity.getData(ModAttachments.INFECTION_START)>=0
+        return entity instanceof com.codex.blacklight.entity.HiveTendril || entity instanceof com.codex.blacklight.entity.BlacklightInfectedHost || entity instanceof com.codex.blacklight.entity.BlacklightHunter || entity instanceof com.codex.blacklight.entity.BlacklightMutant || entity instanceof com.codex.blacklight.entity.BlacklightHive || entity.hasEffect(ModEffects.BLACKLIGHT_INFECTION.get())
+                || (com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.INFECTION_START)>=0
                     && com.codex.blacklight.entity.InfectedBossProfile.forSpecies(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString())!=null);
     }
 
@@ -82,7 +82,7 @@ public final class BlacklightInfectionSystem {
     }
 
     @SubscribeEvent
-    public static void onContactDamage(LivingDamageEvent.Post event) {
+    public static void onContactDamage(ForgeDamageEvent.Post event) {
         LivingEntity victim = event.getEntity();
         if (event.getNewDamage() <= 0.0F || !canInfect(victim)) return;
         var damage = event.getSource();
@@ -102,17 +102,17 @@ public final class BlacklightInfectionSystem {
     }
 
     @SubscribeEvent
-    public static void onInfectedMobTick(EntityTickEvent.Post event) {
+    public static void onInfectedMobTick(ForgeEntityTickEvent.Post event) {
         if (!(event.getEntity() instanceof Mob mob)
                 || !(mob.level() instanceof ServerLevel serverLevel)
                 || !mob.isAlive() || mob instanceof com.codex.blacklight.entity.HiveTendril || mob instanceof com.codex.blacklight.entity.BlacklightInfectedHost || mob instanceof com.codex.blacklight.entity.BlacklightHunter || mob instanceof com.codex.blacklight.entity.BlacklightMutant || mob instanceof com.codex.blacklight.entity.BlacklightHive || !isInfected(mob)) return;
-        long onset=mob.getData(ModAttachments.INFECTION_START);
+        long onset=com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.INFECTION_START);
         // Migrate existing saved infections too, without removing infection or other effects.
-        var infection=mob.getEffect(ModEffects.BLACKLIGHT_INFECTION);
+        var infection=mob.getEffect(ModEffects.BLACKLIGHT_INFECTION.get());
         if(infection!=null&&infection.isVisible())mob.addEffect(new MobEffectInstance(
                 infection.getEffect(),infection.getDuration(),infection.getAmplifier(),infection.isAmbient(),false,false));
         if(com.codex.blacklight.combat.ImpactControl.stunned(mob)
-                || mob.getData(ModAttachments.CONSUME_VISUAL).active())return;
+                || com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.CONSUME_VISUAL).active())return;
         if(onset>=0 && serverLevel.getGameTime()-onset<InfectionTimeline.DURATION) {
             mob.getNavigation().stop();
             return;
@@ -159,8 +159,11 @@ public final class BlacklightInfectionSystem {
     private static boolean releaseStoredItems(Mob source, ServerLevel level) {
         if (source instanceof net.minecraft.world.entity.animal.horse.AbstractHorse horse) {
             if (!releaseStoredSlot(source, level, horse.getSlot(400))) return false;
-            for (int index = 1; index < horse.getInventorySize(); index++) {
-                if (!releaseStoredSlot(source, level, horse.getSlot(500 + index - 1))) return false;
+            if (!releaseStoredSlot(source, level, horse.getSlot(401))) return false;
+            for (int index = 500; ; index++) {
+                var slot=horse.getSlot(index);
+                if(slot==net.minecraft.world.entity.SlotAccess.NULL)break;
+                if (!releaseStoredSlot(source, level, slot)) return false;
             }
             // Remove the chest last: clearing slot 499 rebuilds/shrinks the inventory.
             if (horse instanceof net.minecraft.world.entity.animal.horse.AbstractChestedHorse chested

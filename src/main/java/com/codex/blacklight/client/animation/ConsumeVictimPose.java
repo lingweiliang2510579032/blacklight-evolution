@@ -18,9 +18,9 @@ public final class ConsumeVictimPose {
     private static final Map<EntityModel<?>,Map<ModelPart,PartPose>> SAVED=new WeakHashMap<>();
     private ConsumeVictimPose() {}
     public static ConsumeReaction.Pose reaction(LivingEntity entity,float partial) {
-        var data=entity.getData(ModAttachments.CONSUME_VISUAL);
+        var data=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL);
         if(com.codex.blacklight.combat.ConsumeSequence.mountedStage(data.stage())) {
-            var form=PowerForm.values()[Math.clamp(data.form(),0,PowerForm.values().length-1)];
+            var form=PowerForm.values()[net.minecraft.util.Mth.clamp(data.form(),0,PowerForm.values().length-1)];
             float t=data.motionProgress(entity.level().getGameTime(),partial);
             float hit=data.consuming()?(float)Math.exp(-Math.pow((t-com.codex.blacklight.combat.ConsumeSequence.contact(form,true))*18,2)):0;
             float twist=switch(form){case BLADE->.8F;case WHIPFIST->-.85F;case MUSCLE_MASS->-.45F;case CLAWS->.45F;default->.15F;};
@@ -32,17 +32,17 @@ public final class ConsumeVictimPose {
         if(!data.consuming()) {
             float time=entity.level().getGameTime()+partial;
             float strength=data.stage()==com.codex.blacklight.combat.ConsumeVisual.CAPTURE
-                    ? Math.clamp((data.phaseProgress(entity.level().getGameTime(),partial)-.35F)*2,0,1):1;
+                    ? net.minecraft.util.Mth.clamp((data.phaseProgress(entity.level().getGameTime(),partial)-.35F)*2,0,1):1;
             return new ConsumeReaction.Pose(.12F*strength,(float)Math.sin(time*.17F)*.13F*strength,0,
                     .8F*strength,(.5F+(float)Math.sin(time*.32F)*.18F)*strength,-.2F*strength,0);
         }
         var forms=PowerForm.values();
-        return ConsumeReaction.sample(forms[Math.clamp(data.form(),0,forms.length-1)],data.motionProgress(entity.level().getGameTime(),partial));
+        return ConsumeReaction.sample(forms[net.minecraft.util.Mth.clamp(data.form(),0,forms.length-1)],data.motionProgress(entity.level().getGameTime(),partial));
     }
     public static org.joml.Matrix4f bodyTransform(LivingEntity entity,float partial) {
         var p=reaction(entity,partial);float h=entity.getBbHeight(),g=p.grounded();
         var matrix=new org.joml.Matrix4f();
-        var visual=entity.getData(ModAttachments.CONSUME_VISUAL);
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL);
         if(entity instanceof com.codex.blacklight.entity.BlacklightHunter&&NativeReceiverPose.available(entity,partial))return matrix;
         if(com.codex.blacklight.combat.ConsumeSequence.mountedStage(visual.stage()))
             return matrix.rotateY((float)Math.toRadians(-entity.yBodyRot)).translate(0,h*.65F,0)
@@ -50,10 +50,10 @@ public final class ConsumeVictimPose {
         var nativePose=NativeConsumePose.sample(entity,visual,"victim",partial);
         if(nativePose!=null && com.codex.blacklight.combat.ConsumeSequence.nativeReceiver(entity)) {
             if(entity instanceof net.minecraft.client.player.AbstractClientPlayer) return matrix;
-            var form=PowerForm.values()[Math.clamp(visual.form(),0,PowerForm.values().length-1)];
+            var form=PowerForm.values()[net.minecraft.util.Mth.clamp(visual.form(),0,PowerForm.values().length-1)];
             var projected=com.codex.blacklight.combat.ConsumePlacementTrack.projection(GrappleMotion.sceneKey(entity,visual),GrappleMotion.sceneProgress(entity,visual,partial));
             if(projected.isPresent()){
-                double[] frame=projected.get();float scale=com.codex.blacklight.combat.ConsumeSequence.humanoid(entity)?(entity.isBaby()?.5F:1F):Math.clamp(h/1.8F,.3F,1.5F);
+                double[] frame=projected.get();float scale=com.codex.blacklight.combat.ConsumeSequence.humanoid(entity)?(entity.isBaby()?.5F:1F):net.minecraft.util.Mth.clamp(h/1.8F,.3F,1.5F);
                 float yaw=(float)Math.toRadians(180-GrappleMotion.facing(entity,visual));
                 if(com.codex.blacklight.combat.ConsumePlacementTrack.rigidReceiver(entity))return matrix.rotateY(yaw)
                         .mul(com.codex.blacklight.combat.ConsumePlacementTrack.rigidBody(entity,GrappleMotion.sceneKey(entity,visual),GrappleMotion.sceneProgress(entity,visual,partial))).rotateY(-yaw);
@@ -74,19 +74,19 @@ public final class ConsumeVictimPose {
                     .rotateX(p.bend()*.30F).rotateZ(p.twist()*.24F).translate(0,-h*.6F,0)
                     .rotateY((float)Math.toRadians(entity.yBodyRot));
         }
-        float half=h*.5F,groundHeight=Math.clamp(entity.getBbWidth()*.35F,.18F,.36F);
+        float half=h*.5F,groundHeight=net.minecraft.util.Mth.clamp(entity.getBbWidth()*.35F,.18F,.36F);
         matrix.translate(0,-p.slump()*h*.24F,0).rotateY((float)Math.toRadians(-entity.yBodyRot));
         // Center the entire victim on the ground as it rotates, instead of tipping a standing model around its feet.
         matrix.translate(0,half*(1-g)+groundHeight*g,0).rotateX(-g*(float)Math.PI/2+p.bend()*.22F)
                 .rotateZ(p.twist()*.18F).translate(0,-half,0).rotateY((float)Math.toRadians(entity.yBodyRot));
         return matrix;
     }
-    public static void body(LivingEntity entity,PoseStack stack,float partial) { stack.mulPose(bodyTransform(entity,partial)); }
+    public static void body(LivingEntity entity,PoseStack stack,float partial) { com.codex.blacklight.client.ClientPoseMatrices.multiply(stack,bodyTransform(entity,partial)); }
     /** Effects follow the posed torso even when Blacklight already applies the pose to its mesh. */
     public static org.joml.Matrix4f effectTransform(LivingEntity entity,float partial) {
-        var visual=entity.getData(ModAttachments.CONSUME_VISUAL);
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL);
         if(!(entity instanceof net.minecraft.client.player.AbstractClientPlayer)||!com.codex.blacklight.combat.ConsumeSequence.humanoid(entity)||(!visual.consuming()&&!GrappleMotion.active(visual))||com.codex.blacklight.combat.ConsumeSequence.mountedStage(visual.stage()))return bodyTransform(entity,partial);
-        var form=PowerForm.values()[Math.clamp(visual.form(),0,PowerForm.values().length-1)];
+        var form=PowerForm.values()[net.minecraft.util.Mth.clamp(visual.form(),0,PowerForm.values().length-1)];
         float t=GrappleMotion.sceneProgress(entity,visual,partial);
         String key=GrappleMotion.sceneKey(entity,visual);
         var frame=com.codex.blacklight.combat.ConsumePlacementTrack.projection(key,t).orElse(null);
@@ -112,7 +112,7 @@ public final class ConsumeVictimPose {
     }
     public static void vanilla(EntityModel<?> model,LivingEntity entity,float partial) {
         restore(model);
-        if (!entity.getData(ModAttachments.CONSUME_VISUAL).active()) { hit(model,entity,partial); return; }
+        if (!com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL).active()) { hit(model,entity,partial); return; }
         var p=reaction(entity,partial);
         var saved=new IdentityHashMap<ModelPart,PartPose>();SAVED.put(model,saved);
         restrain(model,saved);
@@ -148,7 +148,7 @@ public final class ConsumeVictimPose {
         }
     }
     private static boolean applyNative(EntityModel<?> model,Map<ModelPart,PartPose> saved,LivingEntity entity,float partial) {
-        var visual=entity.getData(ModAttachments.CONSUME_VISUAL);
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL);
         if(!visual.consuming()&&!GrappleMotion.active(visual))return false;
         boolean large=com.codex.blacklight.combat.ConsumeSequence.mountedStage(visual.stage());
         var projection=com.codex.blacklight.combat.ConsumePlacementTrack.projection(GrappleMotion.sceneKey(entity,visual),GrappleMotion.sceneProgress(entity,visual,partial));
@@ -200,8 +200,8 @@ public final class ConsumeVictimPose {
         var saved=SAVED.remove(model);if(saved!=null)saved.forEach(ModelPart::loadPose);
     }
     public static void epic(LivingEntity entity,BlacklightPose pose,float partial) {
-        if(!entity.getData(ModAttachments.CONSUME_VISUAL).active()) {
-            var hit=entity.getData(ModAttachments.HIT_REACTION);float w=hit.weight(entity.level().getGameTime(),partial);
+        if(!com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL).active()) {
+            var hit=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.HIT_REACTION);float w=hit.weight(entity.level().getGameTime(),partial);
             if(w>0){
                 float bend=(hit.kind()==com.codex.blacklight.combat.HitReaction.SLAM?.65F:-.22F)*w;
                 pose.orElseEmpty("Torso").rotation().rotateX(bend*.55F);
@@ -214,9 +214,9 @@ public final class ConsumeVictimPose {
             }
             return;
         }
-        var source=NativeConsumePose.sample(entity,entity.getData(ModAttachments.CONSUME_VISUAL),"victim",partial);
-        if(source!=null && (com.codex.blacklight.combat.ConsumeSequence.humanoid(entity)||com.codex.blacklight.combat.ConsumeSequence.mountedStage(entity.getData(ModAttachments.CONSUME_VISUAL).stage()))) {
-            if(com.codex.blacklight.combat.ConsumeSequence.mountedStage(entity.getData(ModAttachments.CONSUME_VISUAL).stage()))source.orElseEmpty("Root").translation().set(0,0,0);
+        var source=NativeConsumePose.sample(entity,com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL),"victim",partial);
+        if(source!=null && (com.codex.blacklight.combat.ConsumeSequence.humanoid(entity)||com.codex.blacklight.combat.ConsumeSequence.mountedStage(com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL).stage()))) {
+            if(com.codex.blacklight.combat.ConsumeSequence.mountedStage(com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL).stage()))source.orElseEmpty("Root").translation().set(0,0,0);
             pose.getJointTransformData().putAll(source.getJointTransformData());return;
         }
         var p=reaction(entity,partial);
@@ -233,7 +233,7 @@ public final class ConsumeVictimPose {
         }
     }
     private static void hit(EntityModel<?> model,LivingEntity entity,float partial) {
-        var hit=entity.getData(ModAttachments.HIT_REACTION);float w=hit.weight(entity.level().getGameTime(),partial);
+        var hit=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.HIT_REACTION);float w=hit.weight(entity.level().getGameTime(),partial);
         if(w<=0)return;
         float bend=(hit.kind()==com.codex.blacklight.combat.HitReaction.SLAM?.60F:-.24F)*w;
         float twist=(float)Math.sin(Math.toRadians(hit.yaw()-entity.yBodyRot))*.28F*w;

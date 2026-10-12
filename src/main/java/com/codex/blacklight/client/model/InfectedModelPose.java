@@ -259,12 +259,12 @@ public final class InfectedModelPose {
             ConsumeReaction.Pose reaction, float hitWeight, float hitBend, float hitTwist) {}
 
     public static ReceiverState receiverState(LivingEntity entity, float partial) {
-        var visual = entity.getData(ModAttachments.CONSUME_VISUAL);
+        var visual = com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL);
         boolean active = visual.active();
         double[] projection = active && (visual.consuming() || GrappleMotion.active(visual))
                 ? ConsumePlacementTrack.projection(GrappleMotion.sceneKey(entity, visual),
                         GrappleMotion.sceneProgress(entity, visual, partial)).orElse(null) : null;
-        var hit = entity.getData(ModAttachments.HIT_REACTION);
+        var hit = com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.HIT_REACTION);
         float weight = active ? 0 : hit.weight(entity.level().getGameTime(), partial);
         float bend = (hit.kind() == HitReaction.SLAM ? .45F : -.18F) * weight;
         float twist = sin((float)Math.toRadians(hit.yaw() - entity.yBodyRot)) * .2F * weight;
@@ -356,12 +356,12 @@ public final class InfectedModelPose {
         try { return Math.abs(Integer.parseInt(name.substring(name.lastIndexOf('_') + 1))); }
         catch (NumberFormatException ignored) { return 0; }
     }
-    private static float unit(float value) { return Float.isFinite(value) ? Math.clamp(value, 0, 1) : 0; }
+    private static float unit(float value) { return Float.isFinite(value) ? net.minecraft.util.Mth.clamp(value, 0, 1) : 0; }
     private static float sin(float v) { return (float)Math.sin(v); }
     private static float cos(float v) { return (float)Math.cos(v); }
     private static void look(PoseStack stack, float yaw, float pitch, float weight) {
-        rotate(stack, (float)Math.toRadians(-Math.clamp(pitch, -65, 65)) * weight,
-                (float)Math.toRadians(-Math.clamp(yaw, -75, 75)) * weight, 0);
+        rotate(stack, (float)Math.toRadians(-net.minecraft.util.Mth.clamp(pitch, -65, 65)) * weight,
+                (float)Math.toRadians(-net.minecraft.util.Mth.clamp(yaw, -75, 75)) * weight, 0);
     }
     private static void rotate(PoseStack stack, float x, float y, float z) {
         if (z != 0) stack.mulPose(Axis.ZP.rotation(z));

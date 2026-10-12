@@ -22,7 +22,7 @@ public final class WhipCurveContact {
     private static List<Vec3> worldPoints(WhipCurve curve,double time,Vec3 feet,float yaw,double scale){
         Vec3 forward = Vec3.directionFromRotation(0, yaw);
         Vec3 right = new Vec3(-forward.z, 0, forward.x);
-        var points=curve.sample(time);var root=points.getFirst();
+        var points=curve.sample(time);var root=points.get(0);
         return points.stream().map(p -> feet.add(right.scale(root.right()+(p.right()-root.right())*scale))
                 .add(0,p.up(),0).add(forward.scale(root.forward()+(p.forward()-root.forward())*scale))).toList();
     }
@@ -30,7 +30,7 @@ public final class WhipCurveContact {
     /** A wall cuts off the rest of the whip, including a tip located behind it. */
     public static List<Vec3> visiblePoints(List<Vec3> points, Level level, Entity actor) {
         var visible = new ArrayList<Vec3>();
-        visible.add(points.getFirst());
+        visible.add(points.get(0));
         for (int i = 1; i < points.size(); i++) {
             Vec3 start = points.get(i - 1), end = points.get(i);
             var hit = level.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER,
@@ -50,7 +50,7 @@ public final class WhipCurveContact {
     }
     private static AABB sweptBoundsScaled(WhipCurve curve,double fromTime,double toTime,Vec3 fromFeet,Vec3 toFeet,float yaw,double scale){
         var start = worldPoints(curve, fromTime, fromFeet, yaw,scale);
-        AABB bounds = new AABB(start.getFirst(), start.getFirst());
+        AABB bounds = new AABB(start.get(0), start.get(0));
         for (var point : start) bounds = bounds.minmax(new AABB(point, point));
         // Every source key inside the tick is included; endpoint-only bounds miss a lash that reverses.
         for (var sample : curve.samples()) {
@@ -90,7 +90,7 @@ public final class WhipCurveContact {
             for (int step = 0; step <= steps; step++) {
                 double alpha = step / (double)steps;
                 double time=begin+(end-begin)*alpha;
-                double frameAlpha=Math.clamp((time-fromTime)/Math.max(1e-9,toTime-fromTime),0,1);
+                double frameAlpha=com.codex.blacklight.util.MathCompat.clamp((time-fromTime)/Math.max(1e-9,toTime-fromTime),0,1);
                 float turn=fromYaw+net.minecraft.util.Mth.wrapDegrees(yaw-fromYaw)*(float)frameAlpha;
                 AABB expanded=CombatPursuit.interpolate(beforeTarget,target,frameAlpha).inflate(curve.collisionRadius());
                 var points = worldPoints(curve,time,beginFeet.lerp(endFeet,alpha),turn,actor);
@@ -117,6 +117,6 @@ public final class WhipCurveContact {
     }
 
     private static Vec3 feetAt(double time, double begin, double end, Vec3 first, Vec3 last) {
-        return first.lerp(last, Math.clamp((time - begin) / Math.max(1e-9, end - begin), 0, 1));
+        return first.lerp(last, com.codex.blacklight.util.MathCompat.clamp((time - begin) / Math.max(1e-9, end - begin), 0, 1));
     }
 }

@@ -6,12 +6,12 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffects;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderGuiEvent;
-import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
-import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.RenderGuiEvent;
+import net.minecraftforge.client.event.RenderGuiOverlayEvent;
+import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 
 /** Fixed-size biological meter; health growth never adds rows of hearts. */
 @EventBusSubscriber(modid="blacklight",value=Dist.CLIENT)
@@ -22,11 +22,11 @@ public final class PrototypeHealthHud {
     private PrototypeHealthHud(){}
     public static boolean active(){
         var p=Minecraft.getInstance().player;
-        return p!=null&&!p.isSpectator()&&p.getData(ModAttachments.PLAYER_STATE).isInfected();
+        return p!=null&&!p.isSpectator()&&com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).isInfected();
     }
     public static int utilityTop(){return active()?40:10;}
-    @SubscribeEvent public static void hideHearts(RenderGuiLayerEvent.Pre event){
-        if(active()&&event.getName().equals(VanillaGuiLayers.PLAYER_HEALTH))event.setCanceled(true);
+    @SubscribeEvent public static void hideHearts(RenderGuiOverlayEvent.Pre event){
+        if(active()&&event.getOverlay().id().equals(VanillaGuiOverlay.PLAYER_HEALTH.id()))event.setCanceled(true);
     }
     @SubscribeEvent public static void render(RenderGuiEvent.Post event){
         var mc=Minecraft.getInstance();
@@ -34,11 +34,11 @@ public final class PrototypeHealthHud {
         if(mc.options.hideGui)return;
         var p=mc.player;var g=event.getGuiGraphics();
         float maximum=Math.max(1,p.getMaxHealth()),health=Mth.clamp(p.getHealth(),0,maximum);
-        double now=(mc.level.getGameTime()+mc.getTimer().getGameTimeDeltaPartialTick(false))/20D;
+        double now=(mc.level.getGameTime()+mc.getFrameTime())/20D;
         boolean reset=owner!=p||lastTime<0||now<lastTime||maximum!=lastMaximum;
         if(reset){owner=p;trail=health;lastHealth=health;holdUntil=now;}
         if(health<lastHealth){trail=Math.max(trail,lastHealth);holdUntil=now+.35;}
-        double dt=reset?0:Math.clamp(now-lastTime,0,.25);
+        double dt=reset?0:net.minecraft.util.Mth.clamp(now-lastTime,0,.25);
         if(health>=trail)trail=health;
         else if(now>holdUntil)trail=Math.max(health,(float)(trail-maximum*dt*.65));
         lastHealth=health;lastMaximum=maximum;lastTime=now;

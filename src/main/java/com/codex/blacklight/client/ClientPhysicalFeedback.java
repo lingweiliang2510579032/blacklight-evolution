@@ -8,11 +8,11 @@ import com.codex.blacklight.network.PhysicalFeedbackPayload;
 import com.codex.blacklight.registry.ModAttachments;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.ViewportEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.client.event.ViewportEvent;
 
 /** Bounded, short-lived camera impulses driven by authoritative server actions. */
 @EventBusSubscriber(modid = BlacklightNeoMod.MOD_ID, value = Dist.CLIENT)
@@ -91,7 +91,7 @@ public final class ClientPhysicalFeedback {
     }
 
     @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(net.minecraftforge.event.TickEvent.ClientTickEvent event){if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.level == null
                 ||!com.codex.blacklight.mode.PrototypeModeSystem.isActive(minecraft.player)
@@ -117,7 +117,7 @@ public final class ClientPhysicalFeedback {
         verticalKick *= 0.56F;
 
         float runTarget = 0.0F;
-        var blacklight = minecraft.player.getData(ModAttachments.PLAYER_STATE);
+        var blacklight = com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.PLAYER_STATE);
         if (blacklight.isInfected() && blacklight.isPrototypeMode()
                 && minecraft.player.onGround()
                 && ClientMovementEvents.isRunningForAttack(minecraft)

@@ -9,9 +9,9 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.nbt.CompoundTag;
-import net.neoforged.neoforge.common.util.FakePlayerFactory;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.gametest.*;
+import net.minecraftforge.common.util.FakePlayerFactory;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.gametest.*;
 import java.util.UUID;
 
 @GameTestHolder("blacklight") @PrefixGameTestTemplate(false)
@@ -19,34 +19,34 @@ public final class GameplayProgressionGameTest {
     @GameTest(template="wall_test",timeoutTicks=40)
     public static void biologicalGrowthCostsOnceAndMutantsUnlockGenes(GameTestHelper h){
         var p=FakePlayerFactory.get(h.getLevel(),new GameProfile(UUID.randomUUID(),"growth-qa"));
-        var state=p.getData(ModAttachments.PLAYER_STATE);state.infect();state.addBiomass(750);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);state.infect();state.addBiomass(750);
         GrowthSystem.purchase(p,GrowthUpgrade.VITALITY);int balance=state.getBiomass();
         h.assertTrue(balance==800&&p.getMaxHealth()==24,"vitality spends biomass and increases max health");
         GrowthSystem.purchase(p,GrowthUpgrade.VITALITY);h.assertTrue(state.getBiomass()==balance&&p.getMaxHealth()==24,"repeat purchase cannot spend or stack");
         var types=java.util.List.of(ModEntities.BLACKLIGHT_STALKER,ModEntities.BLACKLIGHT_SPITTER,ModEntities.BLACKLIGHT_BRUTE);
         for(var type:types){var mob=type.get().create(h.getLevel());GrowthSystem.consumed(p,mob);mob.discard();}
         h.assertTrue(state.hasUnlocked(PowerForm.BLADE)&&state.hasUnlocked(PowerForm.WHIPFIST)&&state.hasUnlocked(PowerForm.HAMMERFISTS),"three genes unlock three weapons");
-        h.assertTrue(p.getData(ModAttachments.GROWTH).absorbed()==3,"absorption count is retained");
-        state.cure();p.tickCount=200;GrowthSystem.tick(new PlayerTickEvent.Post(p));h.assertTrue(p.getMaxHealth()==20,"cured player loses active bonus");h.succeed();
+        h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.GROWTH).absorbed()==3,"absorption count is retained");
+        state.cure();p.tickCount=200;GrowthSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));h.assertTrue(p.getMaxHealth()==20,"cured player loses active bonus");h.succeed();
     }
     @GameTest(template="wall_test",timeoutTicks=40)
     public static void airborneHammerWaitsForLandingAndHitsOnce(GameTestHelper h){
         var p=FakePlayerFactory.get(h.getLevel(),new GameProfile(UUID.randomUUID(),"slam-qa"));
         p.setPos(h.absoluteVec(new Vec3(4,8,4)));p.setYRot(0);p.setOnGround(false);p.tickCount=100;
-        var state=p.getData(ModAttachments.PLAYER_STATE);state.infect();state.setPrototypeMode(true);state.unlock(PowerForm.HAMMERFISTS);state.activate(PowerForm.HAMMERFISTS);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);state.infect();state.setPrototypeMode(true);state.unlock(PowerForm.HAMMERFISTS);state.activate(PowerForm.HAMMERFISTS);
         for(int x=1;x<10;x++)for(int z=1;z<10;z++)h.setBlock(x,1,z,Blocks.STONE);
         var mob=h.spawn(EntityType.IRON_GOLEM,4,2,6);mob.setNoAi(true);float hp=mob.getHealth();
         WeaponCombatSystem.request(p,true);
-        for(int t=0;t<35;t++){p.tickCount++;WeaponCombatSystem.tick(new PlayerTickEvent.Post(p));}
+        for(int t=0;t<35;t++){p.tickCount++;WeaponCombatSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));}
         h.assertTrue(WeaponCombatSystem.busy(p)&&mob.getHealth()==hp,"long descent stays committed without early damage");
         p.setPos(h.absoluteVec(new Vec3(4,2,4)));p.setOnGround(true);
-        for(int t=0;t<WeaponMove.HAMMER_DROP.duration+2;t++){p.tickCount++;WeaponCombatSystem.tick(new PlayerTickEvent.Post(p));}
+        for(int t=0;t<WeaponMove.HAMMER_DROP.duration+2;t++){p.tickCount++;WeaponCombatSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));}
         h.assertTrue(mob.getHealth()==hp-WeaponMove.HAMMER_DROP.damage,"landing contacts exactly once");
         h.assertTrue(!WeaponCombatSystem.busy(p),"landing recovery ends");mob.discard();h.succeed();
     }
     @GameTest(template="wall_test",timeoutTicks=40)
     public static void hiveRewardIsSingleAndWaveBudgetSurvivesReload(GameTestHelper h){
-        var p=FakePlayerFactory.get(h.getLevel(),new GameProfile(UUID.randomUUID(),"hive-qa"));var state=p.getData(ModAttachments.PLAYER_STATE);state.infect();
+        var p=FakePlayerFactory.get(h.getLevel(),new GameProfile(UUID.randomUUID(),"hive-qa"));var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);state.infect();
         var hive=ModEntities.BLACKLIGHT_HIVE.get().create(h.getLevel());hive.setPos(h.absoluteVec(new Vec3(5,2,5)));h.getLevel().addFreshEntity(hive);
         var tag=new CompoundTag();hive.addAdditionalSaveData(tag);tag.putInt("BlacklightWaves",3);tag.putInt("BlacklightWaveCooldown",0);hive.readAdditionalSaveData(tag);
         var saved=new CompoundTag();hive.addAdditionalSaveData(saved);var restored=ModEntities.BLACKLIGHT_HIVE.get().create(h.getLevel());restored.readAdditionalSaveData(saved);
@@ -56,15 +56,15 @@ public final class GameplayProgressionGameTest {
     }
     @GameTest(template="wall_test",timeoutTicks=40)
     public static void survivalRecipeAndGuidanceAreLoaded(GameTestHelper h){
-        var id=net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("blacklight","blacklight_sample");
+        var id=new net.minecraft.resources.ResourceLocation("blacklight","blacklight_sample");
         h.assertTrue(h.getLevel().getRecipeManager().byKey(id).isPresent(),"virus sample survival recipe loads");
-        for(String name:new String[]{"root","awakening","first_consume","first_evolution","hive_breaker"})h.assertTrue(h.getLevel().getServer().getAdvancements().get(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("blacklight",name))!=null,"growth guide loads "+name);
+        for(String name:new String[]{"root","awakening","first_consume","first_evolution","hive_breaker"})h.assertTrue(h.getLevel().getServer().getAdvancements().getAdvancement(new net.minecraft.resources.ResourceLocation("blacklight",name))!=null,"growth guide loads "+name);
         h.succeed();
     }
     @GameTest(template="wall_test",timeoutTicks=60)
     public static void utilityPowersCoexistAndResetWithNormalMode(GameTestHelper h){
         var p=FakePlayerFactory.get(h.getLevel(),new GameProfile(UUID.randomUUID(),"utility-qa"));p.tickCount=100;
-        var s=p.getData(ModAttachments.PLAYER_STATE);s.infect();s.setPrototypeMode(true);s.unlock(PowerForm.BLADE);s.activate(PowerForm.BLADE);
+        var s=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);s.infect();s.setPrototypeMode(true);s.unlock(PowerForm.BLADE);s.activate(PowerForm.BLADE);
         h.assertTrue(!PowerFormSystem.select(p,PowerForm.ARMOR,false),"locked defence cannot be selected");
         s.unlock(PowerForm.ARMOR);s.unlock(PowerForm.SHIELD);s.unlock(PowerForm.INFECTED_VISION);
         h.assertTrue(PowerFormSystem.select(p,PowerForm.ARMOR,false),"unlocked armour equips");p.tickCount+=20;
@@ -73,18 +73,18 @@ public final class GameplayProgressionGameTest {
         h.assertTrue(UtilityPowerSystem.active(p,PowerForm.ARMOR)&&UtilityPowerSystem.active(p,PowerForm.INFECTED_VISION),"vision and armour coexist");
         PowerFormSystem.select(p,PowerForm.SHIELD,false);
         h.assertTrue(!UtilityPowerSystem.active(p,PowerForm.ARMOR)&&UtilityPowerSystem.active(p,PowerForm.SHIELD)&&p.getArmorValue()==0,"shield replaces armour and removes its attributes");
-        s.setPrototypeMode(false);p.tickCount=200;UtilityPowerSystem.tick(new PlayerTickEvent.Post(p));h.assertTrue(p.getData(ModAttachments.UTILITY_POWERS)==0,"normal mode clears utility powers");h.succeed();
+        s.setPrototypeMode(false);p.tickCount=200;UtilityPowerSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.UTILITY_POWERS)==0,"normal mode clears utility powers");h.succeed();
     }
     @GameTest(template="wall_test",timeoutTicks=100)
     public static void hiveGeneratesBuildingAndStopsAfterThreeWaves(GameTestHelper h){
         var level=h.getLevel();var origin=new net.minecraft.core.BlockPos(1500,220,1500);
         for(int x=-12;x<=12;x++)for(int z=-12;z<=12;z++)for(int y=-1;y<15;y++)level.setBlock(origin.offset(x,y,z),(y==-1?Blocks.STONE:Blocks.AIR).defaultBlockState(),2);
-        var feature=level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.CONFIGURED_FEATURE).get(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("blacklight","hive"));
+        var feature=level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.CONFIGURED_FEATURE).get(new net.minecraft.resources.ResourceLocation("blacklight","hive"));
         h.assertTrue(feature!=null&&feature.place(level,level.getChunkSource().getGenerator(),level.random,origin),"configured hive places a building");
         h.assertTrue(level.getBlockState(origin.offset(5,5,5)).is(Blocks.SMOOTH_STONE)||level.getBlockState(origin.offset(5,5,5)).is(Blocks.CRACKED_STONE_BRICKS),"upper floor is real world geometry");
         var box=new net.minecraft.world.phys.AABB(origin).inflate(20);var cores=level.getEntitiesOfClass(com.codex.blacklight.entity.BlacklightHive.class,box);h.assertTrue(cores.size()==1,"one core owns the encounter");
         var p=FakePlayerFactory.get(level,new GameProfile(UUID.randomUUID(),"hive-waves"));p.moveTo(1500,220,1490,0,0);level.addNewPlayer(p);
-        var hive=cores.getFirst();
+        var hive=cores.get(0);
         // A blocked random spawn point legitimately delays a wave by another cooldown.
         // Allow those retries; the required wave count and reinforcement budget stay strict.
         for(int t=0;t<2400&&hive.waves()<3;t++){hive.tickCount++;hive.tick();}

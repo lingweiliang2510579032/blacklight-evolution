@@ -18,14 +18,14 @@ public abstract class DragonConsumePoseMixin {
     @Shadow private float a;
     @Shadow @Final private ModelPart head;
     @Shadow @Final private ModelPart rightWing;
-    @WrapOperation(method={"renderToBuffer","renderSide"},at=@At(value="INVOKE",target="Lnet/minecraft/client/model/geom/ModelPart;render(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;III)V"))
-    private void blacklight$react(ModelPart part,PoseStack stack,VertexConsumer vertices,int light,int overlay,int color,Operation<Void> original) {
-        var visual=entity==null?ConsumeVisual.EMPTY:entity.getData(ModAttachments.CONSUME_VISUAL);
-        if(!visual.active()){original.call(part,stack,vertices,light,overlay,color);return;}
+    @WrapOperation(method={"renderToBuffer","renderSide"},at=@At(value="INVOKE",target="Lnet/minecraft/client/model/geom/ModelPart;render(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;IIFFFF)V"))
+    private void blacklight$react(ModelPart part,PoseStack stack,VertexConsumer vertices,int light,int overlay,float red,float green,float blue,float alpha,Operation<Void> original) {
+        var visual=entity==null?ConsumeVisual.EMPTY:com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL);
+        if(!visual.active()){original.call(part,stack,vertices,light,overlay,red,green,blue,alpha);return;}
         var saved=part.storePose();float sx=part.xScale,sy=part.yScale,sz=part.zScale;
         try {
             float t=visual.motionProgress(entity.level().getGameTime(),a);
-            var form=PowerForm.values()[Math.clamp(visual.form(),0,PowerForm.values().length-1)];
+            var form=PowerForm.values()[net.minecraft.util.Mth.clamp(visual.form(),0,PowerForm.values().length-1)];
             float strike=visual.consuming()?(float)Math.exp(-Math.pow((t-com.codex.blacklight.combat.ConsumeSequence.contact(form,true))*18,2)):0;
             if(part==head){
                 part.xRot+=strike*(form==PowerForm.HAMMERFISTS?.8F:form==PowerForm.MUSCLE_MASS?-.55F:.3F);
@@ -33,11 +33,11 @@ public abstract class DragonConsumePoseMixin {
                 if(form==PowerForm.WHIPFIST)part.yRot-=strike*.7F;
             }
             if(part==rightWing && (visual.form()==PowerForm.BLADE.ordinal()||visual.form()==PowerForm.CLAWS.ordinal()) && t>.43F) {
-                float detach=Math.clamp((t-.43F)/.18F,0,1),absorb=Math.clamp((t-.7F)/.28F,0,1);
+                float detach=net.minecraft.util.Mth.clamp((t-.43F)/.18F,0,1),absorb=net.minecraft.util.Mth.clamp((t-.7F)/.28F,0,1);
                 part.x+=detach*24*(1-absorb);part.y-=detach*10;
                 part.xScale*=1-absorb*.98F;part.yScale*=1-absorb*.98F;part.zScale*=1-absorb*.98F;
             }
-            original.call(part,stack,vertices,light,overlay,color);
+            original.call(part,stack,vertices,light,overlay,red,green,blue,alpha);
         } finally {part.loadPose(saved);part.xScale=sx;part.yScale=sy;part.zScale=sz;}
     }
 }

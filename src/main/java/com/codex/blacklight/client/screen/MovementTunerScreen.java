@@ -89,7 +89,7 @@ public final class MovementTunerScreen extends Screen {
         graphics.renderOutline(panelX, panelY, PANEL_WIDTH, PANEL_HEIGHT, 0xDDE23A3A);
         graphics.drawString(font, title, panelX + 8, panelY + 8, 0xFFFF6267, false);
         var player=net.minecraft.client.Minecraft.getInstance().player;
-        int upgrades=player==null?0:player.getData(com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getMovementUpgradeMask();
+        int upgrades=player==null?0:com.codex.blacklight.registry.ModAttachments.getData(player, com.codex.blacklight.registry.ModAttachments.PLAYER_STATE).getMovementUpgradeMask();
         String hint=page==0?String.format(Locale.ROOT,"预计跳高 %.1f～%.1f 格（含升级）",
                 MovementTuningSettings.estimatedJumpHeight(0,upgrades),MovementTuningSettings.estimatedJumpHeight(1,upgrades)):status;
         graphics.drawString(font, status.startsWith("保存失败")?status:hint, panelX + 8, panelY + 21, 0xFFE4E8EF, false);

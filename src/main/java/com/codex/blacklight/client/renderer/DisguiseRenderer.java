@@ -8,10 +8,10 @@ import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.*;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderPlayerEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.*;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.RenderPlayerEvent;
 import java.util.*;
 
 /** Render-only species surrogate, never registered/ticked/spawned as a world entity. */
@@ -25,7 +25,7 @@ public final class DisguiseRenderer {
     }
     private DisguiseRenderer(){}
     private static Mob avatar(Player p){
-        var identity=p.getData(ModAttachments.DISGUISE_IDENTITY);if(!identity.valid())return null;
+        var identity=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.DISGUISE_IDENTITY);if(!identity.valid())return null;
         Entry entry=CACHE.get(p);
         if(entry==null||!entry.identity.equals(identity)||entry.avatar!=null&&entry.avatar.level()!=p.level()){
             Mob mob=null;
@@ -60,7 +60,7 @@ public final class DisguiseRenderer {
     @SubscribeEvent(priority=EventPriority.HIGHEST)
     public static void render(RenderPlayerEvent.Pre e){
         Player p=e.getEntity();if(RENDERING.contains(p))return;
-        boolean disguised=DisguiseSystem.active(p);var morph=p.getData(ModAttachments.DISGUISE_MORPH);
+        boolean disguised=DisguiseSystem.active(p);var morph=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.DISGUISE_MORPH);
         boolean transition=morph.active(p.level().getGameTime());
         if(!disguised&&!transition){CACHE.remove(p);return;}
         Mob avatar=avatar(p);if(disguised&&avatar==null)return;
@@ -87,7 +87,7 @@ public final class DisguiseRenderer {
         var out=buffers.getBuffer(RenderType.entityCutoutNoCull(ConsumedMobVisuals.WHITE));
         stack.pushPose();stack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-p.yBodyRot));
         for(int row=0;row<12;row++){
-            float local=Math.clamp(weight*2-Math.abs(row-5.5F)*.09F,0,1);
+            float local=net.minecraft.util.Mth.clamp(weight*2-Math.abs(row-5.5F)*.09F,0,1);
             if(local<=0)continue;
             float y=height*(row+.5F)/12;
             float radius=(width*.6F+.08F)*local;
@@ -108,7 +108,7 @@ public final class DisguiseRenderer {
         face(s,v,light,color,0,-1,0,new float[][]{{x0,y0,z1},{x0,y0,z0},{x1,y0,z0},{x1,y0,z1}});
     }
     private static void face(PoseStack s,VertexConsumer v,int light,int color,float nx,float ny,float nz,float[][] points){
-        for(var p:points)v.addVertex(s.last(),p[0],p[1],p[2]).setColor(color).setUv(.5F,.5F)
-                .setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(s.last(),nx,ny,nz);
+        for(var p:points)v.vertex((s.last()).pose(),p[0],p[1],p[2]).color(color).uv(.5F,.5F)
+                .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(light).normal((s.last()).normal(),nx,ny,nz).endVertex();
     }
 }

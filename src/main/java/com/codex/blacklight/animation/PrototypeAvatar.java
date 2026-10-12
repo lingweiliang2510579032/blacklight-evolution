@@ -1,10 +1,10 @@
 package com.codex.blacklight.animation;
 
-import software.bernie.geckolib.animatable.GeoAnimatable;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.core.animatable.GeoAnimatable;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 /**
@@ -34,7 +34,7 @@ public final class PrototypeAvatar implements GeoAnimatable {
         });
 
         AnimationController<PrototypeAvatar> actions = new AnimationController<>(this, "actions", 2,
-                state -> software.bernie.geckolib.animation.PlayState.STOP)
+                state -> software.bernie.geckolib.core.object.PlayState.STOP)
                 .triggerableAnim("transform_claws", RawAnimation.begin().thenPlay("animation.blacklight.transform_claws"))
                 .triggerableAnim("claw_combo", RawAnimation.begin().thenPlay("animation.blacklight.claw_combo"))
                 .triggerableAnim("claw_groundspike", RawAnimation.begin().thenPlay("animation.blacklight.claw_groundspike"))

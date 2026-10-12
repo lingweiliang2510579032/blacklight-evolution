@@ -12,12 +12,12 @@ public final class HammerScaleRenderer {
     private static final Map<AbstractClientPlayer,Frame> states=new WeakHashMap<>();
     private HammerScaleRenderer() {}
     public static HammerScales.Shape[] sample(AbstractClientPlayer player,float partial) {
-        var state=player.getData(ModAttachments.PLAYER_STATE);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         var identity=HammerScales.Shape.IDENTITY;
         if(!player.isAlive()||!state.isPrototypeMode()||state.getActivePower()!=PowerForm.HAMMERFISTS) {
             states.remove(player);return new HammerScales.Shape[]{identity,identity};
         }
-        var visual=player.getData(ModAttachments.WEAPON_VISUAL);var move=visual.spec();
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL);var move=visual.spec();
         String key="";float clipTime=0;
         if(move!=null&&move.form==PowerForm.HAMMERFISTS) {
             key=visual.charging()?LocalWeaponMotion.find(move.id).flatMap(LocalWeaponMotion.Definition::charge)
@@ -30,7 +30,7 @@ public final class HammerScaleRenderer {
         if(key.isEmpty()&&old!=null&&now>=old.time&&now-old.time<5) {
             // Only interrupted/finished actions blend back. Active source keys stay on
             // the exact body clock, including the hold-to-charged-release blend.
-            float blend=Math.clamp((now-old.time)/1.5F,0,1);
+            float blend=net.minecraft.util.Mth.clamp((now-old.time)/1.5F,0,1);
             right=old.right.blend(right,blend);left=old.left.blend(left,blend);
         }
         states.put(player,new Frame(now,right,left));

@@ -16,7 +16,7 @@ public final class HiveFeedingMotion {
         return Vec3.atBottomCenterOf(node(home, index)).add(0, 2.2, 0);
     }
     public static double smooth(double t) {
-        t = Math.clamp(t, 0, 1); return t * t * (3 - 2 * t);
+        t = com.codex.blacklight.util.MathCompat.clamp(t, 0, 1); return t * t * (3 - 2 * t);
     }
     public static double contraction(double age) { return 1 - .985 * smooth((age - PULL_END) / (END - PULL_END - 1)); }
     public static Vec3 destination(Vec3 origin, Vec3 mouth, double height, double age) {

@@ -10,12 +10,12 @@ import com.mojang.math.Axis;
 public final class HitBodyPose {
     private HitBodyPose(){}
     public static void apply(LivingEntity e,PoseStack stack,float partial){
-        var hit=e.getData(ModAttachments.HIT_REACTION);float weight=hit.weight(e.level().getGameTime(),partial);if(weight<=0)return;
+        var hit=com.codex.blacklight.registry.ModAttachments.getData(e, ModAttachments.HIT_REACTION);float weight=hit.weight(e.level().getGameTime(),partial);if(weight<=0)return;
         float progress=hit.progress(e.level().getGameTime(),partial),prone;
         if(hit.kind()==HitReaction.DOWN)prone=1;
         else if(hit.kind()==HitReaction.GETUP)prone=1-progress*progress*(3-2*progress);
-        else if(hit.kind()==HitReaction.DEATH)prone=Math.clamp(progress*3,0,1);
-        else prone=(hit.kind()==HitReaction.LAUNCH||hit.kind()==HitReaction.SLAM||hit.motion()==com.codex.blacklight.combat.ImpactProfile.FALL?Math.clamp(progress*3,0,.8F):0);
+        else if(hit.kind()==HitReaction.DEATH)prone=net.minecraft.util.Mth.clamp(progress*3,0,1);
+        else prone=(hit.kind()==HitReaction.LAUNCH||hit.kind()==HitReaction.SLAM||hit.motion()==com.codex.blacklight.combat.ImpactProfile.FALL?net.minecraft.util.Mth.clamp(progress*3,0,.8F):0);
         float height=e.getBbHeight(),width=e.getBbWidth();
         float radians=(float)Math.toRadians(hit.yaw());
         // A quadruped tips sideways; a biped falls on its back.

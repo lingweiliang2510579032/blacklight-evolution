@@ -42,8 +42,8 @@ public final class InfectedHostRenderer extends EntityRenderer<BlacklightInfecte
         entity.advanceAppearanceAnimation();
         if(proxy instanceof net.minecraft.world.entity.ambient.Bat bat)bat.setResting(false);
         proxy.setHealth(Math.max(1,proxy.getMaxHealth()*entity.getHealth()/entity.getMaxHealth()));
-        proxy.setData(ModAttachments.CONSUME_VISUAL,entity.getData(ModAttachments.CONSUME_VISUAL));
-        proxy.setData(ModAttachments.HIT_REACTION,entity.getData(ModAttachments.HIT_REACTION));
+        com.codex.blacklight.registry.ModAttachments.setData(proxy, ModAttachments.CONSUME_VISUAL,com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL));
+        com.codex.blacklight.registry.ModAttachments.setData(proxy, ModAttachments.HIT_REACTION,com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.HIT_REACTION));
         for(var slot:EquipmentSlot.values())proxy.setItemSlot(slot,entity.getItemBySlot(slot));
         proxy.setCustomName(null);
         EntityRenderer renderer=Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(proxy);
@@ -94,7 +94,7 @@ public final class InfectedHostRenderer extends EntityRenderer<BlacklightInfecte
         boolean hidden=entity.isInvisible();
         boolean translucent=hidden&&mc.player!=null&&!entity.isInvisibleTo(mc.player);
         if(hidden&&!translucent&&!mc.shouldEntityAppearGlowing(entity))return;
-        var visual=entity.getData(ModAttachments.CONSUME_VISUAL);
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_VISUAL);
         boolean consuming=visual.active()&&entity.level().getEntity(visual.consumerId())!=null;
         if(consuming&&visual.progress(entity.level().getGameTime(),partial)>=.995F
                 &&!com.codex.blacklight.combat.ConsumeSequence.boss(entity))return;
@@ -105,7 +105,7 @@ public final class InfectedHostRenderer extends EntityRenderer<BlacklightInfecte
         float age=entity.tickCount+partial;
         // The host's tick-driven walk clock survives render passes and resource reloads.
         float walk=entity.walkAnimation.position(partial)*.6662F;
-        float speed=Math.clamp(entity.walkAnimation.speed(partial)*2,0,1);
+        float speed=net.minecraft.util.Mth.clamp(entity.walkAnimation.speed(partial)*2,0,1);
         float attack=entity.getAttackAnim(partial);
         var receiver=InfectedModelPose.receiverState(entity,partial);
         stack.pushPose();
@@ -123,7 +123,7 @@ public final class InfectedHostRenderer extends EntityRenderer<BlacklightInfecte
                     ?new ConsumeFracture(entity,partial,stack,buffers,ConsumeAbsorptionFx.destination(entity,partial,placement)):null;
             if(consuming)ConsumeVictimPose.body(entity,stack,partial);else HitBodyPose.apply(entity,stack,partial);
             stack.mulPose(Axis.YP.rotationDegrees(180-bodyYaw));
-            if(!consuming&&entity.deathTime>0&&entity.getData(ModAttachments.HIT_REACTION).weight(entity.level().getGameTime(),partial)<=0){
+            if(!consuming&&entity.deathTime>0&&com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.HIT_REACTION).weight(entity.level().getGameTime(),partial)<=0){
                 float fall=Math.min(1,(entity.deathTime+partial)/20F);
                 stack.translate(0,mesh.bounds().getYsize()*scale*.5,0);
                 stack.mulPose(Axis.ZP.rotationDegrees(fall*70));

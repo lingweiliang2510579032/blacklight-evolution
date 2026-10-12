@@ -6,8 +6,8 @@ import com.codex.blacklight.registry.ModAttachments;
 import com.codex.blacklight.state.BlacklightState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.TickEvent.PlayerTickEvent;
 
 /** Server authority for switching the player between vanilla and Prototype rules. */
 public final class PrototypeModeSystem {
@@ -15,7 +15,7 @@ public final class PrototypeModeSystem {
     }
 
     public static void handle(ServerPlayer player, boolean enabled) {
-        BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
+        BlacklightState state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         if (!state.isInfected()) {
             player.displayClientMessage(Component.translatable(
                     "message.blacklight.prototype_mode_requires_infection"), true);
@@ -25,9 +25,9 @@ public final class PrototypeModeSystem {
 
         com.codex.blacklight.combat.WeaponCombatSystem.cancel(player);
         state.setPrototypeMode(enabled);
-        player.setData(ModAttachments.PLAYER_STATE, state);
-        player.syncData(ModAttachments.PLAYER_STATE);
-        player.getData(ModAttachments.MOVEMENT_STATE).reset();
+        com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.PLAYER_STATE, state);
+        com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.PLAYER_STATE);
+        com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.MOVEMENT_STATE).reset();
         player.stopUsingItem();
         if (enabled) {
             player.closeContainer();
@@ -46,15 +46,15 @@ public final class PrototypeModeSystem {
     }
 
     public static boolean isActive(net.minecraft.world.entity.player.Player player) {
-        BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
+        BlacklightState state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         return state.isInfected() && state.isPrototypeMode();
     }
 
     /** Keeps the presentation engine aligned so B is the only authoritative mode switch. */
     @SubscribeEvent
-    public static void onPlayerTick(PlayerTickEvent.Post event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) return;
-        BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
+    public static void onPlayerTick(PlayerTickEvent event) {if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
+        if (!(event.player instanceof ServerPlayer player)) return;
+        BlacklightState state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         synchronizePresentationMode(player, state.isInfected() && state.isPrototypeMode());
     }
 

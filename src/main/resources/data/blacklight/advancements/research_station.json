@@ -2,7 +2,7 @@
   "parent": "blacklight:root",
   "display": {
     "icon": {
-      "id": "minecraft:packed_ice"
+      "item": "minecraft:packed_ice"
     },
     "title": {
       "translate": "advancement.blacklight.research_station"
@@ -23,7 +23,7 @@
           {
             "condition": "minecraft:location_check",
             "predicate": {
-              "structures": "blacklight:frozen_research_station"
+              "structure": "blacklight:frozen_research_station"
             }
           }
         ]

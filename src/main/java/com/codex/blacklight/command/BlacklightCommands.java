@@ -10,8 +10,8 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.RegisterCommandsEvent;
 
 public final class BlacklightCommands {
     private BlacklightCommands() {
@@ -24,10 +24,10 @@ public final class BlacklightCommands {
                 .then(HiveCommands.commands())
                 .then(Commands.literal("infect").requires(source -> source.hasPermission(2)).executes(context -> {
                     ServerPlayer player = context.getSource().getPlayerOrException();
-                    BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
+                    BlacklightState state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
                     state.infect();
-                    player.setData(ModAttachments.PLAYER_STATE, state);
-                    player.syncData(ModAttachments.PLAYER_STATE);
+                    com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.PLAYER_STATE, state);
+                    com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.PLAYER_STATE);
                     context.getSource().sendSuccess(() -> Component.translatable("command.blacklight.infected"), false);
                     return 1;
                 }))
@@ -95,7 +95,7 @@ public final class BlacklightCommands {
                         })))
                 .then(Commands.literal("status").executes(context -> {
                     ServerPlayer player = context.getSource().getPlayerOrException();
-                    BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
+                    BlacklightState state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
                     context.getSource().sendSuccess(() -> Component.literal(
                                     "infected=" + state.isInfected() +
                                     " mode=" + (state.isPrototypeMode() ? "prototype" : "vanilla") +
@@ -108,7 +108,7 @@ public final class BlacklightCommands {
                         .then(Commands.argument("amount", IntegerArgumentType.integer(1, 100000))
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
-                                    BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
+                                    BlacklightState state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
                                     int amount = IntegerArgumentType.getInteger(context, "amount");
                                     state.addEvolutionPoints(amount);
                                     sync(player, state);
@@ -119,7 +119,7 @@ public final class BlacklightCommands {
                 .then(Commands.literal("claw_upgrade").requires(source -> source.hasPermission(2))
                         .then(Commands.argument("id", StringArgumentType.word()).executes(context -> {
                             ServerPlayer player = context.getSource().getPlayerOrException();
-                            BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
+                            BlacklightState state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
                             String id = StringArgumentType.getString(context, "id");
                             ClawUpgrade upgrade = ClawUpgrade.byId(id);
                             if (upgrade == null) {
@@ -140,8 +140,8 @@ public final class BlacklightCommands {
     }
 
     private static void sync(ServerPlayer player, BlacklightState state) {
-        player.setData(ModAttachments.PLAYER_STATE, state);
-        player.syncData(ModAttachments.PLAYER_STATE);
+        com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.PLAYER_STATE, state);
+        com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.PLAYER_STATE);
     }
 
     private static int spawnInfected(CommandSourceStack source,String species,net.minecraft.world.phys.Vec3 requested,boolean colossal){

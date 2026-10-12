@@ -84,8 +84,7 @@ public final class AnimationTunerScreen extends Screen {
         modeButton = addRenderableWidget(Button.builder(modeLabel(), button ->
                 setTransformMode(transformMode.next())).bounds(6, 27, 92, 17).build());
         axisButton = addRenderableWidget(Button.builder(axisLabel(), button -> {
-            lockedAxis = switch (lockedAxis) {
-                case null -> Axis.X;
+            lockedAxis = lockedAxis == null ? Axis.X : switch (lockedAxis) {
                 case X -> Axis.Y;
                 case Y -> Axis.Z;
                 case Z -> null;
@@ -562,14 +561,14 @@ public final class AnimationTunerScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY,
-                                 double scrollX, double scrollY) {
+                                 double scrollY) {
         if (scrollY != 0.0D) {
             currentTime = clampTime(currentTime + (float)(scrollY * 0.05D));
             playing = false;
             syncTime();
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        return super.mouseScrolled(mouseX, mouseY, scrollY);
     }
 
     private boolean insideModelManipulationArea(double mouseX, double mouseY) {
@@ -672,7 +671,7 @@ public final class AnimationTunerScreen extends Screen {
 
     /** This is an in-world overlay, not a menu: never blur or darken the rendered level. */
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics) {
         // Intentionally empty. Screen's default implementation applies the menu blur
         // before drawing widgets, which makes the player impossible to pose accurately.
     }

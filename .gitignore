@@ -58,3 +58,8 @@ __pycache__/
 *.pyc
 
 /run-standalone-gametest/
+
+# Local workspace handoffs, temporary migration helpers and test instances.
+/项目记忆/
+/JB/
+/run-data/

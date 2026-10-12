@@ -15,21 +15,20 @@ import java.nio.file.Path;
 import java.util.List;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.KeyMapping;
-import net.neoforged.neoforge.client.event.InputEvent;
+import net.minecraftforge.client.event.InputEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.ModList;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RenderFrameEvent;
-import net.neoforged.neoforge.client.event.ViewportEvent;
-import net.neoforged.bus.api.EventPriority;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.client.event.ViewportEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 
 /** Opt-in real-frame QA. Only a disposable copied world with the explicit QA prefix may be mutated. */
 @EventBusSubscriber(modid=BlacklightNeoMod.MOD_ID,value=Dist.CLIENT)
@@ -118,7 +117,8 @@ public final class StandaloneVisualSmoke {
         return false;
     }
     private static boolean active(){return initialized&&!disabled&&!completed;}
-    @SubscribeEvent(priority=EventPriority.HIGHEST) public static void isolate(ClientTickEvent.Pre event) {
+    @SubscribeEvent(priority=EventPriority.HIGHEST) public static void isolate(TickEvent.ClientTickEvent event) {
+        if(event.phase!=TickEvent.Phase.START)return;
         if(!active())return;var client=Minecraft.getInstance();client.mouseHandler.releaseMouse();
         for(var key:savedKeys.keySet()){key.setDown(false);while(key.consumeClick()){} }
         if(index<SHOTS.size()&&queued){
@@ -130,7 +130,8 @@ public final class StandaloneVisualSmoke {
     @SubscribeEvent(priority=EventPriority.HIGHEST) public static void pointer(InputEvent.MouseButton.Pre event){
         if(active()){event.setCanceled(true);Minecraft.getInstance().mouseHandler.releaseMouse();}
     }
-    @SubscribeEvent public static void tick(ClientTickEvent.Post event) {
+    @SubscribeEvent public static void tick(TickEvent.ClientTickEvent event) {
+        if(event.phase!=TickEvent.Phase.END)return;
         if(disabled||completed||System.getProperty(PROPERTY,"").isBlank())return;
         Minecraft client=Minecraft.getInstance();
         var server=client.getSingleplayerServer();
@@ -189,7 +190,7 @@ public final class StandaloneVisualSmoke {
             queued=true;preview=false;stageAt=tick+30;return;
         }
         if(tick<stageAt||!serverReady)return;
-        if(client.player.getData(ModAttachments.PLAYER_STATE).getActivePower()!=shot.form())return;
+        if(com.codex.blacklight.registry.ModAttachments.getData(client.player, ModAttachments.PLAYER_STATE).getActivePower()!=shot.form())return;
         if(!preview) {
             String key=key(shot);
             PlayerMotionController.preview(client.player,key,shot.seconds());
@@ -203,7 +204,7 @@ public final class StandaloneVisualSmoke {
             if(shot.editor())client.setScreen(new com.codex.blacklight.client.screen.AnimationTunerScreen());
             preview=true;stageAt=tick+15;return;
         }
-        if(shot.move()!=null)client.player.setData(ModAttachments.WEAPON_VISUAL,new WeaponVisual(shot.move().ordinal(),client.level.getGameTime(),180,shot.charge(),shot.seconds()));
+        if(shot.move()!=null)com.codex.blacklight.registry.ModAttachments.setData(client.player, ModAttachments.WEAPON_VISUAL,new WeaponVisual(shot.move().ordinal(),client.level.getGameTime(),180,shot.charge(),shot.seconds()));
         if(tick>=stageAt)capture=true;
     }
     private static String key(Shot shot) {
@@ -218,15 +219,15 @@ public final class StandaloneVisualSmoke {
         return shot.charge()?LocalWeaponMotion.find(shot.move().id).flatMap(LocalWeaponMotion.Definition::charge).map(LocalWeaponMotion.Charge::animation).orElseThrow():shot.move().id;
     }
     private static void configure(ServerPlayer p,Shot shot) {
-        var state=p.getData(ModAttachments.PLAYER_STATE);if(!state.isInfected())state.infect();
+        var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);if(!state.isInfected())state.infect();
         state.setPrototypeMode(true);for(var form:PowerForm.values())state.unlock(form);state.activate(shot.form());state.addBiomass(1000);state.addEvolutionPoints(100000);
         for(var upgrade:ClawUpgrade.values())state.buyClawUpgrade(upgrade);
         for(var upgrade:MovementUpgrade.values())state.buyMovementUpgrade(upgrade);
-        p.setData(ModAttachments.PLAYER_STATE,state);p.syncData(ModAttachments.PLAYER_STATE);
-        p.setData(ModAttachments.UTILITY_POWERS,shot.utility()==null?0:shot.utility().bit());p.syncData(ModAttachments.UTILITY_POWERS);
-        p.setData(ModAttachments.UTILITY_STATE,new UtilityState(UtilityState.SHIELD_CAPACITY,0,p.level().getGameTime()-200,0,-1000));p.syncData(ModAttachments.UTILITY_STATE);
-        p.setData(ModAttachments.POWER_MORPH,PowerMorph.NONE);p.syncData(ModAttachments.POWER_MORPH);
-        p.setData(ModAttachments.WEAPON_VISUAL,WeaponVisual.EMPTY);p.syncData(ModAttachments.WEAPON_VISUAL);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.PLAYER_STATE,state);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.PLAYER_STATE);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.UTILITY_POWERS,shot.utility()==null?0:shot.utility().bit());com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.UTILITY_POWERS);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.UTILITY_STATE,new UtilityState(UtilityState.SHIELD_CAPACITY,0,p.level().getGameTime()-200,0,-1000));com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.UTILITY_STATE);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.POWER_MORPH,PowerMorph.NONE);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.POWER_MORPH);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.WEAPON_VISUAL,WeaponVisual.EMPTY);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.WEAPON_VISUAL);
         p.setDeltaMovement(0,0,0);p.connection.teleport(.5,251,.5,180,shot.pitch());p.yBodyRot=p.yBodyRotO=180;p.yHeadRot=p.yHeadRotO=180;
         if(wall(shot)!=com.codex.blacklight.movement.WallTraversal.Mode.NONE)
             for(int x=-5;x<=5;x++)for(int y=251;y<=257;y++)p.level().setBlockAndUpdate(new BlockPos(x,y,-1),Blocks.SMOOTH_STONE.defaultBlockState());
@@ -234,7 +235,8 @@ public final class StandaloneVisualSmoke {
     private static com.codex.blacklight.movement.WallTraversal.Mode wall(Shot shot) {
         return shot.name().contains("wall_run")?com.codex.blacklight.movement.WallTraversal.Mode.RUN:shot.name().contains("wall_climb")?com.codex.blacklight.movement.WallTraversal.Mode.CLIMB:com.codex.blacklight.movement.WallTraversal.Mode.NONE;
     }
-    @SubscribeEvent public static void beforeFrame(RenderFrameEvent.Pre event) {
+    @SubscribeEvent public static void beforeFrame(TickEvent.RenderTickEvent event) {
+        if(event.phase!=TickEvent.Phase.START)return;
         if(!initialized||disabled||completed||!preview||index>=SHOTS.size())return;
         var player=Minecraft.getInstance().player;if(player==null)return;
         // This controlled visual state samples the real wall-pose renderer after
@@ -268,7 +270,8 @@ public final class StandaloneVisualSmoke {
         ((com.codex.blacklight.mixin.client.PrototypeCameraAccess)event.getCamera()).blacklight$setPosition(camera);
         event.setYaw(yaw);event.setPitch(pitch);event.setRoll(0);
     }
-    @SubscribeEvent public static void frame(RenderFrameEvent.Post event) {
+    @SubscribeEvent public static void frame(TickEvent.RenderTickEvent event) {
+        if(event.phase!=TickEvent.Phase.END)return;
         if(!capture||disabled||completed)return;
         var client=Minecraft.getInstance();var shot=SHOTS.get(index);capture=false;
         try(var image=Screenshot.takeScreenshot(client.getMainRenderTarget())) {
@@ -281,12 +284,12 @@ public final class StandaloneVisualSmoke {
             record.addProperty("cameraTypeMatches",camera(shot)==client.options.getCameraType());record.addProperty("requestedPitch",shot.pitch());record.addProperty("actualPlayerPitch",client.player.getXRot());
             if(camera(shot)!=client.options.getCameraType())throw new IllegalStateException("Native camera perspective changed during "+shot.name());
             if(!shot.name().equals("49_native_back_orbit_180")&&Math.abs(client.player.getXRot()-shot.pitch())>.1F)throw new IllegalStateException("Requested view pitch not exercised");
-            record.addProperty("nativeCamera",shot.nativeCamera());record.addProperty("skinTexture",client.player.getSkin().texture().toString());
+            record.addProperty("nativeCamera",shot.nativeCamera());record.addProperty("skinTexture",client.player.getSkinTextureLocation().toString());
             record.addProperty("actualPlayerYaw",client.player.getYRot());record.addProperty("actualBodyYaw",client.player.yBodyRot);
             record.addProperty("renderFacing",com.codex.blacklight.client.animation.BlacklightRenderPose.facing(client.player,0));
             record.addProperty("cameraControlYaw",com.codex.blacklight.client.camera.PrototypeChaseCamera.controlYaw());
             if(shot.name().equals("49_native_back_orbit_180")){record.addProperty("nativeOrbitRawMouseX",1200);record.addProperty("nativeOrbitRawMouseY",orbitMouseY);record.addProperty("orbitBeforePlayerYaw",orbitBeforeYaw);record.addProperty("orbitBeforeRenderFacing",orbitBeforeFacing);record.addProperty("orbitBeforeControlYaw",orbitBeforeControl);}
-            var pose=com.codex.blacklight.client.animation.BlacklightRenderPose.sample(client.player,(float)event.getPartialTick().getGameTimeDeltaPartialTick(false));
+            var pose=com.codex.blacklight.client.animation.BlacklightRenderPose.sample(client.player,(float)event.renderTickTime);
             var rig=PlayerMotionController.skeleton();
             var hip=rig.getBoundTransformFor(pose,rig.rootJoint).getTranslation(new org.joml.Vector3f());
             var head=rig.getBoundTransformFor(pose,rig.head).getTranslation(new org.joml.Vector3f());
@@ -303,7 +306,7 @@ public final class StandaloneVisualSmoke {
             if(shot.name().equals("49_native_back_orbit_180")&&facingCamera<=.2)throw new IllegalStateException("Native BACK orbit cannot show the face: "+facingCamera);
             if(shot.firstPerson()) {
                 var view=com.codex.blacklight.client.renderer.BlacklightPlayerRenderer.renderedView(client.player);
-                if(view==null||Math.abs(view.gameTime()-(client.level.getGameTime()+event.getPartialTick().getGameTimeDeltaPartialTick(false)))>1)throw new IllegalStateException("Native first-person renderer did not execute this frame");
+                if(view==null||Math.abs(view.gameTime()-(client.level.getGameTime()+event.renderTickTime))>1)throw new IllegalStateException("Native first-person renderer did not execute this frame");
                 if(view.result().nearestDepth()<.1499F)throw new IllegalStateException("Actual first-person mesh crosses near plane");
                 record.addProperty("handRenderingPath",view.route());
                 record.addProperty("handRendererGameTime",view.gameTime());record.addProperty("nearestViewmodelDepth",view.result().nearestDepth());
@@ -316,7 +319,7 @@ public final class StandaloneVisualSmoke {
         }catch(Exception e){fail(e);}
     }
     private static void finish(Minecraft client) {
-        completed=true;PlayerMotionController.clearPreview(client.player);client.player.setData(ModAttachments.WEAPON_VISUAL,WeaponVisual.EMPTY);
+        completed=true;PlayerMotionController.clearPreview(client.player);com.codex.blacklight.registry.ModAttachments.setData(client.player, ModAttachments.WEAPON_VISUAL,WeaponVisual.EMPTY);
         if(client.screen instanceof com.codex.blacklight.client.screen.AnimationTunerScreen)client.setScreen(null);
         client.options.setCameraType(previousCamera);client.options.fov().set(previousFov);client.options.hideGui=previousGui;client.options.pauseOnLostFocus=previousPause;
         savedKeys.forEach(KeyMapping::setDown);if(previousMouse)client.mouseHandler.grabMouse();else client.mouseHandler.releaseMouse();client.updateTitle();

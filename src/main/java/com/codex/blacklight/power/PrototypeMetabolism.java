@@ -9,7 +9,7 @@ public final class PrototypeMetabolism {
 
     public static boolean active(Player player) {
         if (player == null || !player.isAlive() || player.isSpectator()) return false;
-        var state = player.getData(ModAttachments.PLAYER_STATE);
+        var state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         return state.isInfected() && state.isPrototypeMode();
     }
 }

@@ -8,16 +8,16 @@ import software.bernie.geckolib.model.GeoModel;
 public final class ClawOverlayModel extends GeoModel<ClawOverlay> {
     @Override
     public ResourceLocation getModelResource(ClawOverlay animatable) {
-        return ResourceLocation.fromNamespaceAndPath(BlacklightNeoMod.MOD_ID, "geo/claw_overlay.geo.json");
+        return new ResourceLocation(BlacklightNeoMod.MOD_ID, "geo/claw_overlay.geo.json");
     }
 
     @Override
     public ResourceLocation getTextureResource(ClawOverlay animatable) {
-        return ResourceLocation.fromNamespaceAndPath(BlacklightNeoMod.MOD_ID, "textures/entity/prototype_avatar.png");
+        return new ResourceLocation(BlacklightNeoMod.MOD_ID, "textures/entity/prototype_avatar.png");
     }
 
     @Override
     public ResourceLocation getAnimationResource(ClawOverlay animatable) {
-        return ResourceLocation.fromNamespaceAndPath(BlacklightNeoMod.MOD_ID, "animations/prototype_avatar.animation.json");
+        return new ResourceLocation(BlacklightNeoMod.MOD_ID, "animations/prototype_avatar.animation.json");
     }
 }

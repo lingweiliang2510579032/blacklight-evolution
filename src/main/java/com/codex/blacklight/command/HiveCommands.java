@@ -30,12 +30,12 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureCheckResult;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.level.LevelEvent;
-import net.neoforged.neoforge.event.server.ServerStoppingEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.level.LevelEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
+import net.minecraftforge.event.TickEvent.ServerTickEvent;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,7 +51,7 @@ import java.util.UUID;
 @EventBusSubscriber(modid = "blacklight")
 public final class HiveCommands {
     private static final ResourceKey<Structure> HIVE = ResourceKey.create(Registries.STRUCTURE,
-            ResourceLocation.fromNamespaceAndPath("blacklight", "colossal_hive"));
+            new ResourceLocation("blacklight", "colossal_hive"));
     private static final int DEFAULT_RADIUS = 32768;
     private static final int MAX_CANDIDATES = 8192;
     private static final int COLUMNS_PER_TICK = 32;
@@ -225,7 +225,7 @@ public final class HiveCommands {
         return job == null ? 0 : 1;
     }
 
-    @SubscribeEvent public static void tick(ServerTickEvent.Post event) {
+    @SubscribeEvent public static void tick(ServerTickEvent event) {if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
         for (Job job : List.copyOf(JOBS.values())) {
             if (job.level.getServer() != event.getServer()) continue;
             ServerPlayer player = event.getServer().getPlayerList().getPlayer(job.owner);
@@ -324,7 +324,7 @@ public final class HiveCommands {
                 var start = loaded.getStartForStructure(structure.value());
                 if (start == null || !start.isValid()) return; // An old generated chunk cannot grow a missing start.
                 presence = StructureCheckResult.START_PRESENT;
-            } else presence = level.structureManager().checkStructurePresence(position, structure.value(), candidate.placement(), false);
+            } else presence = level.structureManager().checkStructurePresence(position, structure.value(), false);
             if (presence == StructureCheckResult.START_NOT_PRESENT) return;
             var player = level.getServer().getPlayerList().getPlayer(owner);
             if (player == null) { fail("玩家已退出。"); return; }

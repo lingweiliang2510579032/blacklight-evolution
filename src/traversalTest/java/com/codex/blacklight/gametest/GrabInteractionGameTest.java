@@ -10,9 +10,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.common.util.FakePlayerFactory;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.gametest.*;
+import net.minecraftforge.common.util.FakePlayerFactory;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.gametest.*;
 import java.util.UUID;
 
 @GameTestHolder("blacklight") @PrefixGameTestTemplate(false)
@@ -21,14 +21,14 @@ public final class GrabInteractionGameTest {
         for(int x=1;x<10;x++)for(int z=1;z<10;z++)h.setBlock(x,1,z,Blocks.STONE);
         var p=FakePlayerFactory.get(h.getLevel(),new GameProfile(UUID.randomUUID(),"grab-input"));
         p.setPos(h.absoluteVec(new Vec3(3,2,3)));p.setYRot(0);p.setXRot(0);p.setOnGround(true);p.tickCount=100;
-        var s=p.getData(ModAttachments.PLAYER_STATE);s.infect();s.setPrototypeMode(true);s.activate(PowerForm.CLAWS);
-        p.setData(ModAttachments.PLAYER_STATE,s);p.setHealth(10);return p;
+        var s=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);s.infect();s.setPrototypeMode(true);s.activate(PowerForm.CLAWS);
+        com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.PLAYER_STATE,s);p.setHealth(10);return p;
     }
-    private static void tick(ServerPlayer p,int count) {for(int i=0;i<count;i++){p.tickCount++;ConsumeSystem.tick(new PlayerTickEvent.Post(p));}}
+    private static void tick(ServerPlayer p,int count) {for(int i=0;i<count;i++){p.tickCount++;ConsumeSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));}}
     @GameTest(template="wall_test",timeoutTicks=30)
     public static void bladeImpalesWithRightArmThenConsumesWithoutDroppingVictim(GameTestHelper h) {
         for(var type:new EntityType<?>[]{EntityType.CHICKEN,EntityType.COW}) {
-            var p=player(h);var state=p.getData(ModAttachments.PLAYER_STATE);
+            var p=player(h);var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);
             state.unlock(PowerForm.BLADE);state.activate(PowerForm.BLADE);
             var mob=(net.minecraft.world.entity.Mob)h.spawn(type,3,2,5);mob.setNoAi(true);
             var before=mob.position();ConsumeSystem.request(p);tick(p,5);
@@ -42,18 +42,18 @@ public final class GrabInteractionGameTest {
             p.setXRot(0);tick(p,5);ConsumeSystem.consume(p);tick(p,24);
             var expected=GrabPlacement.bladeAnchor(p.position(),p.getYRot(),0,mob.getBbHeight(),.5F);
             h.assertTrue(mob.isAlive()&&mob.position().distanceTo(expected)<.03,"consuming body stays impaled instead of falling to the ground");
-            tick(p,24);h.assertTrue(mob.isRemoved()&&p.getHealth()>10&&!p.getData(ModAttachments.CONSUMING),"blade consumes once and unlocks");
+            tick(p,24);h.assertTrue(mob.isRemoved()&&p.getHealth()>10&&!com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CONSUMING),"blade consumes once and unlocks");
         }
         h.succeed();
     }
     @GameTest(template="wall_test",timeoutTicks=30)
     public static void bladeThrowReleasesOnRightArmSwingWithoutConsumeRewards(GameTestHelper h) {
-        var p=player(h);var state=p.getData(ModAttachments.PLAYER_STATE);
+        var p=player(h);var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);
         state.unlock(PowerForm.BLADE);state.activate(PowerForm.BLADE);
         var cow=h.spawn(EntityType.COW,3,2,5);cow.setNoAi(true);
         ConsumeSystem.request(p);tick(p,20);ConsumeSystem.throwTarget(p);tick(p,5);
-        h.assertTrue(cow.getData(ModAttachments.CONSUME_VISUAL).stage()==ConsumeVisual.THROW,"retain body before release");
-        tick(p,1);h.assertTrue(cow.getData(ModAttachments.CONSUME_VISUAL).stage()==ConsumeVisual.FLIGHT&&p.getHealth()==10&&state.getEvolutionPoints()==0,"blade throw releases without reward");
+        h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(cow, ModAttachments.CONSUME_VISUAL).stage()==ConsumeVisual.THROW,"retain body before release");
+        tick(p,1);h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(cow, ModAttachments.CONSUME_VISUAL).stage()==ConsumeVisual.FLIGHT&&p.getHealth()==10&&state.getEvolutionPoints()==0,"blade throw releases without reward");
         cow.discard();h.succeed();
     }
     @GameTest(template="wall_test",timeoutTicks=30)
@@ -79,10 +79,10 @@ public final class GrabInteractionGameTest {
     public static void consumeCannotGrabOrQueueWhileReaching(GameTestHelper h) {
         var p=player(h);var cow=h.spawn(EntityType.COW,3,2,5);cow.setNoAi(true);
         ClawCombatSystem.handle(p,Action.CONSUME);
-        h.assertTrue(!p.getData(ModAttachments.CONSUMING),"secondary intent without held target does not auto-grab");
+        h.assertTrue(!com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CONSUMING),"secondary intent without held target does not auto-grab");
         ClawCombatSystem.handle(p,Action.GRAB);ClawCombatSystem.handle(p,Action.CONSUME);tick(p,120);
         h.assertTrue(ConsumeSystem.holding(p)&&cow.isAlive()&&p.getHealth()==10,"early click cannot queue an automatic consume");
-        h.assertTrue(cow.getData(ModAttachments.CONSUME_VISUAL).progress(h.getLevel().getGameTime()+10000,0)==0,"holding never dissolves");
+        h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(cow, ModAttachments.CONSUME_VISUAL).progress(h.getLevel().getGameTime()+10000,0)==0,"holding never dissolves");
         ClawCombatSystem.handle(p,Action.CONSUME);tick(p,46);
         h.assertTrue(cow.isRemoved()&&p.getHealth()==12,"fresh secondary click executes held target");h.succeed();
     }
@@ -91,15 +91,15 @@ public final class GrabInteractionGameTest {
         for(var action:new Action[]{Action.THROW,Action.GRAB}) {
             var p=player(h);var cow=h.spawn(EntityType.COW,3,2,5);cow.setNoAi(true);
             ClawCombatSystem.handle(p,Action.GRAB);tick(p,12);ClawCombatSystem.handle(p,action);tick(p,5);
-            h.assertTrue(p.getData(ModAttachments.GRAB_STAGE)==ConsumeVisual.THROW,"throw waits for hand release");
+            h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.GRAB_STAGE)==ConsumeVisual.THROW,"throw waits for hand release");
             tick(p,1);ClawCombatSystem.handle(p,Action.THROW);ClawCombatSystem.handle(p,Action.CONSUME);
-            h.assertTrue(cow.isAlive()&&cow.getData(ModAttachments.CONSUME_VISUAL).stage()==ConsumeVisual.FLIGHT&&!p.getData(ModAttachments.CONSUMING),"throw releases hold and begins free flight");
-            var freeze=new net.neoforged.neoforge.event.tick.EntityTickEvent.Pre(cow);ConsumeSystem.freeze(freeze);
+            h.assertTrue(cow.isAlive()&&com.codex.blacklight.registry.ModAttachments.getData(cow, ModAttachments.CONSUME_VISUAL).stage()==ConsumeVisual.FLIGHT&&!com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CONSUMING),"throw releases hold and begins free flight");
+            var freeze=new com.codex.blacklight.combat.ForgeEntityTickEvent.Pre(cow);ConsumeSystem.freeze(freeze);
             h.assertTrue(!freeze.isCanceled(),"flight is not held by the capture freeze");
             h.assertTrue(cow.getDeltaMovement().z>1&&cow.getDeltaMovement().y>0,"victim launches in look direction");
-            h.assertTrue(p.getHealth()==10&&p.getData(ModAttachments.PLAYER_STATE).getBiomass()==250&&p.getData(ModAttachments.PLAYER_STATE).getEvolutionPoints()==0,"throw and duplicate packets award no consumption resources");
+            h.assertTrue(p.getHealth()==10&&com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).getBiomass()==250&&com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).getEvolutionPoints()==0,"throw and duplicate packets award no consumption resources");
             Vec3 launch=cow.position();
-            for(int i=0;i<3;i++)ConsumeSystem.thrown(new net.neoforged.neoforge.event.tick.EntityTickEvent.Pre(cow));
+            for(int i=0;i<3;i++)ConsumeSystem.thrown(new com.codex.blacklight.combat.ForgeEntityTickEvent.Pre(cow));
             h.assertTrue(cow.position().distanceToSqr(launch)>4,"real flight displacement must work even for pre-existing NoAI victims");
             h.assertTrue(cow.isNoAi(),"flight must not change the original persistent NoAI setting");
             cow.discard();
@@ -123,7 +123,7 @@ public final class GrabInteractionGameTest {
         var p=player(h);var cow=h.spawn(EntityType.COW,3,2,5);cow.setNoAi(true);
         ClawCombatSystem.handle(p,Action.GRAB);tick(p,12);
         for(var action:new Action[]{Action.ATTACK,Action.GROUND_SPIKE_CHARGE_START,Action.CYCLE_FORM,Action.TOGGLE_CLAWS})ClawCombatSystem.handle(p,action);
-        h.assertTrue(ConsumeSystem.holding(p)&&p.getData(ModAttachments.CLAW_COMBAT).action()==ClawCombatState.Action.IDLE,"held actions exclude combat and morph");
+        h.assertTrue(ConsumeSystem.holding(p)&&com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CLAW_COMBAT).action()==ClawCombatState.Action.IDLE,"held actions exclude combat and morph");
         ConsumeSystem.cancel(p);cow.discard();h.succeed();
     }
     @GameTest(template="wall_test",timeoutTicks=30)
@@ -137,7 +137,7 @@ public final class GrabInteractionGameTest {
         for(int i=0;i<8;i++) {
             // Stay inside the bounded test arena while covering a full running turn.
             p.setYRot(i*45);p.setOnGround(true);p.setDeltaMovement(Vec3.directionFromRotation(0,p.getYRot()).scale(.6));
-            com.codex.blacklight.movement.PrototypeMovementSystem.onPlayerTick(new PlayerTickEvent.Post(p));
+            com.codex.blacklight.movement.PrototypeMovementSystem.onPlayerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));
             h.assertTrue(p.isSprinting()&&p.getDeltaMovement().horizontalDistance()>.45,"held state accepts actual sprint input and acceleration");
             traveled+=p.getDeltaMovement().horizontalDistance();p.setPos(p.position().add(p.getDeltaMovement().multiply(1,0,1)));tick(p,1);
             var anchor=GrabPlacement.anchor(p.position(),p.getYRot(),chicken.getBbWidth(),chicken.getBbHeight());
@@ -146,15 +146,15 @@ public final class GrabInteractionGameTest {
         h.assertTrue(traveled>4&&chicken.getHealth()==health,"running neither drops nor body-checks the carried chicken");
         p.setYRot(0);p.setDeltaMovement(0,0,.7);ConsumeSystem.throwTarget(p);
         for(int i=0;i<6;i++){p.setPos(p.position().add(0,0,.7));tick(p,1);}
-        h.assertTrue(!p.getData(ModAttachments.CONSUMING)&&chicken.getData(ModAttachments.CONSUME_VISUAL).stage()==ConsumeVisual.FLIGHT,"throw releases while carrier is moving");
+        h.assertTrue(!com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CONSUMING)&&com.codex.blacklight.registry.ModAttachments.getData(chicken, ModAttachments.CONSUME_VISUAL).stage()==ConsumeVisual.FLIGHT,"throw releases while carrier is moving");
         h.assertTrue(p.getDeltaMovement().z>.65&&chicken.getDeltaMovement().z>1.8,"throw preserves running speed and inherits carrier momentum");
         chicken.discard();h.succeed();
     }
     @GameTest(template="wall_test",timeoutTicks=30)
     public static void leavingPrototypeModeReleasesHeldBody(GameTestHelper h) {
         var p=player(h);var cow=h.spawn(EntityType.COW,3,2,5);
-        ClawCombatSystem.handle(p,Action.GRAB);tick(p,12);p.getData(ModAttachments.PLAYER_STATE).setPrototypeMode(false);tick(p,1);
-        h.assertTrue(!p.getData(ModAttachments.CONSUMING)&&p.getData(ModAttachments.GRAB_STAGE)==0&&!cow.getData(ModAttachments.CONSUME_VISUAL).active()&&!cow.isNoAi(),"mode change frees target without persisting NoAI");
+        ClawCombatSystem.handle(p,Action.GRAB);tick(p,12);com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).setPrototypeMode(false);tick(p,1);
+        h.assertTrue(!com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.CONSUMING)&&com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.GRAB_STAGE)==0&&!com.codex.blacklight.registry.ModAttachments.getData(cow, ModAttachments.CONSUME_VISUAL).active()&&!cow.isNoAi(),"mode change frees target without persisting NoAI");
         h.assertTrue(p.getHealth()==10&&cow.isAlive(),"release is not consume");cow.discard();h.succeed();
     }
 }

@@ -7,11 +7,11 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.*;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.*;
+import com.codex.blacklight.forge.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
 
 /** Quick toggles retain the last selected member of each category. */
@@ -23,9 +23,9 @@ public final class UtilityPowerControls {
     private static int senseHeld;
     private static boolean senseConsumed;
     @SubscribeEvent public static void keys(RegisterKeyMappingsEvent e) { e.register(DEFENSE); e.register(SENSE); }
-    @SubscribeEvent public static void tick(ClientTickEvent.Post e) {
+    @SubscribeEvent public static void tick(net.minecraftforge.event.TickEvent.ClientTickEvent e){if(e.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
         var mc = Minecraft.getInstance();
-        if (mc.player == null || mc.screen != null || !mc.player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()) {
+        if (mc.player == null || mc.screen != null || !com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE).isPrototypeMode()) {
             while (DEFENSE.consumeClick()) { } while (SENSE.consumeClick()) { }
             senseHeld=0;senseConsumed=false;return;
         }
@@ -44,22 +44,22 @@ public final class UtilityPowerControls {
         }
     }
     private static void toggleSense(Minecraft mc,boolean longTransform) {
-        var state=mc.player.getData(ModAttachments.PLAYER_STATE);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE);
         var fallback=lastSense==PowerForm.INFECTED_VISION?PowerForm.THERMAL_VISION:PowerForm.INFECTED_VISION;
         var selected=state.hasUnlocked(lastSense)?lastSense:state.hasUnlocked(fallback)?fallback:lastSense;
         PacketDistributor.sendToServer(new PowerSelectPayload(selected.ordinal(),longTransform));
     }
     private static void toggle(Minecraft mc, PowerForm wanted, PowerForm fallback) {
-        var state = mc.player.getData(ModAttachments.PLAYER_STATE);
+        var state = com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE);
         PowerForm selected = state.hasUnlocked(wanted) ? wanted : state.hasUnlocked(fallback) ? fallback : wanted;
         PacketDistributor.sendToServer(new PowerSelectPayload(selected.ordinal()));
     }
     @SubscribeEvent public static void hud(RenderGuiEvent.Post e) {
         var mc = Minecraft.getInstance();
-        if (mc.player == null || mc.screen != null || mc.options.hideGui || !mc.player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()) return;
+        if (mc.player == null || mc.screen != null || mc.options.hideGui || !com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.PLAYER_STATE).isPrototypeMode()) return;
         var g = e.getGuiGraphics(); int y = PrototypeHealthHud.utilityTop();
         if (UtilityPowerSystem.active(mc.player, PowerForm.SHIELD)) {
-            var s = mc.player.getData(ModAttachments.UTILITY_STATE);
+            var s = com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.UTILITY_STATE);
             int ticks = (int)Math.max(0, s.recoverAt() - mc.level.getGameTime());
             Component line = s.broken() ? Component.translatable("hud.blacklight.shield_rebuild", String.format(java.util.Locale.ROOT,"%.1f",ticks/20F))
                     : Component.translatable("hud.blacklight.shield",Math.round(s.shield()/UtilityState.SHIELD_CAPACITY*100))
@@ -69,7 +69,7 @@ public final class UtilityPowerControls {
             float progress=s.broken()?s.rebuildProgress(mc.level.getGameTime()):s.shield()/UtilityState.SHIELD_CAPACITY;
             g.fill(10,y+12,10+Math.round(100*progress),y+15,s.broken()?0xFFFF795A:0xFFCADBE6);y+=23;
         } else if (UtilityPowerSystem.active(mc.player, PowerForm.ARMOR)) {
-            boolean forming=mc.level.getGameTime()-mc.player.getData(ModAttachments.UTILITY_STATE).changedAt()<81;
+            boolean forming=mc.level.getGameTime()-com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.UTILITY_STATE).changedAt()<81;
             g.drawString(mc.font,Component.translatable(forming?"hud.blacklight.armor_forming":"hud.blacklight.armor"),10,y,0xFFDCE7EF,true);y+=14;
         }
         PowerForm vision = UtilityPowerSystem.active(mc.player, PowerForm.INFECTED_VISION) ? PowerForm.INFECTED_VISION

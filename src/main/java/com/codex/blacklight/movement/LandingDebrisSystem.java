@@ -9,8 +9,8 @@ import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.TickEvent.ServerTickEvent;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -40,7 +40,7 @@ public final class LandingDebrisSystem {
 
     /** Smaller attack fragments share the landing debris budget and lifecycle. */
     public static void fragment(ServerLevel level,Vec3 at,BlockState state,Vec3 velocity,float size,int lifetimeTicks){
-        spawn(level,at.x,at.y,at.z,state,velocity.x,velocity.y,velocity.z,lifetimeTicks,Math.clamp(size,.08F,.55F),true);
+        spawn(level,at.x,at.y,at.z,state,velocity.x,velocity.y,velocity.z,lifetimeTicks,com.codex.blacklight.util.MathCompat.clamp(size,.08F,.55F),true);
     }
 
     private static void spawn(ServerLevel level,double x,double y,double z,BlockState state,double vx,double vy,double vz,int lifetimeTicks,float size,boolean fragment){
@@ -71,7 +71,7 @@ public final class LandingDebrisSystem {
     }
 
     @SubscribeEvent
-    public static void onServerTick(ServerTickEvent.Post event) {
+    public static void onServerTick(ServerTickEvent event) {if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
         if (TRACKED.isEmpty()) return;
         Iterator<Entry> iterator = TRACKED.iterator();
         while (iterator.hasNext()) {

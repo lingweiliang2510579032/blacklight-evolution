@@ -2,7 +2,7 @@
   "parent": "blacklight:research_station",
   "display": {
     "icon": {
-      "id": "blacklight:blacklight_sample"
+      "item": "blacklight:blacklight_sample"
     },
     "title": {
       "translate": "advancement.blacklight.sealed_sample"
@@ -21,7 +21,9 @@
       "conditions": {
         "items": [
           {
-            "items": "blacklight:blacklight_sample"
+            "items": [
+              "blacklight:blacklight_sample"
+            ]
           }
         ]
       }

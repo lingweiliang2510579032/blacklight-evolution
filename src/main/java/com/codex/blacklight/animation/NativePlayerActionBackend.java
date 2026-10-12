@@ -4,10 +4,10 @@ import com.codex.blacklight.combat.LocalWeaponMotion;
 import com.codex.blacklight.combat.WeaponMove;
 import com.codex.blacklight.registry.ModAttachments;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.TickEvent.PlayerTickEvent;
 
 /** Independent server animation authority. It never delegates movement or combat to another mod. */
 public final class NativePlayerActionBackend implements PlayerActionBackend {
@@ -31,29 +31,29 @@ public final class NativePlayerActionBackend implements PlayerActionBackend {
 
     private static void publish(ServerPlayer player, String id, float transition, float offset, boolean loop) {
         float duration = LandingMotionPolicy.leaseDuration(id,MotionLibrary.duration(id));
-        var previous = player.getData(ModAttachments.PLAYER_ACTION);
+        var previous = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_ACTION);
         var state = new NativeActionState(id, player.level().getGameTime(), Math.min(duration, offset),
                 transition, duration, player.getYRot(), loop, -1, previous.revision() + 1);
-        player.setData(ModAttachments.PLAYER_ACTION, state);
-        player.syncData(ModAttachments.PLAYER_ACTION);
+        com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.PLAYER_ACTION, state);
+        com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.PLAYER_ACTION);
     }
 
     @Override public void holdJumpCharge(ServerPlayer player, float progress, boolean fullyCharged) {
-        var old = player.getData(ModAttachments.PLAYER_ACTION);
+        var old = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_ACTION);
         if (!old.clipId().equals(MotionLibrary.resolve(PlayerAction.CHARGED_JUMP))) return;
-        float hold = Math.clamp(old.duration() * Math.clamp(progress, 0, 1), 0, Math.max(0, old.duration() - .001F));
+        float hold = com.codex.blacklight.util.MathCompat.clamp(old.duration() * com.codex.blacklight.util.MathCompat.clamp(progress, 0, 1), 0, Math.max(0, old.duration() - .001F));
         if (old.heldTime() == hold) return;
-        player.setData(ModAttachments.PLAYER_ACTION, new NativeActionState(old.clipId(), old.started(),
+        com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.PLAYER_ACTION, new NativeActionState(old.clipId(), old.started(),
                 old.clipOffset(), old.transition(), old.duration(), old.yaw(), false, hold, old.revision()));
-        player.syncData(ModAttachments.PLAYER_ACTION);
+        com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.PLAYER_ACTION);
     }
 
     @Override public void resume(ServerPlayer player) {
-        var old = player.getData(ModAttachments.PLAYER_ACTION);
+        var old = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_ACTION);
         if (old.heldTime() < 0) return;
-        player.setData(ModAttachments.PLAYER_ACTION, new NativeActionState(old.clipId(), player.level().getGameTime(),
+        com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.PLAYER_ACTION, new NativeActionState(old.clipId(), player.level().getGameTime(),
                 old.heldTime(), 0, old.duration(), old.yaw(), old.looping(), -1, old.revision()));
-        player.syncData(ModAttachments.PLAYER_ACTION);
+        com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.PLAYER_ACTION);
     }
 
     @Override public void synchronizeMode(ServerPlayer player, boolean enabled) {
@@ -64,31 +64,31 @@ public final class NativePlayerActionBackend implements PlayerActionBackend {
     }
 
     public static void clear(ServerPlayer player) {
-        var old = player.getData(ModAttachments.PLAYER_ACTION);
+        var old = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_ACTION);
         if (old.clipId().isEmpty()) return;
-        player.setData(ModAttachments.PLAYER_ACTION,
+        com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.PLAYER_ACTION,
                 new NativeActionState("", 0, 0, 0, 0, 0, false, -1, old.revision() + 1));
-        if (!player.isRemoved()) player.syncData(ModAttachments.PLAYER_ACTION);
+        if (!player.isRemoved()) com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.PLAYER_ACTION);
     }
 
-    @SubscribeEvent public static void tick(PlayerTickEvent.Post event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) return;
-        var state = player.getData(ModAttachments.PLAYER_ACTION);
+    @SubscribeEvent public static void tick(PlayerTickEvent event) {if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
+        if (!(event.player instanceof ServerPlayer player)) return;
+        var state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_ACTION);
         if (state.clipId().isEmpty()) return;
         if(!player.isAlive()||player.isSpectator()){clear(player);return;}
         if(LandingMotionPolicy.isLanding(state.clipId())) {
             var velocity=player.getDeltaMovement();
             boolean grounded=player.onGround()||velocity.y<=.035
                     &&com.codex.blacklight.movement.TerrainTraversal.supportBelow(player,.15);
-            boolean moving=player.getData(ModAttachments.MOVEMENT_STATE).wallInput().moving()
+            boolean moving=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.MOVEMENT_STATE).wallInput().moving()
                     ||velocity.horizontalDistance()>.12;
             if(LandingMotionPolicy.shouldRelease(state.clipId(),state.seconds(player.level().getGameTime()),grounded,moving)) {
                 clear(player);return;
             }
         }
         if (state.clipId().equals(MotionLibrary.resolve(PlayerAction.CLAW_GROUNDSPIKE))
-                && player.getData(ModAttachments.WEAPON_VISUAL).spec() == null) {
-            var combat = player.getData(ModAttachments.CLAW_COMBAT);
+                && com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL).spec() == null) {
+            var combat = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CLAW_COMBAT);
             float hold = switch (combat.action()) {
                 case GROUND_SPIKE_CHARGING -> Math.min(.55F, combat.elapsedTicks() / 20F);
                 case GROUND_SPIKE -> Math.max(0, .55F - Math.max(0,combat.elapsedTicks()
@@ -98,9 +98,9 @@ public final class NativePlayerActionBackend implements PlayerActionBackend {
             if (hold >= 0) {
                 hold = Math.min(hold, state.duration());
                 if (state.heldTime() != hold) {
-                    player.setData(ModAttachments.PLAYER_ACTION, new NativeActionState(state.clipId(), state.started(),
+                    com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.PLAYER_ACTION, new NativeActionState(state.clipId(), state.started(),
                             state.clipOffset(), state.transition(), state.duration(), state.yaw(), false, hold, state.revision()));
-                    player.syncData(ModAttachments.PLAYER_ACTION);
+                    com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.PLAYER_ACTION);
                 }
                 return;
             }
@@ -108,12 +108,12 @@ public final class NativePlayerActionBackend implements PlayerActionBackend {
         }
         // Charge, pursuit and paired consume have their own authoritative phase clock.
         if (!state.active(player.level().getGameTime())
-                && player.getData(ModAttachments.WEAPON_VISUAL).spec() == null
-                && !player.getData(ModAttachments.CONSUMING)) clear(player);
+                && com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL).spec() == null
+                && !com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUMING)) clear(player);
     }
 
     @SubscribeEvent public static void tracking(PlayerEvent.StartTracking event) {
-        if (event.getTarget() instanceof ServerPlayer target) target.syncData(ModAttachments.PLAYER_ACTION);
+        if (event.getTarget() instanceof ServerPlayer target) com.codex.blacklight.registry.ModAttachments.syncData(target, ModAttachments.PLAYER_ACTION);
     }
 
     @SubscribeEvent public static void death(LivingDeathEvent event) {

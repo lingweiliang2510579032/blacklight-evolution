@@ -1,7 +1,7 @@
 package com.codex.blacklight.client.tuning;
 
 import com.codex.blacklight.BlacklightNeoMod;
-import net.neoforged.fml.loading.FMLPaths;
+import net.minecraftforge.fml.loading.FMLPaths;
 import org.joml.Quaternionf;
 import com.codex.blacklight.animation.BoneTransform;
 import com.codex.blacklight.animation.BlacklightPose;

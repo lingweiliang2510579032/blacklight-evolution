@@ -17,11 +17,12 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.*;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.*;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.*;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.*;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.common.MinecraftForge;
 import org.lwjgl.glfw.GLFW;
 
 /** Real input/network/framebuffer QA, confined to the new disposable v4 save and isolated game directory. */
@@ -48,12 +49,14 @@ public final class StandaloneTargetLockSmoke {
     @SubscribeEvent(priority=EventPriority.HIGHEST) public static void mouse(InputEvent.MouseButton.Pre event) {
         if(active()){event.setCanceled(true);Minecraft.getInstance().mouseHandler.releaseMouse();}
     }
-    @SubscribeEvent(priority=EventPriority.HIGHEST) public static void input(ClientTickEvent.Pre event) {
+    @SubscribeEvent(priority=EventPriority.HIGHEST) public static void input(TickEvent.ClientTickEvent event) {
+        if(event.phase!=TickEvent.Phase.START)return;
         if(!active())return;var mc=Minecraft.getInstance();mc.mouseHandler.releaseMouse();
         for(var key:originalKeys.keySet())key.setDown(false);
         if(mc.player!=null){mc.player.setYRot(0);mc.player.yRotO=0;mc.player.setXRot(0);mc.player.xRotO=0;}
     }
-    @SubscribeEvent(priority=EventPriority.LOWEST) public static void tick(ClientTickEvent.Post event) {
+    @SubscribeEvent(priority=EventPriority.LOWEST) public static void tick(TickEvent.ClientTickEvent event) {
+        if(event.phase!=TickEvent.Phase.END)return;
         if(disabled||completed||System.getProperty(PROPERTY,"").isBlank())return;
         var mc=Minecraft.getInstance();var server=mc.getSingleplayerServer();
         if(server==null||mc.level==null||mc.player==null)return;
@@ -89,14 +92,14 @@ public final class StandaloneTargetLockSmoke {
                         var p=server.getPlayerList().getPlayer(uuid);
                         // Deliberately retain the client's last mode snapshot, as during
                         // transit, so a real Tab request reaches server validation.
-                        p.getData(ModAttachments.PLAYER_STATE).setPrototypeMode(false);serverReady=true;
+                        com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).setPrototypeMode(false);serverReady=true;
                     });
                 }}
                 case REJECT_SETUP -> {int before=ClientTargetLock.requestId();tab(mc);require(ClientTargetLock.requestId()>before,"rejection fixture did not issue a Tab request");advance(Stage.REJECT);}
                 case REJECT -> {if(!ClientTargetLock.pending()&&ClientTargetLock.requestedId()==-1){
                     require(ClientTargetLock.acknowledgementTrace().stream().anyMatch(a->a.requestId()==ClientTargetLock.requestId()&&a.applied()&&a.acceptedId()==-1),"server rejection acknowledgement absent");
                     capture="server_rejected_stale_mode";advance(Stage.REACQUIRE);serverReady=false;var uuid=mc.player.getUUID();
-                    server.execute(()->{var p=server.getPlayerList().getPlayer(uuid);p.getData(ModAttachments.PLAYER_STATE).setPrototypeMode(true);p.syncData(ModAttachments.PLAYER_STATE);serverReady=true;});
+                    server.execute(()->{var p=server.getPlayerList().getPlayer(uuid);com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).setPrototypeMode(true);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.PLAYER_STATE);serverReady=true;});
                 }}
                 case REACQUIRE -> {
                     if(stageTicks==2)tab(mc);
@@ -115,7 +118,7 @@ public final class StandaloneTargetLockSmoke {
                 case RESPAWN_CLEAR -> {
                     if(mc.player!=respawnOwner){
                         ClientTargetLock.sync();
-                        if(!ClientTargetLock.pending()&&ClientTargetLock.requestedId()==-1&&mc.player.getData(ModAttachments.TARGET_LOCK_ID)==-1){
+                        if(!ClientTargetLock.pending()&&ClientTargetLock.requestedId()==-1&&com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.TARGET_LOCK_ID)==-1){
                             require(ClientTargetLock.target()==null,"respawn restored old explicit target");capture="respawn_cleared_lock";stage=Stage.DONE;
                         }
                     }
@@ -144,10 +147,10 @@ public final class StandaloneTargetLockSmoke {
                 for(var old:level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class,new net.minecraft.world.phys.AABB(-20,240,-20,20,264,40)))
                     if(!(old instanceof net.minecraft.world.entity.player.Player))old.discard();
                 var state=new BlacklightState();state.infect();state.setPrototypeMode(true);state.unlock(PowerForm.NONE);state.activate(PowerForm.NONE);state.addBiomass(1000);
-                p.setData(ModAttachments.PLAYER_STATE,state);p.syncData(ModAttachments.PLAYER_STATE);
-                p.setData(ModAttachments.UTILITY_POWERS,0);p.syncData(ModAttachments.UTILITY_POWERS);
-                p.setData(ModAttachments.POWER_MORPH,PowerMorph.NONE);p.syncData(ModAttachments.POWER_MORPH);
-                p.setData(ModAttachments.WEAPON_VISUAL,com.codex.blacklight.combat.WeaponVisual.EMPTY);p.syncData(ModAttachments.WEAPON_VISUAL);
+                com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.PLAYER_STATE,state);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.PLAYER_STATE);
+                com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.UTILITY_POWERS,0);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.UTILITY_POWERS);
+                com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.POWER_MORPH,PowerMorph.NONE);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.POWER_MORPH);
+                com.codex.blacklight.registry.ModAttachments.setData(p, ModAttachments.WEAPON_VISUAL,com.codex.blacklight.combat.WeaponVisual.EMPTY);com.codex.blacklight.registry.ModAttachments.syncData(p, ModAttachments.WEAPON_VISUAL);
                 NativePlayerActionBackend.clear(p);com.codex.blacklight.combat.CombatTargeting.requestLock(p,-1);
                 p.setGameMode(GameType.CREATIVE);p.getAbilities().flying=false;p.onUpdateAbilities();p.getInventory().clearContent();
                 p.setRespawnPosition(Level.OVERWORLD,new BlockPos(0,251,0),0,true,false);
@@ -167,14 +170,14 @@ public final class StandaloneTargetLockSmoke {
     private static void advance(Stage next){stage=next;stageTicks=0;}
     private static void tab(Minecraft mc) {
         var key=ClientClawEvents.targetLockKey();int code=key.getKey().getValue();
-        key.setDown(true);NeoForge.EVENT_BUS.post(new InputEvent.Key(code,0,GLFW.GLFW_PRESS,0));
-        key.setDown(false);NeoForge.EVENT_BUS.post(new InputEvent.Key(code,0,GLFW.GLFW_RELEASE,0));
+        key.setDown(true);MinecraftForge.EVENT_BUS.post(new InputEvent.Key(code,0,GLFW.GLFW_PRESS,0));
+        key.setDown(false);MinecraftForge.EVENT_BUS.post(new InputEvent.Key(code,0,GLFW.GLFW_RELEASE,0));
     }
     private static void f5(Minecraft mc){KeyMapping.click(mc.options.keyTogglePerspective.getKey());}
     private static boolean locked(Minecraft mc){return !ClientTargetLock.pending()&&ClientTargetLock.requestedId()==fixtureTarget
-            &&ClientTargetLock.target()!=null&&mc.player.getData(ModAttachments.TARGET_LOCK_ID)==fixtureTarget;}
+            &&ClientTargetLock.target()!=null&&com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.TARGET_LOCK_ID)==fixtureTarget;}
     private static boolean cleared(Minecraft mc){return !ClientTargetLock.pending()&&ClientTargetLock.requestedId()==-1&&ClientTargetLock.target()==null
-            &&mc.player.getData(ModAttachments.TARGET_LOCK_ID)==-1;}
+            &&com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.TARGET_LOCK_ID)==-1;}
     private static void require(boolean condition,String message){if(!condition){violations.add(message);BlacklightNeoMod.LOGGER.error("Target lock QA: {}",message);}}
     private static void checkPerspective(Minecraft mc,CameraType expected) {
         require(mc.options.getCameraType()==expected,"native F5 expected "+expected+" but remained "+mc.options.getCameraType());
@@ -184,7 +187,7 @@ public final class StandaloneTargetLockSmoke {
     private static void record(Minecraft mc) {
         var row=new JsonObject();row.addProperty("stage",stage.name());row.addProperty("stageTick",stageTicks);row.addProperty("gameTick",mc.level.getGameTime());
         row.addProperty("requestId",ClientTargetLock.requestId());row.addProperty("desiredId",ClientTargetLock.requestedId());row.addProperty("acknowledgedId",ClientTargetLock.acknowledgedId());
-        row.addProperty("pending",ClientTargetLock.pending());row.addProperty("attachmentId",mc.player.getData(ModAttachments.TARGET_LOCK_ID));row.addProperty("serverId",serverLock);
+        row.addProperty("pending",ClientTargetLock.pending());row.addProperty("attachmentId",com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.TARGET_LOCK_ID));row.addProperty("serverId",serverLock);
         row.addProperty("cameraType",mc.options.getCameraType().name());row.addProperty("playerYaw",mc.player.getYRot());row.addProperty("bodyYaw",mc.player.yBodyRot);
         Float facing=PrototypeAnimationController.movementFacing(mc.player,1);if(facing!=null)row.addProperty("movementFacing",facing);
         row.addProperty("localPlayerIdentity",System.identityHashCode(mc.player));clientTicks.add(row);
@@ -207,11 +210,12 @@ public final class StandaloneTargetLockSmoke {
         var server=mc.getSingleplayerServer();var uuid=mc.player.getUUID();String label=stage.name();
         server.execute(()->{
             var p=server.getPlayerList().getPlayer(uuid);if(p==null)return;
-            serverLock=p.getData(ModAttachments.TARGET_LOCK_ID);var s=new JsonObject();s.addProperty("stage",label);s.addProperty("tick",server.overworld().getGameTime());
-            s.addProperty("id",serverLock);s.addProperty("alive",p.isAlive());s.addProperty("prototypeMode",p.getData(ModAttachments.PLAYER_STATE).isPrototypeMode());serverRow(s);
+            serverLock=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.TARGET_LOCK_ID);var s=new JsonObject();s.addProperty("stage",label);s.addProperty("tick",server.overworld().getGameTime());
+            s.addProperty("id",serverLock);s.addProperty("alive",p.isAlive());s.addProperty("prototypeMode",com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE).isPrototypeMode());serverRow(s);
         });
     }
-    @SubscribeEvent public static void frame(RenderFrameEvent.Post event) {
+    @SubscribeEvent public static void frame(TickEvent.RenderTickEvent event) {
+        if(event.phase!=TickEvent.Phase.END)return;
         if(!active())return;var mc=Minecraft.getInstance();if(mc.player==null||mc.level==null)return;
         try {
             if(capture!=null) {
@@ -246,7 +250,7 @@ public final class StandaloneTargetLockSmoke {
         if(output==null)return;
         try {
             var report=new JsonObject();report.addProperty("complete",complete);report.addProperty("passed",complete&&violations.isEmpty());
-            report.addProperty("source","NeoForge InputEvent.Key through real Tab handler, native F5 KeyMapping queue, real packet ACK/server attachment and framebuffer");
+            report.addProperty("source","Forge InputEvent.Key through real Tab handler, native F5 KeyMapping queue, real packet ACK/server attachment and framebuffer");
             report.addProperty("targetId",fixtureTarget);report.addProperty("rapidAcquireRequest",rapidAcquireRequest);report.addProperty("rapidClearRequest",rapidClearRequest);
             report.add("clientTicks",clientTicks);report.add("serverTicks",serverTicks);report.add("views",views);report.add("violations",violations);
             var ack=new JsonArray();for(var a:ClientTargetLock.acknowledgementTrace()){var item=new JsonObject();item.addProperty("requestId",a.requestId());item.addProperty("acceptedId",a.acceptedId());item.addProperty("applied",a.applied());item.addProperty("gameTick",a.gameTick());ack.add(item);}report.add("acknowledgements",ack);

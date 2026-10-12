@@ -3,9 +3,9 @@ package com.codex.blacklight.disguise;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.FriendlyByteBuf;
+import com.codex.blacklight.forge.codec.ByteBufCodecs;
+import com.codex.blacklight.forge.codec.StreamCodec;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Mob;
@@ -24,7 +24,7 @@ public record DisguiseIdentity(String type, String family, CompoundTag appearanc
             Codec.STRING.fieldOf("family").forGetter(DisguiseIdentity::family),
             CompoundTag.CODEC.fieldOf("appearance").forGetter(DisguiseIdentity::appearance)
     ).apply(i,DisguiseIdentity::new));
-    public static final StreamCodec<RegistryFriendlyByteBuf,DisguiseIdentity> STREAM_CODEC=StreamCodec.composite(
+    public static final StreamCodec<FriendlyByteBuf,DisguiseIdentity> STREAM_CODEC=StreamCodec.composite(
             ByteBufCodecs.STRING_UTF8,DisguiseIdentity::type,ByteBufCodecs.STRING_UTF8,DisguiseIdentity::family,
             ByteBufCodecs.COMPOUND_TAG,DisguiseIdentity::appearance,DisguiseIdentity::new);
     private static final String[] APPEARANCE_KEYS={"Age","IsBaby","Baby","Variant","variant","Color","Sheared",

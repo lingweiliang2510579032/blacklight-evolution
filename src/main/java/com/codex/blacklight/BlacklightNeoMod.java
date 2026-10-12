@@ -14,10 +14,10 @@ import com.codex.blacklight.registry.ModEffects;
 import com.codex.blacklight.registry.ModItems;
 import com.codex.blacklight.registry.ModParticles;
 import com.mojang.logging.LogUtils;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.common.MinecraftForge;
 import org.slf4j.Logger;
 
 @Mod(BlacklightNeoMod.MOD_ID)
@@ -25,7 +25,8 @@ public final class BlacklightNeoMod {
     public static final String MOD_ID = "blacklight";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public BlacklightNeoMod(IEventBus modBus, ModContainer container) {
+    public BlacklightNeoMod() {
+        IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModAttachments.register(modBus);
         ModEntities.register(modBus);
         ModEffects.register(modBus);
@@ -33,31 +34,31 @@ public final class BlacklightNeoMod {
         com.codex.blacklight.registry.ModBlocks.register(modBus);
         com.codex.blacklight.registry.ModWorldgen.register(modBus);
         ModParticles.register(modBus);
-        modBus.addListener(ModNetwork::register);
-        modBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event)->event.enqueueWork(()->{
+        ModNetwork.register();
+        modBus.addListener((net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent event)->event.enqueueWork(()->{
             com.codex.blacklight.animation.MotionLibrary.requireInstalled();
-            var health=(net.minecraft.world.entity.ai.attributes.RangedAttribute)net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH.value();
+            var health=(net.minecraft.world.entity.ai.attributes.RangedAttribute)net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH;
             ((com.codex.blacklight.mixin.HealthAttributeLimitAccessor)health).blacklight$setMaximum(Math.max(health.getMaxValue(),1000000));
         }));
-        NeoForge.EVENT_BUS.register(BlacklightCommands.class);
-        NeoForge.EVENT_BUS.register(ClawCombatSystem.class);
-        NeoForge.EVENT_BUS.register(com.codex.blacklight.power.GrowthSystem.class);
-        NeoForge.EVENT_BUS.register(com.codex.blacklight.power.UtilityPowerSystem.class);
-        NeoForge.EVENT_BUS.register(com.codex.blacklight.combat.WeaponCombatSystem.class);
-        NeoForge.EVENT_BUS.register(PrototypeMovementSystem.class);
-        NeoForge.EVENT_BUS.register(LandingDebrisSystem.class);
-        NeoForge.EVENT_BUS.register(PrototypeSurvivalLock.class);
-        NeoForge.EVENT_BUS.register(PrototypeModeSystem.class);
+        MinecraftForge.EVENT_BUS.register(BlacklightCommands.class);
+        MinecraftForge.EVENT_BUS.register(ClawCombatSystem.class);
+        MinecraftForge.EVENT_BUS.register(com.codex.blacklight.power.GrowthSystem.class);
+        MinecraftForge.EVENT_BUS.register(com.codex.blacklight.power.UtilityPowerSystem.class);
+        MinecraftForge.EVENT_BUS.register(com.codex.blacklight.combat.WeaponCombatSystem.class);
+        MinecraftForge.EVENT_BUS.register(PrototypeMovementSystem.class);
+        MinecraftForge.EVENT_BUS.register(LandingDebrisSystem.class);
+        MinecraftForge.EVENT_BUS.register(PrototypeSurvivalLock.class);
+        MinecraftForge.EVENT_BUS.register(PrototypeModeSystem.class);
         com.codex.blacklight.animation.PlayerActions.install(new com.codex.blacklight.animation.NativePlayerActionBackend());
-        NeoForge.EVENT_BUS.register(com.codex.blacklight.animation.NativePlayerActionBackend.class);
-        NeoForge.EVENT_BUS.register(BlacklightInfectionSystem.class);
-        NeoForge.EVENT_BUS.register(com.codex.blacklight.world.ResearchStationTrades.class);
-        NeoForge.EVENT_BUS.register(com.codex.blacklight.world.SurvivalGuide.class);
-        NeoForge.EVENT_BUS.register(com.codex.blacklight.combat.ConsumeSystem.class);
-        NeoForge.EVENT_BUS.register(ModNetwork.class);
-        NeoForge.EVENT_BUS.register(com.codex.blacklight.disguise.DisguiseSystem.class);
-        if (net.neoforged.fml.ModList.get().isLoaded("parcool")) {
-            NeoForge.EVENT_BUS.register(com.codex.blacklight.integration.parcool.ParCoolCompatibility.class);
+        MinecraftForge.EVENT_BUS.register(com.codex.blacklight.animation.NativePlayerActionBackend.class);
+        MinecraftForge.EVENT_BUS.register(BlacklightInfectionSystem.class);
+        MinecraftForge.EVENT_BUS.register(com.codex.blacklight.world.ResearchStationTrades.class);
+        MinecraftForge.EVENT_BUS.register(com.codex.blacklight.world.SurvivalGuide.class);
+        MinecraftForge.EVENT_BUS.register(com.codex.blacklight.combat.ConsumeSystem.class);
+        MinecraftForge.EVENT_BUS.register(ModNetwork.class);
+        MinecraftForge.EVENT_BUS.register(com.codex.blacklight.disguise.DisguiseSystem.class);
+        if (net.minecraftforge.fml.ModList.get().isLoaded("parcool")) {
+            MinecraftForge.EVENT_BUS.register(com.codex.blacklight.integration.parcool.ParCoolCompatibility.class);
         }
         LOGGER.info("Blacklight: Ascension initialized with independent player actions, skeletal rendering and GeckoLib entity animations");
     }

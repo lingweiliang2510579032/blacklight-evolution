@@ -12,8 +12,8 @@ import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.damagesource.DamageSource;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.*;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.*;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 /** A persistent encounter core. Three finite reinforcement waves survive reloads. */
@@ -73,9 +73,9 @@ public final class BlacklightHive extends Monster implements GeoEntity {
         }
         return false;
     }
-    @Override protected void dropCustomDeathLoot(net.minecraft.server.level.ServerLevel level,DamageSource source,boolean recentlyHit){
-        super.dropCustomDeathLoot(level,source,recentlyHit);
-        // Vanilla calls this inside doMobLoot and NeoForge's captured LivingDrops flow.
+    @Override protected void dropCustomDeathLoot(DamageSource source,int looting,boolean recentlyHit){
+        super.dropCustomDeathLoot(source,looting,recentlyHit);
+        // Vanilla calls this inside doMobLoot and Forge's captured LivingDrops flow.
         if(!rewarded){
             spawnAtLocation(ModItems.BLACKLIGHT_SAMPLE.get(),2);
             spawnAtLocation(net.minecraft.world.item.Items.EMERALD,3);
@@ -87,8 +87,8 @@ public final class BlacklightHive extends Monster implements GeoEntity {
         if(!level().isClientSide&&dead&&!rewarded){
             rewarded=true;
             if(source.getEntity() instanceof ServerPlayer player){
-                var state=player.getData(ModAttachments.PLAYER_STATE);
-                if(state.isInfected()){state.addEvolutionPoints(180);state.addBiomass(250);player.setData(ModAttachments.PLAYER_STATE,state);player.syncData(ModAttachments.PLAYER_STATE);}
+                var state=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
+                if(state.isInfected()){state.addEvolutionPoints(180);state.addBiomass(250);com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.PLAYER_STATE,state);com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.PLAYER_STATE);}
                 com.codex.blacklight.power.GrowthSystem.award(player,"hive_breaker");
                 player.displayClientMessage(Component.translatable("message.blacklight.hive_cleared"),false);
             }
@@ -97,7 +97,7 @@ public final class BlacklightHive extends Monster implements GeoEntity {
     }
     @Override public void remove(RemovalReason reason){boss.removeAllPlayers();super.remove(reason);}
     @Override public void addAdditionalSaveData(CompoundTag tag){super.addAdditionalSaveData(tag);tag.putBoolean("BlacklightRewarded",rewarded);tag.putInt("BlacklightWaves",waves);tag.putInt("BlacklightHunterWaves",hunterWaves);tag.putInt("BlacklightWaveCooldown",cooldown);}
-    @Override public void readAdditionalSaveData(CompoundTag tag){super.readAdditionalSaveData(tag);rewarded=tag.getBoolean("BlacklightRewarded");waves=Math.clamp(tag.getInt("BlacklightWaves"),0,3);hunterWaves=Math.clamp(tag.getInt("BlacklightHunterWaves"),0,3);cooldown=Math.clamp(tag.getInt("BlacklightWaveCooldown"),0,240);}
+    @Override public void readAdditionalSaveData(CompoundTag tag){super.readAdditionalSaveData(tag);rewarded=tag.getBoolean("BlacklightRewarded");waves=com.codex.blacklight.util.MathCompat.clamp(tag.getInt("BlacklightWaves"),0,3);hunterWaves=com.codex.blacklight.util.MathCompat.clamp(tag.getInt("BlacklightHunterWaves"),0,3);cooldown=com.codex.blacklight.util.MathCompat.clamp(tag.getInt("BlacklightWaveCooldown"),0,240);}
     public int waves(){return waves;}
     @Override public void registerControllers(AnimatableManager.ControllerRegistrar c){c.add(new AnimationController<>(this,"core",0,s->s.setAndContinue(RawAnimation.begin().thenLoop("idle"))));}
     @Override public AnimatableInstanceCache getAnimatableInstanceCache(){return cache;}

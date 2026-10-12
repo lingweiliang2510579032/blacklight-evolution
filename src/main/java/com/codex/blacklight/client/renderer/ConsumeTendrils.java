@@ -25,12 +25,12 @@ public final class ConsumeTendrils {
                 double angle=i*2.399963+seed*.19+strand*Math.PI;
                 Vec3 radial=u.scale(Math.cos(angle)).add(v.scale(Math.sin(angle)));
                 Vec3 start=chest.add(radial.scale(.08*fade));
-                double radius=Math.clamp(part.radius,.035,.55),coil=radius*(1-.28*pull);
+                double radius=net.minecraft.util.Mth.clamp(part.radius,.035,.55),coil=radius*(1-.28*pull);
                 Vec3 latch=part.center.add(radial.scale(coil)).subtract(axis.scale(radius*.18));
                 Vec3 c1=start.add(axis.scale(length*.27)).add(radial.scale((.13+length*.10)*(1-pull*.72)));
                 Vec3 c2=latch.subtract(axis.scale(length*.23)).add(radial.scale(.12*(1-pull)));
                 Vec3[] points=new Vec3[29];double[] widths=new double[points.length];
-                double base=(strand==0?.073:.043)*Math.clamp(.8+radius,.9,1.3)*fade;
+                double base=(strand==0?.073:.043)*net.minecraft.util.Mth.clamp(.8+radius,.9,1.3)*fade;
                 for(int j=0;j<points.length;j++){
                     double fraction=j/(double)(points.length-1),t=fraction*reach;
                     Vec3 p;
@@ -51,7 +51,7 @@ public final class ConsumeTendrils {
         }
     }
     private static Vec3 bezier(Vec3 a,Vec3 b,Vec3 c,Vec3 d,double t){double s=1-t;return a.scale(s*s*s).add(b.scale(3*s*s*t)).add(c.scale(3*s*t*t)).add(d.scale(t*t*t));}
-    private static double smooth(double t){t=Math.clamp(t,0,1);return t*t*(3-2*t);}
+    private static double smooth(double t){t=net.minecraft.util.Mth.clamp(t,0,1);return t*t*(3-2*t);}
     /** Transport one frame along the curve: adjacent rings share vertices and never
      * leave the gaps produced by independently oriented constant-width cylinders. */
     private static void sweep(PoseStack stack,VertexConsumer out,int light,Vec3[] points,double[] widths,Vec3 initial){
@@ -74,6 +74,6 @@ public final class ConsumeTendrils {
         }
     }
     private static void vertex(PoseStack stack,VertexConsumer out,int light,Vec3 p,Vec3 n,int color){
-        out.addVertex(stack.last(),(float)p.x,(float)p.y,(float)p.z).setColor(color).setUv(.5F,.5F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(stack.last(),(float)n.x,(float)n.y,(float)n.z);
+        out.vertex((stack.last()).pose(),(float)p.x,(float)p.y,(float)p.z).color(color).uv(.5F,.5F).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(light).normal((stack.last()).normal(),(float)n.x,(float)n.y,(float)n.z).endVertex();
     }
 }

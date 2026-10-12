@@ -6,8 +6,8 @@ import com.codex.blacklight.registry.ModAttachments;
 import net.minecraft.gametest.framework.*;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.gametest.*;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.gametest.*;
 
 @GameTestHolder("blacklight") @PrefixGameTestTemplate(false)
 public final class AerialSpecialGameTest {
@@ -21,18 +21,18 @@ public final class AerialSpecialGameTest {
         h.assertTrue(CombatTargeting.visible(p,mob),"moving pounce fixture requires an unobstructed flight path");
         WeaponCombatSystem.acceptInput(p,false,true);
         for(int t=0;t<12;t++){
-            WeaponCombatSystem.acceptInput(p,false,true);p.tickCount++;WeaponCombatSystem.tick(new PlayerTickEvent.Post(p));
-            h.assertTrue(p.getData(ModAttachments.WEAPON_VISUAL).charging()&&mob.getHealth()==hp,"pounce must gather without damaging while held");
+            WeaponCombatSystem.acceptInput(p,false,true);p.tickCount++;WeaponCombatSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));
+            h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.WEAPON_VISUAL).charging()&&mob.getHealth()==hp,"pounce must gather without damaging while held");
         }
-        WeaponCombatSystem.acceptInput(p,false,false);p.tickCount++;WeaponCombatSystem.tick(new PlayerTickEvent.Post(p));
-        h.assertTrue(p.getData(ModAttachments.WEAPON_VISUAL).spec()==WeaponMove.CLAW_POUNCE&&!p.getData(ModAttachments.WEAPON_VISUAL).charging(),"release is a claw attack, not a kick or ground slam");
+        WeaponCombatSystem.acceptInput(p,false,false);p.tickCount++;WeaponCombatSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));
+        h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.WEAPON_VISUAL).spec()==WeaponMove.CLAW_POUNCE&&!com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.WEAPON_VISUAL).charging(),"release is a claw attack, not a kick or ground slam");
         double contactDistance=100;
         var trace=new StringBuilder();
         for(int t=0;t<60&&WeaponCombatSystem.busy(p);t++){
             if(mob.getHealth()==hp)mob.move(MoverType.SELF,new Vec3(.07,0,.045));
             p.move(MoverType.SELF,p.getDeltaMovement());p.setOnGround(false);
-            p.tickCount++;WeaponCombatSystem.tick(new PlayerTickEvent.Post(p));
-            if(t<25)trace.append(t).append(":").append(p.position().subtract(origin)).append(" v=").append(p.getDeltaMovement()).append(" target=").append(mob.position().subtract(origin)).append(" clip=").append(p.getData(ModAttachments.WEAPON_VISUAL)).append(";");
+            p.tickCount++;WeaponCombatSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));
+            if(t<25)trace.append(t).append(":").append(p.position().subtract(origin)).append(" v=").append(p.getDeltaMovement()).append(" target=").append(mob.position().subtract(origin)).append(" clip=").append(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.WEAPON_VISUAL)).append(";");
             if(mob.getHealth()<hp&&contactDistance==100)contactDistance=p.distanceTo(mob);
         }
         h.assertTrue(mob.getHealth()<hp&&contactDistance<2.8,"pounce must travel before damaging a strafing/retreating body: distance="+contactDistance+" "+trace);
@@ -46,11 +46,11 @@ public final class AerialSpecialGameTest {
             p.setPos(h.absoluteVec(new Vec3(5,80,1)));var origin=p.position();
             var mob=h.spawn(EntityType.IRON_GOLEM,3,25,6);mob.setNoAi(true);mob.setNoGravity(true);mob.setPos(origin.add(0,0,8));float hp=mob.getHealth();
             WeaponCombatSystem.request(p,WeaponMove.Input.SPECIAL);
-            h.assertTrue(p.getData(ModAttachments.WEAPON_VISUAL).targetId()==mob.getId(),"negative case starts with a real selected body");
+            h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.WEAPON_VISUAL).targetId()==mob.getId(),"negative case starts with a real selected body");
             if(wall){for(int x=1;x<=9;x++)for(int y=79;y<=85;y++)h.setBlock(x,y,5,net.minecraft.world.level.block.Blocks.STONE);}
             else mob.setPos(origin.add(0,0,32));
             for(int t=0;t<65&&WeaponCombatSystem.busy(p);t++){
-                p.move(MoverType.SELF,p.getDeltaMovement());p.setOnGround(false);p.tickCount++;WeaponCombatSystem.tick(new PlayerTickEvent.Post(p));
+                p.move(MoverType.SELF,p.getDeltaMovement());p.setOnGround(false);p.tickCount++;WeaponCombatSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));
             }
             h.assertTrue(mob.getHealth()==hp,"wall/escape must not grant a remote pounce hit");
             h.assertTrue(!WeaponCombatSystem.busy(p),"missed pounce must finish rather than chase forever");
@@ -67,12 +67,12 @@ public final class AerialSpecialGameTest {
         int full=charge.windupTicks()+(int)Math.ceil(d.orElseThrow().transitionSeconds()*20-.0001)+charge.holdTicks();
         WeaponCombatSystem.acceptInput(p,false,true);
         for(int t=1;t<full;t++){
-            p.tickCount++;WeaponCombatSystem.acceptInput(p,false,true);WeaponCombatSystem.tick(new PlayerTickEvent.Post(p));
-            h.assertTrue(p.getData(ModAttachments.WEAPON_VISUAL).charging()&&mob.getHealth()==hp,"held flying kick cannot contact before release");
+            p.tickCount++;WeaponCombatSystem.acceptInput(p,false,true);WeaponCombatSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));
+            h.assertTrue(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.WEAPON_VISUAL).charging()&&mob.getHealth()==hp,"held flying kick cannot contact before release");
         }
-        p.tickCount++;WeaponCombatSystem.acceptInput(p,false,true);WeaponCombatSystem.tick(new PlayerTickEvent.Post(p));
-        h.assertTrue(!p.getData(ModAttachments.WEAPON_VISUAL).charging()&&p.getData(ModAttachments.WEAPON_VISUAL).spec()==WeaponMove.AIR_KICK,"full charge releases original flying kick");
-        for(int t=0;t<WeaponMove.AIR_KICK.duration;t++){p.tickCount++;WeaponCombatSystem.tick(new PlayerTickEvent.Post(p));}
+        p.tickCount++;WeaponCombatSystem.acceptInput(p,false,true);WeaponCombatSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));
+        h.assertTrue(!com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.WEAPON_VISUAL).charging()&&com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.WEAPON_VISUAL).spec()==WeaponMove.AIR_KICK,"full charge releases original flying kick");
+        for(int t=0;t<WeaponMove.AIR_KICK.duration;t++){p.tickCount++;WeaponCombatSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));}
         h.assertTrue(hp-mob.getHealth()>WeaponMove.AIR_KICK.damageFor(PowerForm.NONE),"holding must strengthen the same kick release, not merely delay it");
         WeaponCombatSystem.cancelHeldInput(p);WeaponCombatSystem.cancel(p);mob.discard();h.succeed();
     }

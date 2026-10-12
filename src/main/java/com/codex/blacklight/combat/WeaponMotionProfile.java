@@ -27,14 +27,14 @@ public record WeaponMotionProfile(String source, float contactIn, float contactO
     /** Account for the one-tick blend-in, then align source contact and recovery to server time. */
     public static float sourceTime(WeaponMove move,float target,float sourceLength,float in,float out) {
         float begin=(move.start-1)/20F, end=(move.end-2)/20F, finish=(move.duration-1)/20F;
-        target=Math.clamp(target,0,finish);
+        target=com.codex.blacklight.util.MathCompat.clamp(target,0,finish);
         if(target<=begin)return in*target/begin;
         if(target<=end)return in+(out-in)*(target-begin)/(end-begin);
         return out+(sourceLength-out)*(target-end)/(finish-end);
     }
     public float distanceAt(WeaponMove move,float time) {
         float begin=Math.max(0,(move.start-4)/20F),end=(move.end-1)/20F;
-        float t=Math.clamp((time-begin)/(end-begin),0,1);
+        float t=com.codex.blacklight.util.MathCompat.clamp((time-begin)/(end-begin),0,1);
         return step*t*t*(3-2*t);
     }
 }

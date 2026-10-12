@@ -6,7 +6,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.*;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.codex.blacklight.forge.PacketDistributor;
 import org.joml.Vector3f;
 
 /** Contact-only cutting feedback. Trail movement is sampled separately from the posed blade. */
@@ -21,7 +21,7 @@ public final class BladeEffects {
         if(surface.getType()!=net.minecraft.world.phys.HitResult.Type.BLOCK||surface.getDirection()!=net.minecraft.core.Direction.UP)return;
         var at=surface.getLocation();var block=player.level().getBlockState(surface.getBlockPos());
         player.serverLevel().sendParticles(new BlockParticleOption(ParticleTypes.BLOCK,block),at.x,at.y+.06,at.z,16,.4,.08,.4,.16);
-        player.serverLevel().sendParticles(ParticleTypes.DUST_PLUME,at.x,at.y+.08,at.z,4,.4,.06,.4,.035);
+        player.serverLevel().sendParticles(ParticleTypes.POOF,at.x,at.y+.08,at.z,4,.4,.06,.4,.035);
         var forward=Vec3.directionFromRotation(0,player.getYRot());
         for(int i=-2;i<=2;i++){
             var point=at.add(forward.scale(i*.25));
@@ -44,7 +44,7 @@ public final class BladeEffects {
         var right=new Vec3(-forward.z,0,forward.x);
         boolean reverse=move==WeaponMove.BLADE_RETURN||move==WeaponMove.BLADE_COMBO_C2;
         var cut=move==WeaponMove.BLADE_DIVE?new Vec3(0,-1,0):right.scale(reverse?-1:1).add(0,reverse?.28:-.35,0).normalize();
-        float size=(float)Math.clamp(target.getBbHeight()*.45,heavy?.7:.45,heavy?1.35:.95);
+        float size=(float)com.codex.blacklight.util.MathCompat.clamp(target.getBbHeight()*.45,heavy?.7:.45,heavy?1.35:.95);
         PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,new CombatImpactPayload(contact.x,contact.y,contact.z,size,false,true,(float)cut.x,(float)cut.y,(float)cut.z));
         boolean metal=target instanceof net.minecraft.world.entity.animal.IronGolem;
         int count=heavy?18:11;

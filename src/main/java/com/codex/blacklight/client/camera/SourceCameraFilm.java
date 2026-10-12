@@ -40,7 +40,7 @@ final class SourceCameraFilm {
     private String cancelledKey="";
     void reset(){held=null;started=Long.MIN_VALUE;key="";release=0;running=false;cancelledStarted=Long.MIN_VALUE;cancelledKey="";}
     void cancelForInput(LocalPlayer player) {
-        var morph=player.getData(ModAttachments.POWER_MORPH);
+        var morph=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.POWER_MORPH);
         cancelledStarted=morph.started();cancelledKey=morph.key();
         held=null;running=false;
     }
@@ -79,7 +79,7 @@ final class SourceCameraFilm {
     }
     private static double number(JsonObject r,String key){double v=r.get(key).getAsDouble();if(!Double.isFinite(v)||Math.abs(v)>10000)throw new IllegalArgumentException("Camera schedule scalar");return v;}
     Frame update(LocalPlayer p,float partial,double dt) {
-        load();var morph=p.getData(ModAttachments.POWER_MORPH);var route=routes.get(morph.key());
+        load();var morph=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.POWER_MORPH);var route=routes.get(morph.key());
         if(morph.started()==cancelledStarted&&morph.key().equals(cancelledKey))return null;
         boolean active=route!=null&&morph.visible(p,partial)&&morph.seconds(p,partial)<route.duration;
         if(active) {

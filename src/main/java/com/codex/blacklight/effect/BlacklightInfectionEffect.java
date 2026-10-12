@@ -10,15 +10,14 @@ public final class BlacklightInfectionEffect extends MobEffect {
     }
 
     @Override
-    public boolean shouldApplyEffectTickThisTick(int duration, int amplifier) {
+    public boolean isDurationEffectTick(int duration, int amplifier) {
         return duration % 80 == 0;
     }
 
     @Override
-    public boolean applyEffectTick(LivingEntity entity, int amplifier) {
+    public void applyEffectTick(LivingEntity entity, int amplifier) {
         if (entity.getHealth() < entity.getMaxHealth()) {
             entity.heal(0.75F + amplifier * 0.25F);
         }
-        return true;
     }
 }

@@ -16,7 +16,7 @@ public final class UpgradeSystem {
     public static void purchase(ServerPlayer player, String upgradeId) {
         var growth=GrowthUpgrade.byId(upgradeId);
         if(growth!=null){GrowthSystem.purchase(player,growth);return;}
-        BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
+        BlacklightState state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         var form = PowerForm.byId(upgradeId);
         if (PowerFormSystem.supported(form) && form != PowerForm.NONE) {
             if (!state.buy(form)) { deny(player, upgradeId, form.epCost()); return; }
@@ -45,8 +45,8 @@ public final class UpgradeSystem {
     }
 
     private static void confirm(ServerPlayer player, BlacklightState state, String upgradeId) {
-        player.setData(ModAttachments.PLAYER_STATE, state);
-        player.syncData(ModAttachments.PLAYER_STATE);
+        com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.PLAYER_STATE, state);
+        com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.PLAYER_STATE);
         player.displayClientMessage(Component.translatable(
                 "message.blacklight.upgrade_purchased",
                 Component.translatable("upgrade.blacklight." + upgradeId)), true);

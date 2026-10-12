@@ -8,11 +8,11 @@ import com.codex.blacklight.power.PrototypeMetabolism;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.TickEvent;
+import com.codex.blacklight.forge.PacketDistributor;
 
 /** Explicit Blacklight target selection shared by the camera and server combat. */
 @EventBusSubscriber(modid="blacklight",value=Dist.CLIENT)
@@ -33,7 +33,7 @@ public final class ClientTargetLock {
         var p=Minecraft.getInstance().player;
         return p!=null && CombatTargeting.selectable(p,target);
     }
-    public static double range(){return Math.clamp(Minecraft.getInstance().options.renderDistance().get()*16.0,32,256);}
+    public static double range(){return net.minecraft.util.Mth.clamp(Minecraft.getInstance().options.renderDistance().get()*16.0,32,256);}
     public static boolean visibleInRange(LivingEntity target){
         var p=Minecraft.getInstance().player;
         return valid(target)&&CombatTargeting.visibleWithinRange(p,target,range());
@@ -78,7 +78,7 @@ public final class ClientTargetLock {
         if(!applied)return;
         if(payload.acceptedEntityId()<0){lockedTarget=null;cachedFocus=null;if(requested>=0)notice("目标不可锁定");}
         else if(mc.level!=null)lockedTarget=CombatTargeting.resolveTarget(mc.level.getEntity(payload.acceptedEntityId()));
-        REQUEST.observeAttachment(mc.player.getData(ModAttachments.TARGET_LOCK_ID));
+        REQUEST.observeAttachment(com.codex.blacklight.registry.ModAttachments.getData(mc.player, ModAttachments.TARGET_LOCK_ID));
     }
     public static void clear(){
         boolean requested=REQUEST.desiredId()>=0||lockedTarget!=null;
@@ -124,8 +124,8 @@ public final class ClientTargetLock {
             request(-1);
         }
         if(lockedTarget!=null&&(!active()||!visibleInRange(lockedTarget))){clear();return;}
-        if(REQUEST.observeAttachment(p.getData(ModAttachments.TARGET_LOCK_ID))){lockedTarget=null;cachedFocus=null;}
+        if(REQUEST.observeAttachment(com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.TARGET_LOCK_ID))){lockedTarget=null;cachedFocus=null;}
         if(REQUEST.desiredId()<0){lockedTarget=null;cachedFocus=null;}
     }
-    @SubscribeEvent public static void tick(ClientTickEvent.Post event){sync();}
+    @SubscribeEvent public static void tick(net.minecraftforge.event.TickEvent.ClientTickEvent event){if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;sync();}
 }

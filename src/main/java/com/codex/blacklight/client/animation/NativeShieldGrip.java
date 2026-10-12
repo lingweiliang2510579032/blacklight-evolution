@@ -44,7 +44,7 @@ public final class NativeShieldGrip {
     }
     public static org.joml.Matrix4f sample(String key,float seconds,float weight) {
         var track = tracks.computeIfAbsent(key, NativeShieldGrip::load);
-        float frame = Math.clamp(seconds * track.fps, 0, track.frames.length - 1);
+        float frame = net.minecraft.util.Mth.clamp(seconds * track.fps, 0, track.frames.length - 1);
         int index = (int)frame;
         var a = track.frames[index]; var b = track.frames[Math.min(index + 1, track.frames.length - 1)];
         float u = frame - index;

@@ -107,8 +107,8 @@ public final class ColossalHivePiece extends StructurePiece {
         // The core is four blocks wide. Move edge-centred spawns inward within their
         // owning chunk, rather than querying an ungenerated neighbour for clearance.
         double radius=inhabitant.getBbWidth()*.5+.05;
-        double spawnX=Math.clamp(at.getX()+.5,clip.minX()+radius,clip.maxX()+1-radius);
-        double spawnZ=Math.clamp(at.getZ()+.5,clip.minZ()+radius,clip.maxZ()+1-radius);
+        double spawnX=com.codex.blacklight.util.MathCompat.clamp(at.getX()+.5,clip.minX()+radius,clip.maxX()+1-radius);
+        double spawnZ=com.codex.blacklight.util.MathCompat.clamp(at.getZ()+.5,clip.minZ()+radius,clip.maxZ()+1-radius);
         inhabitant.moveTo(spawnX,at.getY(),spawnZ,180,0);
         int clearance=devourer||core?4:(int)Math.ceil(inhabitant.getBbHeight());
         var body=inhabitant.getBoundingBox();

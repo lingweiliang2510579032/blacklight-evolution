@@ -47,8 +47,8 @@ public final class ConsumeFracture implements MultiBufferSource {
     private record Edge(Vector3f a,Vector3f b) {}
 
     public static Phase phase(LivingEntity mob,float partial) {
-        var v=mob.getData(ModAttachments.CONSUME_VISUAL);
-        var form=PowerForm.values()[Math.clamp(v.form(),0,PowerForm.values().length-1)];
+        var v=com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.CONSUME_VISUAL);
+        var form=PowerForm.values()[net.minecraft.util.Mth.clamp(v.form(),0,PowerForm.values().length-1)];
         boolean large=ConsumeSequence.mountedStage(v.stage());
         Style style=switch(form){case CLAWS->Style.HEAD_CRUSH;case MUSCLE_MASS->Style.RIP;case BLADE->Style.SEVER;case HAMMERFISTS->Style.CRUSH;case WHIPFIST->Style.COIL;default->large?Style.RIP:Style.HEAD_CRUSH;};
         if(!v.consuming())return new Phase(form,0,0,0,1,style);
@@ -63,7 +63,7 @@ public final class ConsumeFracture implements MultiBufferSource {
         if(scene!=null){
             float seconds=(mob.level().getGameTime()-v.started()+partial)/20F;
             float flowStart=scene.effectSeconds()+scene.settleSeconds();
-            return new Phase(form,Math.clamp(seconds/scene.finishSeconds(),0,1),
+            return new Phase(form,net.minecraft.util.Mth.clamp(seconds/scene.finishSeconds(),0,1),
                     smooth((seconds-scene.deformSeconds())/scene.settleSeconds()),
                     smooth((seconds-flowStart)/(scene.finishSeconds()-flowStart)),
                     scene.effectSeconds()/scene.finishSeconds(),Style.valueOf(scene.style()),true);
@@ -74,10 +74,10 @@ public final class ConsumeFracture implements MultiBufferSource {
         if(form==PowerForm.BLADE&&!large)hit=.833333F/Math.max(.05F,(v.duration()-1)/20F);
         return new Phase(form,t,smooth((t-hit)/.08F),smooth((t-(ConsumeSequence.completion(form,large)-.125F))/.125F),hit,style);
     }
-    private static float smooth(float t){t=Math.clamp(t,0,1);return t*t*(3-2*t);}
+    private static float smooth(float t){t=net.minecraft.util.Mth.clamp(t,0,1);return t*t*(3-2*t);}
     public static float cutHeight(PowerForm form){return form==PowerForm.NONE?.8F:.6F;}
     public static boolean visible(LivingEntity mob,float partial){
-        var v=mob.getData(ModAttachments.CONSUME_VISUAL);if(!v.consuming())return false;
+        var v=com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.CONSUME_VISUAL);if(!v.consuming())return false;
         var p=phase(mob,partial);
         var scene=com.codex.blacklight.combat.ConsumeReceiverScene.profile(p.form(),ConsumeSequence.mountedStage(v.stage()));
         return scene!=null?(mob.level().getGameTime()-v.started()+partial)/20F>=Math.min(scene.deformSeconds(),scene.effectSeconds()):p.progress()>=Math.max(0,p.contact()-.08F);
@@ -85,15 +85,15 @@ public final class ConsumeFracture implements MultiBufferSource {
     public void bindModel(EntityModel<?> model){modelParts=ConsumeAnatomy.model(model);}
     public ConsumeFracture(LivingEntity mob,float partial,PoseStack stack,MultiBufferSource target,Vec3 destination) {
         this.target=target;phase=phase(mob,partial);seed=mob.getId();
-        headOnly=mob.getData(ModAttachments.CONSUME_VISUAL).stage()==ConsumeVisual.HUNTER_CONSUME;
+        headOnly=com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.CONSUME_VISUAL).stage()==ConsumeVisual.HUNTER_CONSUME;
         sourcedReceiver=phase.nativeEvents();
-        bisect=phase.style()==Style.SEVER&&!ConsumeSequence.mountedStage(mob.getData(ModAttachments.CONSUME_VISUAL).stage());
+        bisect=phase.style()==Style.SEVER&&!ConsumeSequence.mountedStage(com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.CONSUME_VISUAL).stage());
         cutNormal=ConsumeSequence.quadruped(mob)?new Vector3f(0,0,1):new Vector3f(0,1,0);
         light=net.minecraft.client.Minecraft.getInstance().getEntityRenderDispatcher().getPackedLightCoords(mob,partial);
         frame=new Matrix4f(stack.last().pose()).mul(ConsumeVictimPose.effectTransform(mob,partial));
         inverse=new Matrix4f(frame).invert();
         sink=inverse.transformPosition(stack.last().pose().transformPosition(new Vector3f((float)destination.x,(float)destination.y,(float)destination.z)));
-        spread=Math.clamp(mob.getBbWidth()*.3F,.18F,.65F);
+        spread=net.minecraft.util.Mth.clamp(mob.getBbWidth()*.3F,.18F,.65F);
         divisions=bisect?2:phase.style()==Style.CRUSH?4:1;
         for(int i=0;i<centers.length;i++)centers[i]=new Vector3f(0,mob.getBbHeight()*.5F,0);
     }
@@ -109,7 +109,7 @@ public final class ConsumeFracture implements MultiBufferSource {
         for(var c:streams.values()){
             c.flush();for(var v:c.vertices)for(int a=0;a<centers.length;a++)if(v.weights[a]>.15F){lo[a].min(v.p);hi[a].max(v.p);present[a]=true;}
         }
-        for(int a=0;a<centers.length;a++)if(present[a]){centers[a].set(lo[a]).add(hi[a]).mul(.5F);radii[a]=Math.clamp(lo[a].distance(hi[a])*.25F,.05F,.55F);}
+        for(int a=0;a<centers.length;a++)if(present[a]){centers[a].set(lo[a]).add(hi[a]).mul(.5F);radii[a]=net.minecraft.util.Mth.clamp(lo[a].distance(hi[a])*.25F,.05F,.55F);}
         cutCenter.set(centers[ConsumeAnatomy.BODY]);
         for(var entry:streams.entrySet()){
             Collector c=entry.getValue();VertexConsumer out=target.getBuffer(entry.getKey());int count=c.quads?4:3;
@@ -148,7 +148,7 @@ public final class ConsumeFracture implements MultiBufferSource {
     }
     private static List<V> clip(List<V> input,ToDoubleFunction<V> plane){
         List<V> result=new ArrayList<>();if(input.isEmpty())return result;
-        V a=input.getLast();double da=plane.applyAsDouble(a);
+        V a=input.get(input.size()-1);double da=plane.applyAsDouble(a);
         for(V b:input){double db=plane.applyAsDouble(b);if((da>=0)!=(db>=0))result.add(a.mix(b,(float)(da/(da-db))));if(db>=0)result.add(b);a=b;da=db;}
         return result;
     }
@@ -227,7 +227,7 @@ public final class ConsumeFracture implements MultiBufferSource {
     }
     private void emit(VertexConsumer out,V v,int piece){
         Vector3f p=displaced(v.p,piece);float dark=headOnly&&piece/divisions!=ConsumeAnatomy.HEAD?0:phase.returnFlow();
-        out.addVertex(p.x,p.y,p.z).setColor((int)(v.r*(1-dark)+66*dark),(int)(v.g*(1-dark)+12*dark),(int)(v.b*(1-dark)+19*dark),v.a).setUv(v.u,v.v).setOverlay(v.overlay).setLight(v.light).setNormal(v.nx,v.ny,v.nz);
+        out.vertex(p.x,p.y,p.z).color((int)(v.r*(1-dark)+66*dark),(int)(v.g*(1-dark)+12*dark),(int)(v.b*(1-dark)+19*dark),v.a).uv(v.u,v.v).overlayCoords(v.overlay).uv2(v.light).normal(v.nx,v.ny,v.nz).endVertex();
     }
     private void tissueBridges(){
         if(headOnly||bisect)return;
@@ -321,7 +321,7 @@ public final class ConsumeFracture implements MultiBufferSource {
     }
     private void capVertex(VertexConsumer out,Vector3f source,int part,int color){
         Vector3f p=displaced(source,part);
-        out.addVertex(p.x,p.y,p.z).setColor(color).setUv(.5F,.5F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(0x00c000c0).setNormal(0,1,0);
+        out.vertex(p.x,p.y,p.z).color(color).uv(.5F,.5F).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(0x00c000c0).normal(0,1,0).endVertex();
     }
     private static final class V {
         Vector3f p;float[] weights;int r=255,g=255,b=255,a=255,overlay=OverlayTexture.NO_OVERLAY,light;float u,v,nx,ny=1,nz;
@@ -330,15 +330,18 @@ public final class ConsumeFracture implements MultiBufferSource {
     private final class Collector implements VertexConsumer,ConsumeAnatomy.Consumer {
         final boolean quads;final List<V> vertices=new ArrayList<>();V current;float[] weights={1,0,0,0,0,0,0};
         Collector(RenderType type){quads=type.mode()==VertexFormat.Mode.QUADS;}
-        @Override public void anatomy(int part){weights=new float[ConsumeAnatomy.COUNT];weights[Math.clamp(part,0,weights.length-1)]=1;}
+        @Override public void anatomy(int part){weights=new float[ConsumeAnatomy.COUNT];weights[net.minecraft.util.Mth.clamp(part,0,weights.length-1)]=1;}
         @Override public void anatomy(ModelPart part){anatomy(modelParts.getOrDefault(part,0));}
         @Override public void anatomy(float[] values){weights=values.clone();float sum=0;for(float value:weights)sum+=value;if(sum<.001F)anatomy(0);else for(int i=0;i<weights.length;i++)weights[i]/=sum;}
         void flush(){if(current!=null){vertices.add(current);current=null;}}
-        @Override public VertexConsumer addVertex(float x,float y,float z){flush();current=new V();current.p=inverse.transformPosition(new Vector3f(x,y,z));current.weights=weights;return this;}
-        @Override public VertexConsumer setColor(int r,int g,int b,int a){current.r=r;current.g=g;current.b=b;current.a=a;return this;}
-        @Override public VertexConsumer setUv(float u,float v){current.u=u;current.v=v;return this;}
-        @Override public VertexConsumer setUv1(int u,int v){current.overlay=u|(v<<16);return this;}
-        @Override public VertexConsumer setUv2(int u,int v){current.light=u|(v<<16);return this;}
-        @Override public VertexConsumer setNormal(float x,float y,float z){current.nx=x;current.ny=y;current.nz=z;return this;}
+        @Override public void endVertex(){flush();}
+        @Override public void defaultColor(int r,int g,int b,int a){}
+        @Override public void unsetDefaultColor(){}
+        @Override public VertexConsumer vertex(double x,double y,double z){flush();current=new V();current.p=inverse.transformPosition(new Vector3f((float)x,(float)y,(float)z));current.weights=weights;return this;}
+        @Override public VertexConsumer color(int r,int g,int b,int a){current.r=r;current.g=g;current.b=b;current.a=a;return this;}
+        @Override public VertexConsumer uv(float u,float v){current.u=u;current.v=v;return this;}
+        @Override public VertexConsumer overlayCoords(int u,int v){current.overlay=u|(v<<16);return this;}
+        @Override public VertexConsumer uv2(int u,int v){current.light=u|(v<<16);return this;}
+        @Override public VertexConsumer normal(float x,float y,float z){current.nx=x;current.ny=y;current.nz=z;return this;}
     }
 }

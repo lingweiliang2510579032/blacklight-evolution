@@ -29,7 +29,7 @@ public final class BoneTransform {
                 normalized.getNormalizedRotation(new Quaternionf()).normalize(), scale);
     }
     public static BoneTransform blend(BoneTransform from, BoneTransform to, float weight) {
-        float t = Math.clamp(weight, 0, 1);
+        float t = com.codex.blacklight.util.MathCompat.clamp(weight, 0, 1);
         return new BoneTransform(new Vector3f(from.translation).lerp(to.translation, t),
                 new Quaternionf(from.rotation).slerp(to.rotation, t).normalize(),
                 new Vector3f(from.scale).lerp(to.scale, t));

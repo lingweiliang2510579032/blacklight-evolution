@@ -16,14 +16,14 @@ import com.codex.blacklight.registry.ModAttachments;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.ComputeFovModifierEvent;
-import net.neoforged.neoforge.client.event.InputEvent;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.client.event.ComputeFovModifierEvent;
+import net.minecraftforge.client.event.InputEvent;
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import com.codex.blacklight.forge.PacketDistributor;
 import net.minecraft.world.phys.Vec3;
 import org.lwjgl.glfw.GLFW;
 
@@ -62,16 +62,16 @@ public final class ClientMovementEvents {
         event.register(ENGINE_TUNER);
     }
 
-    @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.LOWEST)
-    public static void lockWeaponMovement(net.neoforged.neoforge.client.event.MovementInputUpdateEvent event) {
+    @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+    public static void lockWeaponMovement(net.minecraftforge.client.event.MovementInputUpdateEvent event) {
         beginWeaponMovementOwnership(event.getEntity());
-        if(event.getEntity().getData(ModAttachments.WEAPON_VISUAL).spec()==null
+        if(com.codex.blacklight.registry.ModAttachments.getData(event.getEntity(), ModAttachments.WEAPON_VISUAL).spec()==null
                 && !pendingWeaponMovement(event.getEntity())) {
             var mc=Minecraft.getInstance();
             if(mc.player==event.getEntity()&&isPrototype(mc)
                     &&com.codex.blacklight.client.camera.PrototypeChaseCamera.ownsView()
                     &&(Math.abs(event.getInput().forwardImpulse)>1e-5F||Math.abs(event.getInput().leftImpulse)>1e-5F)
-                    &&!event.getEntity().getData(ModAttachments.CONSUMING))
+                    &&!com.codex.blacklight.registry.ModAttachments.getData(event.getEntity(), ModAttachments.CONSUMING))
                 event.getEntity().setYRot(cameraYaw(mc));
             return;
         }
@@ -128,9 +128,9 @@ public final class ClientMovementEvents {
     private static boolean pendingWeaponMovement(net.minecraft.world.entity.player.Player player) {
         if(pendingWeaponOwner!=player)return false;
         if(player.tickCount>=pendingWeaponUntil||!player.isAlive()
-                ||!player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()
-                ||player.getData(ModAttachments.PLAYER_STATE).getActivePower()!=com.codex.blacklight.power.PowerForm.BLADE
-                ||player.getData(ModAttachments.WEAPON_VISUAL).spec()!=null){
+                ||!com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).isPrototypeMode()
+                ||com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).getActivePower()!=com.codex.blacklight.power.PowerForm.BLADE
+                ||com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL).spec()!=null){
             pendingWeaponOwner=null;
             return false;
         }
@@ -138,7 +138,7 @@ public final class ClientMovementEvents {
     }
 
     private static void beginWeaponMovementOwnership(net.minecraft.world.entity.player.Player player) {
-        var visual=player.getData(ModAttachments.WEAPON_VISUAL);
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL);
         var move=visual.spec();
         if(move==null){weaponMovementOwner=null;ownedWeaponVisual=null;return;}
         pendingWeaponOwner=null;
@@ -188,7 +188,7 @@ public final class ClientMovementEvents {
         var frame=CLIENT_WALL.tick(new WallTraversal.Input(forward,sideways,sprinting,jump,detach),
                 WallContacts.sample(player,CLIENT_WALL),player.getY(),player.getDeltaMovement().horizontalDistance(),
                 MovementTuningSettings.wallClimbVelocity(),MovementUpgrade.wallMultiplier(
-                        player.getData(ModAttachments.PLAYER_STATE).getMovementUpgradeMask()));
+                        com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).getMovementUpgradeMask()));
         com.codex.blacklight.movement.WallPoseState.set(player,CLIENT_WALL.mode(),CLIENT_WALL.normalX(),CLIENT_WALL.normalZ());
         if (!frame.handled()) return false;
         if (jump) JUMP_INPUT.claimCharge();
@@ -220,7 +220,7 @@ public final class ClientMovementEvents {
     }
 
     @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(net.minecraftforge.event.TickEvent.ClientTickEvent event){if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
         Minecraft minecraft = Minecraft.getInstance();
         // Respawn can replace LocalPlayer without a tick in which player is null.
         // Charge/wall latches belong to the old entity, never the next life.
@@ -250,17 +250,17 @@ public final class ClientMovementEvents {
         }
         // Hardware state and remapped KeyMappings share one input latch so visual
         // ownership does not lose releases during a combat or traversal action.
-        if (minecraft.player.getData(ModAttachments.CONSUMING)&&com.codex.blacklight.combat.ConsumeVisual.blocksInput(minecraft.player.getData(ModAttachments.GRAB_STAGE))) {
+        if (com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.CONSUMING)&&com.codex.blacklight.combat.ConsumeVisual.blocksInput(com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.GRAB_STAGE))) {
             lastJumpHeld=false;lastForwardHeld=false;lastMovingHeld=false;lastSprinting=false;
             lastChargingAnimation=false;clientChargeTicks=0;
             clientOffGroundTicks=0;JUMP_INPUT.reset();
             resetClientWallRun();
-            if(com.codex.blacklight.combat.ConsumeVisual.blocksTravel(minecraft.player.getData(ModAttachments.GRAB_STAGE)))
+            if(com.codex.blacklight.combat.ConsumeVisual.blocksTravel(com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.GRAB_STAGE)))
                 minecraft.player.setDeltaMovement(0, minecraft.player.getDeltaMovement().y, 0);
             return;
         }
         boolean prototype = isPrototype(minecraft);
-        boolean jumpHeld = minecraft.screen == null && mappingDown(minecraft, minecraft.options.keyJump)&&minecraft.player.getData(ModAttachments.GRAB_STAGE)!=com.codex.blacklight.combat.ConsumeVisual.THROW;
+        boolean jumpHeld = minecraft.screen == null && mappingDown(minecraft, minecraft.options.keyJump)&&com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.GRAB_STAGE)!=com.codex.blacklight.combat.ConsumeVisual.THROW;
         int forwardInput=minecraft.screen==null ? (mappingDown(minecraft,minecraft.options.keyUp)?1:0)-(mappingDown(minecraft,minecraft.options.keyDown)?1:0) : 0;
         int sidewaysInput=minecraft.screen==null ? (mappingDown(minecraft,minecraft.options.keyRight)?1:0)-(mappingDown(minecraft,minecraft.options.keyLeft)?1:0) : 0;
         boolean forwardHeld=forwardInput>0;
@@ -289,7 +289,7 @@ public final class ClientMovementEvents {
             PrototypeAnimationController.tickLevel(minecraft, false, false, false);
             wasPrototype = false;
             resetClientWallRun();
-            var movement=minecraft.player.getData(ModAttachments.MOVEMENT_STATE);
+            var movement=com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.MOVEMENT_STATE);
             movement.clearSprintDrive();
             if(prototype&&minecraft.player.isInWater()&&!minecraft.player.isInLava()) {
                 float yaw=cameraYaw(minecraft);
@@ -340,8 +340,8 @@ public final class ClientMovementEvents {
             }
         }
         float viewYaw=cameraYaw(minecraft);
-        minecraft.player.getData(ModAttachments.MOVEMENT_STATE).setCameraYaw(viewYaw);
-        minecraft.player.getData(ModAttachments.MOVEMENT_STATE).acceptInput(jumpHeld,false,
+        com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.MOVEMENT_STATE).setCameraYaw(viewYaw);
+        com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.MOVEMENT_STATE).acceptInput(jumpHeld,false,
                 forwardInput,sidewaysInput,sprinting,detach);
         boolean inputChanged = jumpHeld != lastJumpHeld || forwardInput != lastForwardInput
                 || sidewaysInput != lastSidewaysInput || detach != lastDetach || sprinting != lastSprinting;
@@ -394,8 +394,8 @@ public final class ClientMovementEvents {
                 forward = forward.normalize();
                 var velocity = minecraft.player.getDeltaMovement();
                 double max = MovementTuningSettings.sprintMaxSpeed()
-                        * MovementUpgrade.sprintMultiplier(minecraft.player
-                        .getData(ModAttachments.PLAYER_STATE).getMovementUpgradeMask());
+                        * MovementUpgrade.sprintMultiplier(com.codex.blacklight.registry.ModAttachments.getData(minecraft.player
+                        , ModAttachments.PLAYER_STATE).getMovementUpgradeMask());
                 if (com.codex.blacklight.power.UtilityPowerSystem.active(minecraft.player,
                         com.codex.blacklight.power.PowerForm.ARMOR)) max *= .75;
                 minecraft.player.setDeltaMovement(com.codex.blacklight.movement.TraversalSteering.sprint(minecraft.player,velocity,max,
@@ -457,8 +457,8 @@ public final class ClientMovementEvents {
         double horizontalSpeed = minecraft.player.getDeltaMovement().horizontalDistance();
         double ratio = PrototypeLocomotion.cinematicSpeedRatio(horizontalSpeed,
                 MovementTuningSettings.sprintMaxSpeed()
-                        * MovementUpgrade.sprintMultiplier(minecraft.player
-                        .getData(ModAttachments.PLAYER_STATE).getMovementUpgradeMask()));
+                        * MovementUpgrade.sprintMultiplier(com.codex.blacklight.registry.ModAttachments.getData(minecraft.player
+                        , ModAttachments.PLAYER_STATE).getMovementUpgradeMask()));
         event.setNewFovModifier((float)(event.getFovModifier()
                 * (1.0D + MovementTuningSettings.fovBoost() * ratio)));
     }
@@ -475,13 +475,13 @@ public final class ClientMovementEvents {
 
     private static boolean isPrototype(Minecraft minecraft) {
         return minecraft.player != null
-                && minecraft.player.getData(ModAttachments.PLAYER_STATE).isInfected()
-                && minecraft.player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode();
+                && com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.PLAYER_STATE).isInfected()
+                && com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.PLAYER_STATE).isPrototypeMode();
     }
 
     private static boolean weaponOwnsMovement(Minecraft minecraft) {
         return minecraft.player != null
-                && (minecraft.player.getData(ModAttachments.WEAPON_VISUAL).spec() != null
+                && (com.codex.blacklight.registry.ModAttachments.getData(minecraft.player, ModAttachments.WEAPON_VISUAL).spec() != null
                 ||pendingWeaponMovement(minecraft.player));
     }
 

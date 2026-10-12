@@ -28,10 +28,10 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.living.LivingFallEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.entity.living.LivingFallEvent;
+import net.minecraftforge.event.TickEvent.PlayerTickEvent;
+import com.codex.blacklight.forge.PacketDistributor;
 import org.joml.Vector3f;
 
 import java.util.HashMap;
@@ -54,7 +54,7 @@ public final class PrototypeMovementSystem {
     @SubscribeEvent
     public static void onLivingFall(LivingFallEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
-        BlacklightState blacklight = player.getData(ModAttachments.PLAYER_STATE);
+        BlacklightState blacklight = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         if (blacklight.isInfected() && blacklight.isPrototypeMode()) {
             event.setDamageMultiplier(0.0F);
         }
@@ -69,9 +69,9 @@ public final class PrototypeMovementSystem {
             // Inactive/dead/lava movement never arms traversal.
             return;
         }
-        if (player.getData(ModAttachments.CONSUMING)&&com.codex.blacklight.combat.ConsumeVisual.blocksInput(player.getData(ModAttachments.GRAB_STAGE))) return;
-        if(player.getData(ModAttachments.GRAB_STAGE)==com.codex.blacklight.combat.ConsumeVisual.THROW){jumpHeld=false;dashPressed=false;}
-        MovementState movement = player.getData(ModAttachments.MOVEMENT_STATE);
+        if (com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUMING)&&com.codex.blacklight.combat.ConsumeVisual.blocksInput(com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.GRAB_STAGE))) return;
+        if(com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.GRAB_STAGE)==com.codex.blacklight.combat.ConsumeVisual.THROW){jumpHeld=false;dashPressed=false;}
+        MovementState movement = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.MOVEMENT_STATE);
         boolean wasJumpHeld = movement.jumpHeld();
         if(player.isInWater()&&!WaterRunning.onSurface(player)) {
             if(movement.chargeTicks()>0)unpauseServerAnimator(player);
@@ -114,11 +114,11 @@ public final class PrototypeMovementSystem {
     }
 
     @SubscribeEvent
-    public static void onPlayerTick(PlayerTickEvent.Post event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) return;
-        if (player.getData(ModAttachments.CONSUMING)&&com.codex.blacklight.combat.ConsumeVisual.blocksInput(player.getData(ModAttachments.GRAB_STAGE))) return;
-        MovementState movement = player.getData(ModAttachments.MOVEMENT_STATE);
-        BlacklightState blacklight = player.getData(ModAttachments.PLAYER_STATE);
+    public static void onPlayerTick(PlayerTickEvent event) {if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
+        if (!(event.player instanceof ServerPlayer player)) return;
+        if (com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUMING)&&com.codex.blacklight.combat.ConsumeVisual.blocksInput(com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.GRAB_STAGE))) return;
+        MovementState movement = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.MOVEMENT_STATE);
+        BlacklightState blacklight = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         if (!blacklight.isInfected() || !blacklight.isPrototypeMode()
                 || player.isPassenger() || player.isFallFlying()
                 || player.getAbilities().flying || player.isSpectator()
@@ -132,7 +132,7 @@ public final class PrototypeMovementSystem {
             }
             // Infected but not in Prototype mode right now: restore vanilla stepping.
             if (blacklight.isInfected()) {
-                var stepHeight = player.getAttribute(Attributes.STEP_HEIGHT);
+                var stepHeight = player.getAttribute(net.minecraftforge.common.ForgeMod.STEP_HEIGHT_ADDITION.get());
                 if (stepHeight != null && stepHeight.getBaseValue() != 0.6D) {
                     stepHeight.setBaseValue(0.6D);
                 }
@@ -154,7 +154,7 @@ public final class PrototypeMovementSystem {
         }
 
         // Prototype physiology steps straight over curbs, cars and one-block ledges.
-        var stepHeight = player.getAttribute(Attributes.STEP_HEIGHT);
+        var stepHeight = player.getAttribute(net.minecraftforge.common.ForgeMod.STEP_HEIGHT_ADDITION.get());
         double terrainStepHeight = com.codex.blacklight.power.UtilityPowerSystem.parkourAllowed(player) ? 1.0D : .6D;
         if (stepHeight != null && stepHeight.getBaseValue() != terrainStepHeight) {
             stepHeight.setBaseValue(terrainStepHeight);
@@ -215,7 +215,7 @@ public final class PrototypeMovementSystem {
         // The groundspike action owns the body from charge to eruption: no traversal
         // impulses may fight the planted pose, or a sprinting player would keep
         // sliding forward while the spikes erupt around a moving center.
-        var spikeAction = player.getData(ModAttachments.CLAW_COMBAT).action();
+        var spikeAction = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CLAW_COMBAT).action();
         if (spikeAction == ClawCombatState.Action.GROUND_SPIKE_CHARGING
                 || spikeAction == ClawCombatState.Action.GROUND_SPIKE) {
             movement.wallTraversal().reset();
@@ -371,7 +371,7 @@ public final class PrototypeMovementSystem {
         syncCharge(player,0);
         double charge = Math.min(1.0D, held / (double) MovementTuningSettings.jumpChargeTicks());
         double jumpVelocity = MovementTuningSettings.jumpLaunchVelocity(charge,
-                player.getData(ModAttachments.PLAYER_STATE).getMovementUpgradeMask());
+                com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).getMovementUpgradeMask());
         Vec3 forward = horizontalForward(player);
         double launch = 0.20D + charge * 0.42D;
         var velocity=player.getDeltaMovement();
@@ -459,9 +459,9 @@ public final class PrototypeMovementSystem {
     }
 
     private static void clearGlideTrail(ServerPlayer player) {
-        if (player.getData(ModAttachments.GLIDE_UNTIL) != 0L) {
-            player.setData(ModAttachments.GLIDE_UNTIL, 0L);
-            player.syncData(ModAttachments.GLIDE_UNTIL);
+        if (com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.GLIDE_UNTIL) != 0L) {
+            com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.GLIDE_UNTIL, 0L);
+            com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.GLIDE_UNTIL);
         }
     }
 
@@ -491,7 +491,7 @@ public final class PrototypeMovementSystem {
         // Bound the turn rate; looking backwards must not cancel the velocity vector.
         double angle = Math.atan2(direction.x * forward.z - direction.z * forward.x,
                 direction.dot(forward));
-        double turn = Math.clamp(angle, -.14, .14);
+        double turn = com.codex.blacklight.util.MathCompat.clamp(angle, -.14, .14);
         double cos = Math.cos(turn), sin = Math.sin(turn);
         Vec3 horizontal = new Vec3(direction.x * cos - direction.z * sin, 0,
                 direction.x * sin + direction.z * cos).scale(speed);
@@ -504,8 +504,8 @@ public final class PrototypeMovementSystem {
         movement.setGlideSpeed(speed);
         if (entering) PrototypeMovementEffects.onGlideStarted(player, horizontal.normalize());
         if (entering || player.tickCount % 3 == 0) {
-            player.setData(ModAttachments.GLIDE_UNTIL, player.level().getGameTime() + 5);
-            player.syncData(ModAttachments.GLIDE_UNTIL);
+            com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.GLIDE_UNTIL, player.level().getGameTime() + 5);
+            com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.GLIDE_UNTIL);
         }
         PrototypeMovementEffects.tickGlide(player, horizontal.normalize());
     }
@@ -617,7 +617,7 @@ public final class PrototypeMovementSystem {
     private static void sweepSprintBodyCheck(ServerPlayer player, Vec3 forward, double speed) {
         float intensity = PrototypeLocomotion.cinematicSpeedRatio(speed,
                 MovementTuningSettings.sprintMaxSpeed() * MovementUpgrade.sprintMultiplier(
-                        player.getData(ModAttachments.PLAYER_STATE).getMovementUpgradeMask()));
+                        com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).getMovementUpgradeMask()));
         AABB sweep = player.getBoundingBox().inflate(0.35D, 0.10D, 0.35D)
                 .expandTowards(forward.scale(0.55D));
         Map<UUID, Integer> cooldowns = BODY_CHECK_HITS.computeIfAbsent(player,
@@ -646,7 +646,7 @@ public final class PrototypeMovementSystem {
 
     /** Airborne claw pounce deals damage to whatever the player sweeps through. */
     private static void sweepAirPounceHits(ServerPlayer player) {
-        BlacklightState state = player.getData(ModAttachments.PLAYER_STATE);
+        BlacklightState state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         if (state.getActivePower() != PowerForm.CLAWS) return;
         Set<LivingEntity> hit = AIR_POUNCE_HITS.computeIfAbsent(player,
                 ignored -> new HashSet<>());
@@ -682,7 +682,7 @@ public final class PrototypeMovementSystem {
     }
 
     private static void syncCharge(ServerPlayer player,int charge){
-        if(player.getData(ModAttachments.JUMP_CHARGE)!=charge){player.setData(ModAttachments.JUMP_CHARGE,charge);player.syncData(ModAttachments.JUMP_CHARGE);}
+        if(com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.JUMP_CHARGE)!=charge){com.codex.blacklight.registry.ModAttachments.setData(player, ModAttachments.JUMP_CHARGE,charge);com.codex.blacklight.registry.ModAttachments.syncData(player, ModAttachments.JUMP_CHARGE);}
     }
 
     private static void finishDashPose(ServerPlayer player){

@@ -65,9 +65,9 @@ public final class BlockShieldModel {
         return new com.codex.blacklight.client.animation.FirstPersonPose.Result(new org.joml.Matrix4f[0],near,x,y);
     }
     public void render(AbstractClientPlayer player, PoseStack stack, MultiBufferSource buffers, int light, float partial) {
-        var data=player.getData(ModAttachments.PLAYER_STATE);
+        var data=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         if(!player.isAlive()||!data.isInfected()||!data.isPrototypeMode()){states.remove(player);return;}
-        var utility=player.getData(ModAttachments.UTILITY_STATE);
+        var utility=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.UTILITY_STATE);
         boolean active=UtilityPowerSystem.active(player,PowerForm.SHIELD),enabled=active&&!utility.broken();
         State state=states.get(player);
         if(state==null&&!active&&(utility.previousDefense()&PowerForm.SHIELD.bit())==0)return;
@@ -111,8 +111,8 @@ public final class BlockShieldModel {
             for(int f=0;f<faces.length;f++)for(int v=0;v<4;v++) {
                 var q=p.points[faces[f][v]];var n=p.normals[f];
                 float u=(p.material+((v==1||v==2)?.969F:.031F))/6;
-                out.addVertex(pose,q.x*grow,q.y*grow,q.z*grow).setColor(0xFFFFFFFF)
-                        .setUv(u,v<2?.031F:.969F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose,n.x,n.y,n.z);
+                out.vertex((pose).pose(),q.x*grow,q.y*grow,q.z*grow).color(0xFFFFFFFF)
+                        .uv(u,v<2?.031F:.969F).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(light).normal((pose).normal(),n.x,n.y,n.z).endVertex();
             }
         }
         if(active&&utility.broken()&&!VisionPowerRenderer.drawingSilhouettes()) {
@@ -123,7 +123,7 @@ public final class BlockShieldModel {
             for(int lane=0;lane<3;lane++)for(int v=0;v<4;v++) {
                 float y=(lane-1)*.04F+(v==1||v==2?.012F:0),z=v<2?-pulse:pulse;
                 var point=new Vector3f(front).mul(.066F).fma(y,right).fma(z,up);
-                veins.addVertex(pose,point.x,point.y,point.z).setColor(111,27,28,180).setUv(.5F,.5F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose,front.x,front.y,front.z);
+                veins.vertex((pose).pose(),point.x,point.y,point.z).color(111,27,28,180).uv(.5F,.5F).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(light).normal((pose).normal(),front.x,front.y,front.z).endVertex();
             }
         }
     }

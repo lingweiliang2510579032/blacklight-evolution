@@ -6,8 +6,8 @@ import net.minecraft.gametest.framework.*;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.gametest.*;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.gametest.*;
 
 @GameTestHolder("blacklight") @PrefixGameTestTemplate(false)
 public final class HammerImpactGameTest {
@@ -20,7 +20,7 @@ public final class HammerImpactGameTest {
         for(int x=0;x<=7;x++)for(int y=24;y<=29;y++)h.setBlock(x,y,5,Blocks.STONE);
         float hp=rear.getHealth(),bhp=blocked.getHealth();
         WeaponCombatSystem.request(p,true);
-        for(int t=0;t<WeaponMove.HAMMER_QUAKE.duration+2;t++){p.tickCount++;WeaponCombatSystem.tick(new PlayerTickEvent.Post(p));}
+        for(int t=0;t<WeaponMove.HAMMER_QUAKE.duration+2;t++){p.tickCount++;WeaponCombatSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));}
         h.assertTrue(rear.getHealth()<hp,"quake must hit behind independently of fist collision");
         h.assertTrue(blocked.getHealth()==bhp,"quake cannot damage through solid walls");
         WeaponCombatSystem.cancel(p);rear.discard();blocked.discard();h.succeed();
@@ -32,7 +32,7 @@ public final class HammerImpactGameTest {
         var side=h.spawn(EntityType.IRON_GOLEM,5,25,5);side.setNoAi(true);
         side.setPos(main.position().add(1.8,0,0));
         float hp=main.getHealth(),sideHp=side.getHealth();WeaponCombatSystem.request(p,false);
-        for(int t=0;t<WeaponMove.HAMMER_JAB.duration+2;t++){p.tickCount++;WeaponCombatSystem.tick(new PlayerTickEvent.Post(p));}
+        for(int t=0;t<WeaponMove.HAMMER_JAB.duration+2;t++){p.tickCount++;WeaponCombatSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));}
         h.assertTrue(main.getHealth()<hp&&side.getHealth()<sideHp,"ordinary hammer hit must disperse adjacent crowd");
         h.assertTrue(hp-main.getHealth()<=WeaponMove.HAMMER_JAB.damage+.01,"splash must not double damage primary victim");
         WeaponCombatSystem.cancel(p);main.discard();side.discard();h.succeed();

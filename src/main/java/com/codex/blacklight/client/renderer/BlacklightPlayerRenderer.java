@@ -40,19 +40,19 @@ public final class BlacklightPlayerRenderer extends PlayerRenderer {
         try {
             arm.translateAndRotate(stack);
             stack.translate((left?1:-1)*(slimHands?.5F:1F)/16F,-2F/16F,0);
-            var form=player.getData(ModAttachments.PLAYER_STATE).getActivePower();
+            var form=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).getActivePower();
             boolean plated=com.codex.blacklight.power.UtilityPowerSystem.visualWeight(player,com.codex.blacklight.power.PowerForm.ARMOR,partial)>0;
             boolean shielded=com.codex.blacklight.power.UtilityPowerSystem.visualWeight(player,com.codex.blacklight.power.PowerForm.SHIELD,partial)>0;
             var pose=new com.codex.blacklight.animation.BlacklightPose();
-            var weapon=com.codex.blacklight.animation.WeaponMotionClock.sample(player.getData(ModAttachments.WEAPON_VISUAL),player.level().getGameTime()+partial);
+            var weapon=com.codex.blacklight.animation.WeaponMotionClock.sample(com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL),player.level().getGameTime()+partial);
             String preview=com.codex.blacklight.animation.PlayerMotionController.previewKey(player);
             if(preview!=null&&!preview.startsWith("basic_idle"))pose=com.codex.blacklight.animation.MotionLibrary.pose(preview,com.codex.blacklight.animation.PlayerMotionController.elapsed(player,partial),false);
             else if(weapon!=null)pose=com.codex.blacklight.animation.BlacklightPose.interpolatePose(pose,
                     com.codex.blacklight.animation.MotionLibrary.pose(weapon.key(),weapon.seconds(),weapon.looping()),weapon.blend());
             else {
-                var action=player.getData(ModAttachments.PLAYER_ACTION);
+                var action=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_ACTION);
                 if(action.active(player.level().getGameTime()+partial)&&(!action.clipId().startsWith("basic_")||action.clipId().equals("basic_jump_charge"))
-                        ||player.getData(ModAttachments.GRAB_STAGE)!=com.codex.blacklight.combat.ConsumeVisual.NONE)
+                        ||com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.GRAB_STAGE)!=com.codex.blacklight.combat.ConsumeVisual.NONE)
                     pose=com.codex.blacklight.client.animation.BlacklightRenderPose.sample(player,partial);
             }
             var matrices=com.codex.blacklight.animation.PlayerMotionController.skeleton().getPoseMatrices(pose);
@@ -73,21 +73,21 @@ public final class BlacklightPlayerRenderer extends PlayerRenderer {
         if(handShield==null)handShield=new com.codex.blacklight.client.model.BlockShieldModel();
         stack.pushPose();
         try {
-            stack.mulPose(handShield.itemFrame());
+            com.codex.blacklight.client.ClientPoseMatrices.multiply(stack,handShield.itemFrame());
             var frame=new org.joml.Matrix4f(com.mojang.blaze3d.systems.RenderSystem.getModelViewMatrix()).mul(stack.last().pose());
             var view=handShield.projectedItem(frame,com.mojang.blaze3d.systems.RenderSystem.getProjectionMatrix());
             VIEWS.put(player,new RenderedView(view,player.level().getGameTime()+partial,"native shield item"));
             handShield.render(player,stack,buffers,light,partial);
         }finally{stack.popPose();}
     }
-    @Override protected void setupRotations(AbstractClientPlayer player,PoseStack stack,float bob,float bodyYaw,float partial,float scale) {
-        var weapon=player.getData(ModAttachments.WEAPON_VISUAL);
+    @Override protected void setupRotations(AbstractClientPlayer player,PoseStack stack,float bob,float bodyYaw,float partial) {
+        var weapon=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.WEAPON_VISUAL);
         Float movement=PrototypeAnimationController.movementFacing(player,partial);
-        var morph=player.getData(ModAttachments.POWER_MORPH);
+        var morph=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.POWER_MORPH);
         if(morph.visible(player,partial))movement=morph.facing();
         float facing=NativeConsumePose.facing(player,weapon.spec()==null?player.getYRot():weapon.yaw());
-        if(player.getData(ModAttachments.GRAB_STAGE)==0&&weapon.spec()==null&&movement!=null)facing=movement;
-        else if(player.getData(ModAttachments.GRAB_STAGE)==0&&weapon.spec()==null&&!morph.visible(player,partial))facing=bodyYaw;
-        super.setupRotations(player,stack,bob,facing,partial,scale);
+        if(com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.GRAB_STAGE)==0&&weapon.spec()==null&&movement!=null)facing=movement;
+        else if(com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.GRAB_STAGE)==0&&weapon.spec()==null&&!morph.visible(player,partial))facing=bodyYaw;
+        super.setupRotations(player,stack,bob,facing,partial);
     }
 }

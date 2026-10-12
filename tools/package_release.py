@@ -73,7 +73,7 @@ def main() -> None:
     props = dict(line.split('=', 1) for line in (repo / 'gradle.properties').read_text(encoding='utf-8').splitlines()
                  if '=' in line and not line.lstrip().startswith('#'))
     version = props['mod_version']
-    stem = f"{props['mod_archive_name']}-MC{props['minecraft_version']}-NeoForge-{version}"
+    stem = f"{props['mod_archive_name']}-MC{props['minecraft_version']}-Forge-{version}"
     jar = build / 'libs' / f'{stem}-{args.profile}.jar'
     dist = build / 'distributions' / f'{stem}-{args.profile}.zip'
     require(jar.is_file() and dist.is_file(), f'Build the requested {args.profile} artifacts first')
@@ -82,9 +82,9 @@ def main() -> None:
     with ZipFile(jar) as archive:
         names = set(archive.namelist())
         require(len(names) == len(archive.namelist()), 'Duplicate JAR entries')
-        meta = tomllib.loads(archive.read('META-INF/neoforge.mods.toml').decode('utf-8'))
+        meta = tomllib.loads(archive.read('META-INF/mods.toml').decode('utf-8'))
         mod = next(m for m in meta['mods'] if m['modId'] == props['mod_id'])
-        require(mod['version'] == version and mod['authors'] == '末者', 'Version or author mismatch')
+        require(mod['version'] == version and '末者' in mod['authors'], 'Version or original author mismatch')
         manifest = manifest_values(archive.read('META-INF/MANIFEST.MF'))
         require(manifest.get('Blacklight-Build-Profile') == args.profile, 'Build profile mismatch')
         require(manifest.get('Blacklight-Private-Assets') == str(private).lower(), 'Private data marker mismatch')
@@ -104,7 +104,14 @@ def main() -> None:
         require(bool(classes), 'No compiled classes to verify')
         for path in classes:
             name = path.relative_to(build / 'classes/java/main').as_posix()
-            require(archive.read(name) == path.read_bytes(), f'Stale class: {name}')
+            require(name in names, f'Missing class: {name}')
+            require(int.from_bytes(archive.read(name)[6:8], 'big') <= 61, f'Class requires newer than Java 17: {name}')
+        # Forge changes Minecraft references during reobfuscation; class bytes therefore
+        # differ from classes/java/main. Verify the packaged JAR against the reobf output.
+        reobfuscated = build / 'reobfJarJar/output.jar'
+        require(reobfuscated.is_file() and reobfuscated.read_bytes() == jar.read_bytes(),
+                'Build and reobfuscate the Forge JAR before collecting a candidate')
+        require('blacklight.refmap.json' in names, 'Missing Forge Mixin refmap')
         require(not any('/preview/' in name or '/gametest/' in name or name.startswith('blacklight/test/')
                         for name in names), 'Development harness leaked into JAR')
         mixins = json.loads(archive.read('blacklight.mixins.json'))
@@ -142,7 +149,7 @@ def main() -> None:
         'baseCommit': git(repo, 'rev-parse', 'HEAD').decode().strip(),
         'workingTreeChanged': bool(git(repo, 'status', '--porcelain', '--untracked-files=normal').strip()),
         'sourceFiles': len(sources),
-        'checks': ['compiled-class identity', 'metadata and author', 'license files', 'bundle isolation',
+        'checks': ['reobfuscated-class identity and Java 17', 'metadata and author', 'license files', 'bundle isolation',
                    'mixin classes', 'language JSON', 'distribution identity', 'source snapshot'],
         'notPerformed': ['automated gameplay tests', 'dedicated-server or multiplayer acceptance', 'public upload'],
         'files': {path.name: digest(path.read_bytes()) for path in (jar, dist, source)},

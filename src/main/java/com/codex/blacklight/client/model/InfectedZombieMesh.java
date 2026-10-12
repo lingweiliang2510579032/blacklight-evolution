@@ -38,8 +38,8 @@ public final class InfectedZombieMesh {
         var pose=stack.last();
         for(var f:joints.get(joint)) for(int i=0;i<4;i++) {
             var p=f.p[Math.min(i,2)];
-            out.addVertex(pose,p[0]*growth,p[1]*growth,p[2]*growth).setColor(f.color)
-                    .setUv(.5F,.5F).setOverlay(overlay).setLight(light).setNormal(pose,f.nx,f.ny,f.nz);
+            out.vertex((pose).pose(),p[0]*growth,p[1]*growth,p[2]*growth).color(f.color)
+                    .uv(.5F,.5F).overlayCoords(overlay).uv2(light).normal((pose).normal(),f.nx,f.ny,f.nz).endVertex();
         }
     }
 }

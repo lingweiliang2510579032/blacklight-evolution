@@ -12,7 +12,7 @@ public final class NativeConsumePose {
     private NativeConsumePose() {}
     public static BlacklightPose sample(LivingEntity entity,ConsumeVisual visual,String role,float partial) {
         if(!visual.consuming()&&!GrappleMotion.active(visual))return null;
-        var form=PowerForm.values()[Math.clamp(visual.form(),0,PowerForm.values().length-1)];
+        var form=PowerForm.values()[net.minecraft.util.Mth.clamp(visual.form(),0,PowerForm.values().length-1)];
         boolean mounted=ConsumeSequence.mountedStage(visual.stage());
         String type=GrappleMotion.sceneKey(entity,visual);
         String key="consume_"+type+"_"+role;
@@ -36,11 +36,11 @@ public final class NativeConsumePose {
     }
     public static boolean actor(LivingEntity entity,BlacklightPose pose,float partial) {
         if(recovery(entity,pose,partial))return true;
-        int stage=entity.getData(ModAttachments.GRAB_STAGE);
+        int stage=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.GRAB_STAGE);
         if(stage!=ConsumeVisual.CONSUME&&stage!=ConsumeVisual.CAPTURE&&stage!=ConsumeVisual.HOLD&&!ConsumeSequence.mountedStage(stage))return false;
-        var victims=entity.level().getEntitiesOfClass(LivingEntity.class,entity.getBoundingBox().inflate(18),e->e.getData(ModAttachments.CONSUME_VISUAL).consumerId()==entity.getId());
+        var victims=entity.level().getEntitiesOfClass(LivingEntity.class,entity.getBoundingBox().inflate(18),e->com.codex.blacklight.registry.ModAttachments.getData(e, ModAttachments.CONSUME_VISUAL).consumerId()==entity.getId());
         if(victims.isEmpty())return false;
-        var visual=victims.getFirst().getData(ModAttachments.CONSUME_VISUAL);
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(victims.get(0), ModAttachments.CONSUME_VISUAL);
         if(stage==ConsumeVisual.MOUNT||stage==ConsumeVisual.MOUNT_HOLD) {
             float age=entity.level().getGameTime()-visual.started()+partial;
             float stroke=stage==ConsumeVisual.MOUNT?(float)Math.sin(age*.55F)*.32F:0;
@@ -58,15 +58,15 @@ public final class NativeConsumePose {
             return true;
         }
         BlacklightPose sample=sample(entity,visual,"actor",partial);if(sample==null)return false;
-        boolean hunter=victims.getFirst() instanceof com.codex.blacklight.entity.BlacklightHunter;
+        boolean hunter=victims.get(0) instanceof com.codex.blacklight.entity.BlacklightHunter;
         if(ConsumeSequence.mountedStage(stage)&&hunter)sample.orElseEmpty("Root").translation().set(0,0,0);
         if(stage==ConsumeVisual.MOUNT_CONSUME&&!hunter) {
             sample.orElseEmpty("Root").translation().set(0,0,0);
-            var form=PowerForm.values()[Math.clamp(visual.form(),0,PowerForm.values().length-1)];
+            var form=PowerForm.values()[net.minecraft.util.Mth.clamp(visual.form(),0,PowerForm.values().length-1)];
             float t=visual.motionProgress(entity.level().getGameTime(),partial);
             // Keep the complete weapon torso + both-arm action. Only the supporting legs are adapted.
             var root=sample.orElseEmpty("Root").rotation();root.set(new org.joml.Quaternionf().slerp(root,.4F));
-            float grip=1-Math.clamp((t-.08F)/.12F,0,1)+Math.clamp((t-.86F)/.12F,0,1);
+            float grip=1-net.minecraft.util.Mth.clamp((t-.08F)/.12F,0,1)+net.minecraft.util.Mth.clamp((t-.86F)/.12F,0,1);
             sample.orElseEmpty("Arm_L").rotation().slerp(new org.joml.Quaternionf().rotationXYZ(-2.1F,0,-.2F),grip);
             sample.orElseEmpty("Hand_L").rotation().slerp(new org.joml.Quaternionf().rotationXYZ(-.7F,0,0),grip);
             sample.orElseEmpty("Thigh_L").rotation().rotationXYZ(-1.1F,0,.38F);
@@ -74,18 +74,18 @@ public final class NativeConsumePose {
             sample.orElseEmpty("Leg_L").rotation().rotationXYZ(1.5F,0,0);
             sample.orElseEmpty("Leg_R").rotation().rotationXYZ(1.5F,0,0);
         }
-        float enter=Math.clamp((entity.level().getGameTime()-visual.started()+partial)/4F,0,1);
+        float enter=net.minecraft.util.Mth.clamp((entity.level().getGameTime()-visual.started()+partial)/4F,0,1);
         pose.getJointTransformData().putAll(BlacklightPose.interpolatePose(pose,sample,enter).getJointTransformData());return true;
     }
     private static boolean recovery(LivingEntity entity,BlacklightPose pose,float partial) {
-        var visual=entity.getData(ModAttachments.CONSUME_RECOVERY);
-        if(!visual.active()||!entity.isAlive()||entity.getData(ModAttachments.CONSUMING)
-                ||!entity.getData(ModAttachments.PLAYER_STATE).isPrototypeMode()
-                ||entity.getData(ModAttachments.WEAPON_VISUAL).spec()!=null)return false;
+        var visual=com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUME_RECOVERY);
+        if(!visual.active()||!entity.isAlive()||com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.CONSUMING)
+                ||!com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.PLAYER_STATE).isPrototypeMode()
+                ||com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.WEAPON_VISUAL).spec()!=null)return false;
         float progress=visual.phaseProgress(entity.level().getGameTime(),partial);
         if(progress>=1)return false;
         BlacklightPose sample=sample(entity,visual,"actor",partial);if(sample==null)return false;
-        float remaining=visual.duration()*(1-progress),weight=Math.clamp(remaining/3F,0,1);
+        float remaining=visual.duration()*(1-progress),weight=net.minecraft.util.Mth.clamp(remaining/3F,0,1);
         boolean moving=entity.getDeltaMovement().horizontalDistance()>.018||!entity.onGround();
         if(ConsumeSequence.mountedStage(visual.stage()))sample.orElseEmpty("Root").translation().set(0,0,0);
         // When moving, keep locomotion root and legs. The absorption torso/arms
@@ -98,8 +98,8 @@ public final class NativeConsumePose {
         return true;
     }
     public static float facing(LivingEntity actor,float fallback){
-        if(actor.getData(ModAttachments.GRAB_STAGE)!=ConsumeVisual.CONSUME)return fallback;
-        var victims=actor.level().getEntitiesOfClass(LivingEntity.class,actor.getBoundingBox().inflate(18),e->e.getData(ModAttachments.CONSUME_VISUAL).consumerId()==actor.getId());
-        return victims.isEmpty()?fallback:victims.getFirst().getData(ModAttachments.CONSUME_VISUAL).facing();
+        if(com.codex.blacklight.registry.ModAttachments.getData(actor, ModAttachments.GRAB_STAGE)!=ConsumeVisual.CONSUME)return fallback;
+        var victims=actor.level().getEntitiesOfClass(LivingEntity.class,actor.getBoundingBox().inflate(18),e->com.codex.blacklight.registry.ModAttachments.getData(e, ModAttachments.CONSUME_VISUAL).consumerId()==actor.getId());
+        return victims.isEmpty()?fallback:com.codex.blacklight.registry.ModAttachments.getData(victims.get(0), ModAttachments.CONSUME_VISUAL).facing();
     }
 }

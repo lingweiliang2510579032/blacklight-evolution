@@ -31,7 +31,7 @@ public final class UtilityPowerLayer extends net.minecraft.client.renderer.entit
     private void renderSkeleton(AbstractClientPlayer player,PoseStack stack,MultiBufferSource buffer,int light,org.joml.Matrix4f[] poses,float partial,boolean firstPerson,int side) {
         if (player.isInvisible()) return;
         var armor = BlockArmorModel.get();
-        var form = player.getData(ModAttachments.PLAYER_STATE).getActivePower();
+        var form = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).getActivePower();
         if (armor.visible(player, partial)) for (String name : armor.joints()) {
             var joint = com.codex.blacklight.animation.PlayerMotionController.skeleton().searchJointByName(name); if (joint == null) continue;
             boolean limb = name.startsWith("Arm_") || name.startsWith("Hand_");

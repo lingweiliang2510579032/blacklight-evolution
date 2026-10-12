@@ -8,9 +8,9 @@ import net.minecraft.gametest.framework.*;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.common.util.FakePlayerFactory;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.gametest.*;
+import net.minecraftforge.common.util.FakePlayerFactory;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.gametest.*;
 import java.util.UUID;
 
 @GameTestHolder("blacklight") @PrefixGameTestTemplate(false)
@@ -18,11 +18,11 @@ public final class WeaponAirComboGameTest {
     private static ServerPlayer player(GameTestHelper h,PowerForm form,boolean air){
         var p=FakePlayerFactory.get(h.getLevel(),new GameProfile(UUID.randomUUID(),"air-combo-qa"));
         p.setPos(h.absoluteVec(new Vec3(4,air?7:2,4)));p.setYRot(0);p.setOnGround(!air);p.tickCount=100;
-        var state=p.getData(ModAttachments.PLAYER_STATE);state.infect();state.setPrototypeMode(true);state.unlock(form);state.activate(form);
-        p.getData(ModAttachments.MOVEMENT_STATE).reset();return p;
+        var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);state.infect();state.setPrototypeMode(true);state.unlock(form);state.activate(form);
+        com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.MOVEMENT_STATE).reset();return p;
     }
-    private static void tick(ServerPlayer p,int count){for(int i=0;i<count;i++){p.tickCount++;WeaponCombatSystem.tick(new PlayerTickEvent.Post(p));}}
-    private static WeaponMove move(ServerPlayer p){return p.getData(ModAttachments.WEAPON_VISUAL).spec();}
+    private static void tick(ServerPlayer p,int count){for(int i=0;i<count;i++){p.tickCount++;WeaponCombatSystem.tick(new TickEvent.PlayerTickEvent(TickEvent.Phase.END,p));}}
+    private static WeaponMove move(ServerPlayer p){return com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.WEAPON_VISUAL).spec();}
     private static void close(ServerPlayer p){WeaponCombatSystem.cancelHeldInput(p);WeaponCombatSystem.cancel(p);}
 
     @GameTest(template="wall_test",timeoutTicks=40)
@@ -77,7 +77,7 @@ public final class WeaponAirComboGameTest {
             var p=player(h,form,true);WeaponCombatSystem.request(p,true);var chosen=move(p);
             tick(p,100);h.assertTrue(WeaponCombatSystem.busy(p),"descent cannot expire before ground contact");
             p.setPos(h.absoluteVec(new Vec3(4,2,4)));p.setOnGround(true);tick(p,1);
-            var visual=p.getData(ModAttachments.WEAPON_VISUAL);
+            var visual=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.WEAPON_VISUAL);
             h.assertTrue(visual.clipOffset()>0&&move(p)==chosen,"landing seeks impact pose instead of restarting windup");
             tick(p,chosen.duration+2);h.assertTrue(!WeaponCombatSystem.busy(p),"landing completes recovery");close(p);
         }h.succeed();
@@ -101,7 +101,7 @@ public final class WeaponAirComboGameTest {
     public static void flyingKickMovesAndWeaponChangeCancelsSharedPose(GameTestHelper h){
         var p=player(h,PowerForm.CLAWS,true);WeaponCombatSystem.request(p,true);var kick=move(p);
         tick(p,kick.start);h.assertTrue(p.getDeltaMovement().z>.4,"flying kick has forward impulse");
-        var state=p.getData(ModAttachments.PLAYER_STATE);state.unlock(PowerForm.BLADE);state.activate(PowerForm.BLADE);tick(p,1);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(p, ModAttachments.PLAYER_STATE);state.unlock(PowerForm.BLADE);state.activate(PowerForm.BLADE);tick(p,1);
         h.assertTrue(!WeaponCombatSystem.busy(p),"changing weapon cancels old shared pose");close(p);h.succeed();
     }
 

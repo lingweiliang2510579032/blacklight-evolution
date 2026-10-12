@@ -4,38 +4,38 @@ import com.codex.blacklight.BlacklightNeoMod;
 import com.codex.blacklight.power.PowerForm;
 import com.codex.blacklight.power.UtilityPowerSystem;
 import com.codex.blacklight.registry.ModAttachments;
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.resources.PlayerSkin;
+
 import net.minecraft.world.entity.EntityType;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.EventPriority;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.neoforged.neoforge.client.event.RenderPlayerEvent;
-import net.neoforged.neoforge.client.event.RenderHandEvent;
-import net.neoforged.neoforge.client.event.RenderArmEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.client.event.RenderPlayerEvent;
+import net.minecraftforge.client.event.RenderHandEvent;
+import net.minecraftforge.client.event.RenderArmEvent;
 import net.minecraft.world.entity.HumanoidArm;
 
 /** Native renderer lifecycle. Each skin model has its own renderer and resource reload replaces caches. */
 @EventBusSubscriber(modid=BlacklightNeoMod.MOD_ID,value=Dist.CLIENT)
 public final class StandalonePlayerRendering {
-    private static final Map<PlayerSkin.Model,BlacklightPlayerRenderer> RENDERERS=new EnumMap<>(PlayerSkin.Model.class);
+    private static final Map<String,BlacklightPlayerRenderer> RENDERERS=new HashMap<>();
     private StandalonePlayerRendering() { }
     private record HandContext(AbstractClientPlayer player,BlacklightPlayerRenderer renderer,float partial) { }
     private static HandContext hands;
     public static boolean nativeHandPass(){return hands!=null;}
     @SubscribeEvent public static void hand(RenderHandEvent event) {
         var mc=net.minecraft.client.Minecraft.getInstance();var player=mc.player;
-        if(player==null||player.isScoping()||!player.getData(ModAttachments.PLAYER_STATE).isPrototypeMode())return;
-        var form=player.getData(ModAttachments.PLAYER_STATE).getActivePower();
+        if(player==null||player.isScoping()||!com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).isPrototypeMode())return;
+        var form=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE).getActivePower();
         boolean biological=form==PowerForm.CLAWS||form==PowerForm.BLADE||form==PowerForm.WHIPFIST||form==PowerForm.HAMMERFISTS||form==PowerForm.MUSCLE_MASS;
         boolean armored=UtilityPowerSystem.visualWeight(player,PowerForm.ARMOR,event.getPartialTick())>0;
         boolean shielded=UtilityPowerSystem.visualWeight(player,PowerForm.SHIELD,event.getPartialTick())>0;
         if(!biological&&!armored&&!shielded)return;
-        var renderer=RENDERERS.get(player.getSkin().model());if(renderer==null)return;
+        var renderer=RENDERERS.get(player.getModelName());if(renderer==null)return;
         if(event.getHand()==net.minecraft.world.InteractionHand.OFF_HAND){event.setCanceled(true);return;}
         if(biological||armored)event.setCanceled(true);
         var access=(com.codex.blacklight.mixin.client.NativeHandRendererAccess)mc.gameRenderer.itemInHandRenderer;
@@ -79,13 +79,13 @@ public final class StandalonePlayerRendering {
         if(event.getRenderer() instanceof BlacklightPlayerRenderer)return;
         if(!(event.getEntity() instanceof AbstractClientPlayer player))return;
         float partial=event.getPartialTick();
-        var state=player.getData(ModAttachments.PLAYER_STATE);
+        var state=com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
         boolean active=state.isPrototypeMode()
                 ||UtilityPowerSystem.visualWeight(player,PowerForm.ARMOR,partial)>0
                 ||UtilityPowerSystem.visualWeight(player,PowerForm.SHIELD,partial)>0
-                ||player.getData(ModAttachments.CONSUME_VISUAL).active();
+                ||com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.CONSUME_VISUAL).active();
         if(!active)return;
-        var renderer=RENDERERS.get(player.getSkin().model());if(renderer==null)return;
+        var renderer=RENDERERS.get(player.getModelName());if(renderer==null)return;
         event.setCanceled(true);
         renderer.render(player,player.getYRot(),partial,event.getPoseStack(),event.getMultiBufferSource(),event.getPackedLight());
     }
@@ -94,7 +94,7 @@ public final class StandalonePlayerRendering {
         private Registration() { }
         @SubscribeEvent public static void layers(EntityRenderersEvent.AddLayers event) {
             RENDERERS.clear();
-            for(var skin:event.getSkins())RENDERERS.put(skin,new BlacklightPlayerRenderer(event.getContext(),skin==PlayerSkin.Model.SLIM));
+            for(var skin:event.getSkins())RENDERERS.put(skin,new BlacklightPlayerRenderer(event.getContext(),"slim".equals(skin)));
         }
         @SubscribeEvent public static void entities(EntityRenderersEvent.RegisterRenderers event) {
             event.registerEntityRenderer(EntityType.ZOMBIE,InfectedZombieRenderer::new);

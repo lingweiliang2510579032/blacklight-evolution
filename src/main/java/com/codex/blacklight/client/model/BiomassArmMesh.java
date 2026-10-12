@@ -67,12 +67,12 @@ final class BiomassArmMesh {
             float[] points = faces[face], normal = normals[face];
             for (int vertex = 0; vertex < 4; vertex++) {
                 int index = vertex * 3;
-                consumer.addVertex(pose, points[index] / 16, points[index + 1] / 16, points[index + 2] / 16)
-                        .setColor(color)
-                        .setUv((face % SIDES + (vertex < 2 ? 1 : 0)) / (float)SIDES,
+                consumer.vertex((pose).pose(),points[index] / 16,points[index + 1] / 16,points[index + 2] / 16)
+                        .color(color)
+                        .uv((face % SIDES + (vertex < 2 ? 1 : 0)) / (float)SIDES,
                                 (topY - points[index + 1]) / height)
-                        .setOverlay(overlay).setLight(light)
-                        .setNormal(pose, normal[0], normal[1], normal[2]);
+                        .overlayCoords(overlay).uv2(light)
+                        .normal((pose).normal(),normal[0],normal[1],normal[2]).endVertex();
             }
         }
     }
