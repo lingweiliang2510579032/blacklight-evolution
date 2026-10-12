@@ -40,7 +40,8 @@ public final class BlacklightPlayerRenderer extends PlayerRenderer {
         try {
             arm.translateAndRotate(stack);
             stack.translate((left?1:-1)*(slimHands?.5F:1F)/16F,-2F/16F,0);
-            var form=player.getData(ModAttachments.PLAYER_STATE).getActivePower();
+            var morph=WeaponMorphTracker.sample(player,partial);
+            var form=morph.projectionForm(left);
             boolean plated=com.codex.blacklight.power.UtilityPowerSystem.visualWeight(player,com.codex.blacklight.power.PowerForm.ARMOR,partial)>0;
             boolean shielded=com.codex.blacklight.power.UtilityPowerSystem.visualWeight(player,com.codex.blacklight.power.PowerForm.SHIELD,partial)>0;
             var pose=new com.codex.blacklight.animation.BlacklightPose();
@@ -63,7 +64,8 @@ public final class BlacklightPlayerRenderer extends PlayerRenderer {
                     com.codex.blacklight.client.animation.NativeShieldGrip.matrix(player,partial),
                     (float)com.codex.blacklight.client.tuning.ClawTransformSettings.limbWidth(side),
                     (float)com.codex.blacklight.client.tuning.ClawTransformSettings.talonLength(side),
-                    com.mojang.blaze3d.systems.RenderSystem.getProjectionMatrix(),frame,Math.max(1,Math.max(hammer.fist(),hammer.forearm())),left);
+                    com.mojang.blaze3d.systems.RenderSystem.getProjectionMatrix(),frame,Math.max(1,Math.max(hammer.fist(),hammer.forearm())),left,
+                    morph.parts().stream().map(WeaponMorphTracker.Part::form).toList(),.045F*morph.flow());
             VIEWS.put(player,new RenderedView(view,player.level().getGameTime()+partial));
             biological.renderFirstPerson(player,stack,buffers,light,view.matrices(),partial,left?1:0);
             utility.renderFirstPerson(player,stack,buffers,light,view.matrices(),partial,left?1:0);
