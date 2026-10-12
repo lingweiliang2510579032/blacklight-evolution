@@ -4,6 +4,10 @@
 
 项目原创内容采用 [GPL-3.0-only](LICENSE)。主仓库 https://github.com/mengyuyuan/blacklight-evolution 按版本维护：`main` 为 NeoForge 1.21.1 / Java 21，`forge-1.20.1` 为 Forge 1.20.1 / Java 17。雨夜的 Forge 移植已通过 PR #6 接入独立版本分支；贡献者可继续在自己的 fork 开发，提交 PR 时选择对应版本分支。跨版本修复须适配加载器 API，不能把整套 Forge 分支合入 `main`。第三方文件保留原有许可和署名。
 
+## 多版本协作
+
+新增版本、功能分支、跨版本同步、PR 目标、发布与清理遵循 [多版本规范](docs/MULTIVERSION_WORKFLOW_ZH.md)，支持分支登记在 [versions.json](docs/versions.json)。一个目标版本一个 PR，跨版本同步记录原 PR / SHA 并在跟踪 Issue 中逐版本确认；本分支的 Java、Forge capability、网络和构建接口保留目标平台的实现。
+
 ## 开发环境
 
 - Java 17，使用仓库内的 Gradle 8.9 Wrapper。

@@ -4,6 +4,8 @@
 
 维护版本：**0.3.0-forge-1.20.1-dev.3**，分支：`forge-1.20.1`。已接入上游 dev.7 的完整动作、镜头、HUD、液态武器变形及感染结构资料。dev.3 同步 NeoForge dev.8 的抓取持有转向与双人姿态插值修复。默认构建包含 224 个运行资料文件；旧 source-only 产物及其缺动作启动失败属于 dev.1 历史，不作为本版安装包。Forge 验收结果见 [移植状态](docs/FORGE_1_20_1_STATUS.md)。
 
+跨版本功能和修复按 [多版本协作规范](docs/MULTIVERSION_WORKFLOW_ZH.md) 单独适配：本分支 PR 的 base 选 `forge-1.20.1`，NeoForge 1.21.1 的 base 选 `main`。各版本进度分别记录，不将整套平台分支互相合并。
+
 ## 目标环境
 
 | 组件 | 版本 | 用途 |
