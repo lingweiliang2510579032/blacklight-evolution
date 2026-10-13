@@ -1,10 +1,10 @@
 # 安装 Blacklight: Ascension — Forge 1.20.1
 
-适用版本：0.3.0-forge-1.20.1-dev.4，Minecraft Java 1.20.1、Java 17、Forge 47.4.10。
+适用版本：0.3.0-forge-1.20.1-dev.5，Minecraft Java 1.20.1、Java 17、Forge 47.4.10。
 
 ## 文件和依赖
 
-- 安装 `Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.4-external-profile.jar`；本轮交付包包含 251 份完整动作、恢复、镜头和 HUD 资料。仓库默认 bundled 构建仍为 224 份基础资料，不能代替完整新技能包。
+- 安装 `Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.5-external-profile.jar`；本轮交付包包含 251 份完整动作、恢复、镜头和 HUD 资料。仓库默认 bundled 构建仍为 224 份基础资料，不能代替完整新技能包。
 - 单独安装 GeckoLib 4.8.4 的 Forge 1.20.1 版。
 - ParCool 1.20.1-3.4.3.3 可选。Epic Fight、Epic ParCool、Weapons of Miracles 均不是前置。
 - MixinExtras Forge 0.4.1 内嵌，不需要另外放入 mods。

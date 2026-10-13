@@ -176,6 +176,9 @@ public final class StandaloneBulletTerrainChecks {
                 BulletdiveTerrain.begin(p,canceledId,impact(canceledLane),80);stage=4;stageAt=now;
             }else if(stage==4){
                 var s=BulletdiveTerrain.snapshot(p,canceledId);if(s==null||s.destroyed()==0)return;
+                // A slow frame may exhaust the cooperative time budget before block 16.
+                // Wait for the injected toggle, while still failing a completed job that missed it.
+                if(!cancelTriggered&&!s.complete())return;
                 require(cancelTriggered&&s.complete()&&s.reason().equals("block_breaking_disabled"),"mid-burst preference change did not cancel pending terrain");
                 disabledAir=countAir(canceledLane);stage=5;stageAt=now;
             }else if(stage==5){

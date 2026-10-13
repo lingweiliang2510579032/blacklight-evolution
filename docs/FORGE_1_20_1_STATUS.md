@@ -1,4 +1,6 @@
-# dev.4 最新状态
+# dev.5 最新状态
+
+红雾颜色与透明度修正见 [FORGE_DEV5_MIST_FIX.md](FORGE_DEV5_MIST_FIX.md)。
 
 本轮技能/冲击/蓄力防滑同步及验证见 [FORGE_DEV4_SKILLS.md](FORGE_DEV4_SKILLS.md)。下文保留先前版本历史。
 

@@ -2,7 +2,7 @@
 
 **Blacklight: Ascension · Forge 1.20.1 独立维护版。** 原作者：末者；本分支维护者：雨夜。模组包含生物武器、抓取吸收、伪装、强化移动、感染生物与组织蜂巢，不要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。
 
-维护版本：**0.3.0-forge-1.20.1-dev.4**，分支：`forge-1.20.1`。已接入上游 dev.7 的完整动作、镜头、HUD、液态武器变形及感染结构资料。dev.4 同步 NeoForge dev.13 的临界质量、毁灭技、俯冲分层效果、真实破坏和原地蓄力防滑；完整新技能交付包使用 251 文件 external-profile。保留 dev.3 的抓取持有转向与双人姿态插值修复。默认构建包含 224 个运行资料文件；旧 source-only 产物及其缺动作启动失败属于 dev.1 历史，不作为本版安装包。Forge 验收结果见 [移植状态](docs/FORGE_1_20_1_STATUS.md)。
+维护版本：**0.3.0-forge-1.20.1-dev.5**，分支：`forge-1.20.1`。已接入上游 dev.7 的完整动作、镜头、HUD、液态武器变形及感染结构资料。dev.4 同步 NeoForge dev.13 的临界质量、毁灭技、俯冲分层效果、真实破坏和原地蓄力防滑；完整新技能交付包使用 251 文件 external-profile。保留 dev.3 的抓取持有转向与双人姿态插值修复。默认构建包含 224 个运行资料文件；旧 source-only 产物及其缺动作启动失败属于 dev.1 历史，不作为本版安装包。Forge 验收结果见 [移植状态](docs/FORGE_1_20_1_STATUS.md)。
 
 跨版本功能和修复按 [多版本协作规范](docs/MULTIVERSION_WORKFLOW_ZH.md) 单独适配：本分支 PR 的 base 选 `forge-1.20.1`，NeoForge 1.21.1 的 base 选 `main`。各版本进度分别记录，不将整套平台分支互相合并。
 
@@ -98,7 +98,7 @@ Blacklight 内嵌 MixinExtras Forge 0.4.1，由 Forge 自动加载；不内置 G
 
 Linux 使用 `./gradlew`。默认从仓库 `art/motion-profile/` 打包完整资料，不需指定作者的本机目录。可用 `-PbundleMotionDirectory=<完整资料目录>` 替换整套资料，产物分类为 `external-profile`；不与仓库资料混合。
 
-默认安装候选：`Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.4-bundled.jar`。分发 ZIP 包含同一份 Forge 重混淆后的 Jar-in-Jar 成品、安装文档与资源声明；`bundled-slim.jar` 是中间产物，不用于安装。
+默认安装候选：`Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.5-bundled.jar`。分发 ZIP 包含同一份 Forge 重混淆后的 Jar-in-Jar 成品、安装文档与资源声明；`bundled-slim.jar` 是中间产物，不用于安装。
 
 `assemble` 验证独立运行边界以及最终成品的 224 文件清单、字节数和 SHA-256。完整单元测试、GameTest、客户端及联机验收分别运行和记录，构建成功不代表已全部验收。`tools/package_release.py --profile bundled` 仅收集本地候选与校验值，不上传或批准发行。
 

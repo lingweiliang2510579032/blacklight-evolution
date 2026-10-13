@@ -587,7 +587,15 @@ public final class StandaloneSkillSmoke {
                 if(capturedChest!=null)require(capturedChest.distanceTo(mc.player.getPosition(mc.getFrameTime()))<4,
                     "actual rendered FX chest detached from actor "+c.name()+" / "+capturedChest);
                 if(c.kind()==3&&visual.phase()!=DevastatorSystem.FLIGHT)
+                    {
                     require(com.codex.blacklight.client.renderer.BulletImpactMist.ready(),"Bullet impact mist shader unavailable");
+                    var field=com.codex.blacklight.client.renderer.BulletImpactMist.class.getDeclaredField("shader");field.setAccessible(true);
+                    var mist=(net.minecraft.client.renderer.ShaderInstance)field.get(null);
+                    if(mist!=null){
+                        require(org.lwjgl.opengl.GL20.glGetAttribLocation(mist.getId(),"UV0")==1,"Mist GPU UV0 must use POSITION_TEX_COLOR slot 1");
+                        require(org.lwjgl.opengl.GL20.glGetAttribLocation(mist.getId(),"Color")==2,"Mist GPU Color must use POSITION_TEX_COLOR slot 2");
+                    }
+                }
                 observedEffect=true;require(LiquidBiomassMaterial.ready(),"active skill lost its actual GPU wet material");
                 authoredModelAvailable=AuthoredDevastatorMesh.available();require(authoredModelAvailable,"active skill lost its authored three-dimensional effect model");
                 gpuMeshesReady=RigidBiomassMaterial.ready();require(gpuMeshesReady,"active authored effect did not use the actual indexed GPU mesh material");
