@@ -34,7 +34,9 @@ public final class BlacklightMutant extends Monster implements GeoEntity {
         targetSelector.addGoal(1,new HurtByTargetGoal(this));targetSelector.addGoal(2,new NearestAttackableTargetGoal<>(this,Player.class,true));
     }
     @Override public void tick(){
-        super.tick();if(level().isClientSide)return;
+        super.tick();
+        // The final vanilla death tick removes this entity and invalidates Forge capabilities.
+        if(isRemoved()||level().isClientSide)return;
         if(com.codex.blacklight.combat.ImpactControl.stunned(this)){entityData.set(ATTACK,0);return;}
         if(com.codex.blacklight.registry.ModAttachments.getData(this, com.codex.blacklight.registry.ModAttachments.CONSUME_VISUAL).active()){entityData.set(ATTACK,0);return;}
         if(cooldown>0)cooldown--;int t=entityData.get(ATTACK);if(t<=0)return;

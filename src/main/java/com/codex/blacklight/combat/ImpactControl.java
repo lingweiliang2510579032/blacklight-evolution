@@ -37,15 +37,18 @@ public final class ImpactControl {
     private static void publish(LivingEntity entity,HitReaction state){com.codex.blacklight.registry.ModAttachments.setData(entity, ModAttachments.HIT_REACTION,state);com.codex.blacklight.registry.ModAttachments.syncData(entity, ModAttachments.HIT_REACTION);}
     public static void cancel(LivingEntity entity){
         if(entity instanceof Mob mob)ACTIVE.remove(mob);
+        // Removal cleanup must release our reference, never read or revive invalid capabilities.
+        if(entity.isRemoved())return;
         if(com.codex.blacklight.registry.ModAttachments.getData(entity, ModAttachments.HIT_REACTION).duration()>0)publish(entity,HitReaction.EMPTY);
     }
     public static boolean stunned(Mob mob){return !mob.level().isClientSide&&ACTIVE.containsKey(mob);}
     @SubscribeEvent public static void tick(ForgeEntityTickEvent.Post event){
         if(!(event.getEntity() instanceof Mob mob)||mob.level().isClientSide)return;
+        if(mob.isRemoved()){ACTIVE.remove(mob);return;}
         var control=ACTIVE.get(mob);if(control==null)return;
         if(!mob.onGround()&&!control.airborne()){control=new Control(control.knockdown(),control.flightStarted(),true);ACTIVE.put(mob,control);}
         var hit=com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.HIT_REACTION);long now=mob.level().getGameTime(),age=now-hit.started();
-        if(mob.isRemoved()||com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.CONSUME_VISUAL).active()){cancel(mob);return;}
+        if(com.codex.blacklight.registry.ModAttachments.getData(mob, ModAttachments.CONSUME_VISUAL).active()){cancel(mob);return;}
         if(!mob.isAlive()){
             float yaw=hit.yaw();cancel(mob);publish(mob,new HitReaction(now,20,HitReaction.DEATH,yaw,ImpactProfile.FALL));return;
         }
