@@ -17,6 +17,12 @@ public final class UpgradeSystem {
         var growth=GrowthUpgrade.byId(upgradeId);
         if(growth!=null){GrowthSystem.purchase(player,growth);return;}
         BlacklightState state = com.codex.blacklight.registry.ModAttachments.getData(player, ModAttachments.PLAYER_STATE);
+        var combat = CombatSkill.byId(upgradeId);
+        if (combat != null) {
+            if (!state.buyCombatSkill(combat)) { deny(player, upgradeId, combat.epCost()); return; }
+            confirm(player, state, upgradeId); return;
+        }
+
         var form = PowerForm.byId(upgradeId);
         if (PowerFormSystem.supported(form) && form != PowerForm.NONE) {
             if (!state.buy(form)) { deny(player, upgradeId, form.epCost()); return; }

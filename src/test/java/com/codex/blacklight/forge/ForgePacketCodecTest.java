@@ -56,7 +56,7 @@ class ForgePacketCodecTest {
 
     @Test
     void attachmentDecoderRejectsExcessiveCountsDuplicateKeysAndOversizedFieldLengths() {
-        FriendlyByteBuf buffer = packetHeader(21);
+        FriendlyByteBuf buffer = packetHeader(33);
         try {
             assertThrows(DecoderException.class, () -> AttachmentSyncPayload.STREAM_CODEC.decode(buffer));
         } finally { buffer.release(); }

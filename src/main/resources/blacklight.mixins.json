@@ -7,6 +7,10 @@
     "ServerEntityTickMixin",
     "ScaledLivingDamageMixin",
     "ScaledPlayerDamageMixin",
+    "ForgeCriticalMassDamageMixin",
+    "BulletdiveBlockFeedbackMixin",
+    "BulletdiveItemMergeAccess",
+
     "HealthAttributeLimitAccessor",
     "ScaledAbsorptionMixin",
     "InfectedDragonFightMixin",

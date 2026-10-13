@@ -5,6 +5,8 @@ import com.codex.blacklight.movement.MovementTuningSettings;
 import com.codex.blacklight.movement.PrototypeLocomotion;
 import com.codex.blacklight.registry.ModAttachments;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.pipeline.TextureTarget;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.PostChain;
 import net.minecraft.resources.ResourceLocation;
@@ -13,10 +15,13 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.TickEvent.ClientTickEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
+
 
 import java.io.IOException;
+import org.lwjgl.opengl.GL11;
 
 /**
  * Velocity-corrected radial post effect inspired by the MIT-licensed
@@ -28,6 +33,7 @@ public final class ClientSpeedPostEffect {
             BlacklightNeoMod.MOD_ID, "shaders/post/prototype_speed.json");
 
     private static PostChain chain;
+    private static RenderTarget savedDepth;
     private static boolean failed;
     private static int targetWidth = -1;
     private static int targetHeight = -1;
@@ -42,8 +48,18 @@ public final class ClientSpeedPostEffect {
     private ClientSpeedPostEffect() {
     }
 
+    @EventBusSubscriber(modid="blacklight",value=Dist.CLIENT,bus=EventBusSubscriber.Bus.MOD)
+    public static final class ReloadEvents {
     @SubscribeEvent
-    public static void onClientTick(net.minecraftforge.event.TickEvent.ClientTickEvent event){if(event.phase != net.minecraftforge.event.TickEvent.Phase.END)return;
+    public static void onReload(RegisterClientReloadListenersEvent event){
+        event.registerReloadListener((net.minecraft.server.packs.resources.ResourceManagerReloadListener)manager->
+                Minecraft.getInstance().execute(()->{closeChain();failed=false;}));
+    }
+    }
+
+    @SubscribeEvent
+    public static void onClientTick(ClientTickEvent event){if(event.phase!=net.minecraftforge.event.TickEvent.Phase.END)return;
+
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) {
             // The world unloaded: release the PostChain so a resource reload can
@@ -106,7 +122,9 @@ public final class ClientSpeedPostEffect {
         if (minecraft.level == null || minecraft.player == null || minecraft.screen != null) return;
         float partial = event.getPartialTick();
         float renderedIntensity = Mth.lerp(partial, previousIntensity, intensity);
-
+        boolean copied=false;
+        boolean wasBlend=GL11.glIsEnabled(GL11.GL_BLEND);
+        boolean wasDepth=GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
         try {
             ensureChain(minecraft);
             if (chain == null) return;
@@ -114,23 +132,29 @@ public final class ClientSpeedPostEffect {
             // zero-intensity fast path after that makes shader failures deterministic
             // instead of hiding them until the player happens to sprint.
             if (renderedIntensity < 0.015F) return;
+            minecraft.renderBuffers().bufferSource().endBatch();
+            savedDepth.copyDepthFrom(minecraft.getMainRenderTarget());
+            copied=true;
             com.codex.blacklight.client.ClientPostUniforms.set(chain,"Time", (minecraft.player.tickCount + partial) / 20.0F);
             com.codex.blacklight.client.ClientPostUniforms.set(chain,"Intensity", renderedIntensity);
             com.codex.blacklight.client.ClientPostUniforms.set(chain,"BiasX", Mth.lerp(partial, previousBiasX, biasX));
             com.codex.blacklight.client.ClientPostUniforms.set(chain,"BiasY", Mth.lerp(partial, previousBiasY, biasY));
+
             RenderSystem.disableBlend();
             RenderSystem.disableDepthTest();
             RenderSystem.resetTextureMatrix();
             chain.process(partial);
-            minecraft.getMainRenderTarget().bindWrite(true);
-            // Restore state for the remaining render stages instead of relying on
-            // vanilla/other mods to reset it after AFTER_LEVEL.
-            RenderSystem.enableDepthTest();
-            RenderSystem.enableBlend();
         } catch (RuntimeException | IOException exception) {
             failed = true;
-            closeChain();
             BlacklightNeoMod.LOGGER.error("Unable to render Prototype speed post effect", exception);
+        } finally {
+            // A full-screen post pass clears its output depth. Preserve the scene
+            // for later outlines/post effects and never leave hands on a swap FBO.
+            if(copied&&savedDepth!=null)minecraft.getMainRenderTarget().copyDepthFrom(savedDepth);
+            if(wasDepth)RenderSystem.enableDepthTest();else RenderSystem.disableDepthTest();
+            if(wasBlend)RenderSystem.enableBlend();else RenderSystem.disableBlend();
+            minecraft.getMainRenderTarget().bindWrite(false);
+            if(failed)closeChain();
         }
     }
 
@@ -154,16 +178,22 @@ public final class ClientSpeedPostEffect {
         int height = minecraft.getWindow().getHeight();
         if (width != targetWidth || height != targetHeight) {
             chain.resize(width, height);
+            if(savedDepth!=null)savedDepth.destroyBuffers();
+            savedDepth=new TextureTarget(width,height,true,Minecraft.ON_OSX);
             targetWidth = width;
             targetHeight = height;
         }
     }
 
     private static void closeChain() {
+        boolean destroyed=chain!=null||savedDepth!=null;
         if (chain != null) chain.close();
         chain = null;
+        if(savedDepth!=null)savedDepth.destroyBuffers();
+        savedDepth=null;
         lastResourceManager = null;
         targetWidth = -1;
         targetHeight = -1;
+        if(destroyed)Minecraft.getInstance().getMainRenderTarget().bindWrite(false);
     }
 }
