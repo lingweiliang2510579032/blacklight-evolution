@@ -4,7 +4,13 @@
 
 项目原创内容采用 [GPL-3.0-only](LICENSE)。主仓库 https://github.com/mengyuyuan/blacklight-evolution 按版本维护：`main` 为 NeoForge 1.21.1 / Java 21，`forge-1.20.1` 为 Forge 1.20.1 / Java 17。雨夜的 Forge 移植已通过 PR #6 接入独立版本分支；贡献者可继续在自己的 fork 开发，提交 PR 时选择对应版本分支。跨版本修复须适配加载器 API，不能把整套 Forge 分支合入 `main`。第三方文件保留原有许可和署名。
 
+## 多版本协作
+
+新增版本、功能分支、跨版本同步、PR 目标、发布与清理遵循 [多版本规范](docs/MULTIVERSION_WORKFLOW_ZH.md)，支持分支登记在 [versions.json](docs/versions.json)。一个目标版本一个 PR，跨版本同步记录原 PR / SHA 并在跟踪 Issue 中逐版本确认；本分支的 Java、Forge capability、网络和构建接口保留目标平台的实现。
+
 ## 开发环境
+
+准备贡献时可使用 [多版本快捷工具](docs/VERSION_TOOLS_ZH.md)，自动填写 PR 平台信息与同步候选，或在干净工作区建立目标版本功能分支。
 
 - Java 17，使用仓库内的 Gradle 8.9 Wrapper。
 - Minecraft 1.20.1、Forge 47.4.10、GeckoLib 4.8.4；不要求 Epic Fight、Epic ParCool 或 Weapons of Miracles。
@@ -14,7 +20,7 @@
 
 普通构建是 bundled，包含仓库中完整的 224 个资料文件，并验证最终 Forge 重混淆成品。外部整套资料使用 external-profile；不提交个人导出、测试存档、解包原始文件或凭证。构建和完整玩法验收分开记录，资源出处见 `THIRD_PARTY_ASSETS.md`。
 
-默认构建与 CI 不运行单元测试、碰撞测试、GameTest 或游戏内验收；这些检查仅在用户明确要求时运行。编译打包成功不代表真人试玩已通过。
+默认构建与 Build CI 不运行游戏单元测试、碰撞测试、GameTest 或游戏内验收；这些检查仅在用户明确要求时运行。Version policy CI 只运行轻量协作工具回归和静态平台核对。编译打包成功不代表真人试玩已通过。
 
 ## 目前适合参与的工作
 
