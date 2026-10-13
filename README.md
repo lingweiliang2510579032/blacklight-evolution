@@ -15,10 +15,12 @@
 | Minecraft Java | 1.20.1 | 游戏版本 |
 | Java | 17 | 游戏运行与编译 |
 | Forge | 47.4.10 | 加载器 |
-| GeckoLib | 4.8.4，Forge 1.20.1 版 | 必需，单独安装 |
+| GeckoLib | 4.8.4，Forge 1.20.1 版 | **必装前置模组，需单独安装** |
 | ParCool | 1.20.1-3.4.3.3 | 可选兼容 |
 
-Blacklight 内嵌 MixinExtras Forge 0.4.1，由 Forge 自动加载；不内置 GeckoLib。本维护仓已同步作者 Forge dev.5 和感染实体删除后的 capability 崩溃修复（上游 `2a8c6930d8eb570ef7a3c83c32cedc9135b8315a`），并接入 PR #21 的完整动作资料（`8145022db150253fb152eb0f9cac780a58f40654`）。默认 251 文件包包含新毁灭技、子弹俯冲的主动作、蓄力、恢复与变体，保留 Forge 的装甲成长资料。资源完整不代表玩法全部验收；作者的实机报告属于上游证据，本仓结果单独记录。
+**GeckoLib 4.8.4 是必装前置模组，必须选择 Forge 1.20.1 版，并单独放入 `mods`。客户端和服务端都需要安装；完整安装包不内置 GeckoLib。**
+
+Blacklight 内嵌 MixinExtras Forge 0.4.1，由 Forge 自动加载。本维护仓已同步作者 Forge dev.5 和感染实体删除后的 capability 崩溃修复（上游 `2a8c6930d8eb570ef7a3c83c32cedc9135b8315a`），并接入 PR #21 的完整动作资料（`8145022db150253fb152eb0f9cac780a58f40654`）。默认 251 文件包包含新毁灭技、子弹俯冲的主动作、蓄力、恢复与变体，保留 Forge 的装甲成长资料。资源完整不代表玩法全部验收；作者的实机报告属于上游证据，本仓结果单独记录。
 
 - [下载 Forge dev.5 完整安装包](https://github.com/lingweiliang2510579032/blacklight-evolution/releases/tag/v0.3.0-forge-1.20.1-dev.5)（开发预发布）
 

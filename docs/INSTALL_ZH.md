@@ -5,7 +5,7 @@
 ## 文件和依赖
 
 - 安装 `Blacklight-Ascension-MC1.20.1-Forge-0.3.0-forge-1.20.1-dev.5-bundled.jar`；默认构建和交付包包含 251 份完整动作、恢复、镜头和 HUD 资料，无需外部资料路径。
-- 单独安装 GeckoLib 4.8.4 的 Forge 1.20.1 版。
+- **GeckoLib 4.8.4 是必装前置模组**，必须单独安装 **Forge 1.20.1 版**并放入 `mods`。客户端和服务端都要安装，完整安装包不内置此依赖；缺少 GeckoLib 无法启动模组。
 - ParCool 1.20.1-3.4.3.3 可选。Epic Fight、Epic ParCool、Weapons of Miracles 均不是前置。
 - MixinExtras Forge 0.4.1 内嵌，不需要另外放入 mods。
 - `bundled-slim.jar` 是构建中间文件；旧 dev.1 source-only 包不可代替本版。

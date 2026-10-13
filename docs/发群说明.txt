@@ -7,7 +7,7 @@
 安装：
 1. 使用 Minecraft Java 1.20.1、Java 17、Forge 47.4.10。
 2. 将本版 bundled.jar 放入 mods，移走旧 Blacklight JAR，避免重复加载。
-3. 另装 GeckoLib 4.8.4，必须选择 Forge 1.20.1 版。
+3. GeckoLib 4.8.4 是必装前置模组，必须选择 Forge 1.20.1 版并单独放入 mods。客户端和服务端都要安装；完整包不内置它，缺少此前置无法启动模组。
 4. MixinExtras 已内嵌，无需另装。
 5. ParCool 可选；不需要 Epic Fight、Epic ParCool 或 Weapons of Miracles。
 
