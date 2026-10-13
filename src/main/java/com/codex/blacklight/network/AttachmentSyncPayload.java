@@ -25,7 +25,7 @@ public record AttachmentSyncPayload(int entityId, UUID uuid, ResourceLocation di
                 int id = buffer.readVarInt(); UUID uuid = buffer.readUUID();
                 ResourceLocation dimension = buffer.readResourceLocation();
                 int count = buffer.readVarInt();
-                if (count < 0 || count > 20) throw new DecoderException("Invalid Blacklight attachment count");
+                if (count < 0 || count > 32) throw new DecoderException("Invalid Blacklight attachment count");
                 Map<String, byte[]> fields = new LinkedHashMap<>();
                 for (int i = 0; i < count; i++) {
                     String name = buffer.readUtf(64);

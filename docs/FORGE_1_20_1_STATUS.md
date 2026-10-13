@@ -1,3 +1,9 @@
+# dev.5 最新状态
+
+红雾颜色与透明度修正见 [FORGE_DEV5_MIST_FIX.md](FORGE_DEV5_MIST_FIX.md)。
+
+本轮技能/冲击/蓄力防滑同步及验证见 [FORGE_DEV4_SKILLS.md](FORGE_DEV4_SKILLS.md)。下文保留先前版本历史。
+
 # Forge 1.20.1 维护与验收状态
 
 更新时间：2026-10-12。当前版本：0.3.0-forge-1.20.1-dev.2。完整安装包已构建，作为 Forge 1.20.1 开发预发布提供。

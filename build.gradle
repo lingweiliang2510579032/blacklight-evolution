@@ -113,8 +113,9 @@ if (project.hasProperty('wallTraversalTest')) {
     sourceSets.main.java.srcDir('src/traversalTest/java')
     sourceSets.main.resources.srcDir('src/traversalTest/resources')
 }
-if (project.hasProperty('standaloneVisual') || project.hasProperty('standaloneGait') || project.hasProperty('standaloneLock') || project.hasProperty('standaloneMorph')) {
+if (project.hasProperty('standaloneVisual') || project.hasProperty('standaloneGait') || project.hasProperty('standaloneLock') || project.hasProperty('standaloneMorph') || project.hasProperty('standaloneSkill') || project.hasProperty('standaloneSync')) {
     sourceSets.main.java.srcDir('src/standaloneVisualTest/java')
+    if (!project.hasProperty('standaloneSync')) sourceSets.main.java.exclude '**/StandaloneSyncClientSmoke.java', '**/StandaloneSyncServerChecks.java'
 }
 if (project.hasProperty('standaloneInfected')) {
     sourceSets.main.java.srcDir('src/infectedVisualTest/java')
@@ -136,6 +137,7 @@ tasks.withType(Jar).configureEach {
             'Blacklight-Asset-Notice': 'THIRD_PARTY_ASSETS.md')
     exclude 'com/codex/blacklight/gametest/**'
     exclude 'com/codex/blacklight/client/Standalone*Smoke*.class'
+    exclude 'com/codex/blacklight/client/Standalone*Checks*.class'
     exclude 'com/codex/blacklight/client/InfectedCompositionSmoke*.class'
     exclude 'data/blacklight/structures/wall_test.nbt'
 }
@@ -168,13 +170,20 @@ minecraft {
                 args '--width', '960', '--height', '640'
             }
             if (project.hasProperty('openAnimationTuner')) property 'blacklight.test.openAnimationTuner', 'true'
-            ['standaloneVisual', 'standaloneGait', 'standaloneLock'].each { hook ->
+            ['standaloneVisual', 'standaloneGait', 'standaloneLock', 'standaloneSkill', 'standaloneSync'].each { hook ->
                 if (project.hasProperty(hook)) property "blacklight.test.${hook}", file(project.property(hook)).absolutePath
             }
             if (project.hasProperty('standaloneVisualShots')) property 'blacklight.test.standaloneVisual.shots', project.property('standaloneVisualShots').toString()
+            if (project.hasProperty('standaloneSkillCases')) property 'blacklight.test.standaloneSkill.cases', project.property('standaloneSkillCases').toString()
+            if (project.hasProperty('standaloneGaitStandingCharge')) property 'blacklight.test.standaloneGait.standingCharge', 'true'
+            if (project.hasProperty('standaloneGaitClaws')) property 'blacklight.test.standaloneGait.claws', 'true'
             if (project.hasProperty('standaloneGaitJump')) property 'blacklight.test.standaloneGait.jumpOnly', 'true'
         }
-        server { args '--nogui' }
+        server {
+            if (project.hasProperty('serverRunDirectory')) workingDirectory file(project.property('serverRunDirectory'))
+            args '--nogui'
+            jvmArgs '-Xmx2G'
+        }
         gameTestServer {
             workingDirectory project.file('run-standalone-gametest')
             jvmArgs '-Xmx2G'
@@ -446,7 +455,7 @@ tasks.register('verifyBundledMotionResources') {
     dependsOn tasks.named('reobfJarJar')
     doLast {
         def source = file(bundledMotionDirectory.get())
-        def profile = fileTree(source).matching { include '*.json', '*.data' }.files
+        def profile = fileTree(source).matching { include '*.json', '*.data'; exclude 'devastator-fx.data' }.files
         if (profile.empty || !new File(source, 'basic_idle.json').isFile())
             throw new GradleException('A complete runtime motion profile is required')
         def manifest = releaseProfile == 'bundled'
