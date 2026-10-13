@@ -1,12 +1,21 @@
 # dev.5 本维护仓同步状态
 
-2026-10-13 已同步作者 `forge-1.20.1` 至 `2a8c6930d8eb570ef7a3c83c32cedc9135b8315a`，包含 PR #10、#13、#17、#18 的版本协作工具、新技能、红雾修复及感染实体删除后停止访问 capability。Minecraft 1.20.1 / Java 17 / Forge 47.4.10 / GeckoLib 4.8.4 目标保持不变。
+2026-10-13 已同步作者 `forge-1.20.1` 至 `2a8c6930d8eb570ef7a3c83c32cedc9135b8315a`，包含 PR #10、#13、#17、#18 的版本协作工具、新技能、红雾修复及感染实体删除后停止访问 capability；另接入作者 PR #21 资源分支 `8145022db150253fb152eb0f9cac780a58f40654`。Minecraft 1.20.1 / Java 17 / Forge 47.4.10 / GeckoLib 4.8.4 目标保持不变。
 
-本仓本轮全量 Java 测试 276 项：266 通过、5 失败、5 跳过。4 项为先前移动预设、移动升级和警戒/伪装差异；新增的 `WeaponContentTest.eachMoveHasFiniteFullBodyAnimationWithMatchingDuration` 失败是缺少新技能动作文件，5 项 `DevastatorSourceTest` 因无扩展资料跳过，不能记作已验证完整技能。Python 资产/版本工作流测试 18 项全部通过。日志：`JB/dev5-full-build.log`、`JB/dev5-python-tests.log`。
+默认 bundled 已补齐 27 个新技能动作 JSON，共 251 份运行资料（240 个 JSON、11 个 `.data`），保留 Forge 的 `armor-growth.data`。不再要求作者另行提供 external-profile 路径；本次资源接入未修改玩法代码。开发预发布保留版本号 `0.3.0-forge-1.20.1-dev.5`。
 
-实体删除 GameTest 的 7 个场景已通过 Forge / Java 17 编译（`JB/dev5-lifecycle-compile.log`），未运行游戏场景。公开基础包的干净编译、Jar-in-Jar 重混淆、非空 refmap 和 224 文件校验通过；实际成品动作采样为 213 片段、4,473 轨道、780,381 次采样、0 失败，装甲变形/待机通过（`JB/dev5-base-motion-verify.log`）。第一次采样命令漏传必填成品路径而失败，补传后成功；未将该失败记作通过。生成基础包不等于新技能完整包验收，未启动或关闭用户的游戏。
+本仓完整 251 文件包验证结果：
 
-默认 bundled 仍含 224 份基础资料。`MotionLibrary` 支持完整缺少扩展时运行基础玩法，新技能不会启用；只提供部分扩展会触发缺动作校验。完整 dev.5 新技能包需整套 251 文件 external-profile，当前待作者补充 27 个动作文件，未将基础包发布为新技能完整版。
+- `clean assemble`、Forge Jar-in-Jar 重混淆、非空 refmap、独立依赖边界和 251 文件集合/字节数/SHA-256 校验通过。旧 224 文件保持不变，新增 27 文件共 27,844,474 字节；逐文件 JSON 解析通过。
+- 全量 Java 测试 276 项：272 通过、4 失败、0 跳过。此前缺资料导致的 `WeaponContentTest.eachMoveHasFiniteFullBodyAnimationWithMatchingDuration` 已通过；5 项 `DevastatorSourceTest` 本轮实际执行并通过。剩余失败仍是移动预设、两项移动升级和警戒/伪装差异，未为迁就断言修改玩法；完整测试命令因这 4 项失败返回非零。
+- 成品动作采样：240 片段、5,040 轨道、996,870 次采样、0 失败；装甲变形与待机检查通过，Epic Fight 依赖缺席检查通过。使用 `--continue` 保留测试失败并继续执行采样，不能把整条命令记为全绿。
+- Python 资产/版本工作流测试 18 项全部通过。
+
+独立客户端加载检查完成：21:56:23 模组初始化，21:56:24 开始资源重载，21:56:30～31 完成 OpenAL 与全部图集加载；日志未见缺动作、Mixin 注入、着色器编译失败或 FATAL。本次仅验证客户端加载，未执行新技能或死亡删除游戏场景；专用服务端、多人和完整生存验收尚未完成，构建与动作采样不能替代这些场景。
+
+证据：`JB/dev5-complete-build-tests.log`、`JB/dev5-complete-resource-verification.log`、`JB/dev5-complete-python-tests.log`、`JB/dev5-complete-client.log`。
+
+资源补齐前的基础包验证（历史）：Java 测试 276 项，266 通过、5 失败、5 跳过；除 4 项继承差异外，`WeaponContentTest.eachMoveHasFiniteFullBodyAnimationWithMatchingDuration` 因缺动作失败，5 项 `DevastatorSourceTest` 因无扩展资料跳过。Python 资产/版本工作流测试 18 项全部通过（`JB/dev5-python-tests.log`）。224 文件基础包编译、重混淆、非空 refmap 和资源校验通过，动作采样 213 片段、4,473 轨道、780,381 次采样、0 失败，装甲变形/待机通过（`JB/dev5-base-motion-verify.log`）；首次漏传采样成品路径的失败未记为通过。实体删除 GameTest 的 7 个场景仅编译通过（`JB/dev5-lifecycle-compile.log`），未运行游戏场景。上述数字不作为完整 251 文件包的验证结果。
 
 上游红雾修复和实机报告见 [FORGE_DEV5_MIST_FIX.md](FORGE_DEV5_MIST_FIX.md)、[FORGE_DEV4_SKILLS.md](FORGE_DEV4_SKILLS.md)。这些报告不等于本维护仓重新进行了实机、服务端或多人验收。下文保留先前版本历史。
 
@@ -38,7 +47,7 @@ dev.3 历史记录（2026-10-13）：版本 0.3.0-forge-1.20.1-dev.3 的完整�
 - 四项失败与 dev.2 相同：移动预设与当前默认值不同、两项移动升级倍率断言、警戒/伪装断言。没有为了测试绿灯改动继承玩法或预设；历史预设还存在超出当前参数加载范围后被夹取的数值，发布不将这些差异记为通过。
 - 成品动作采样与源码/分发包核验分别记录。dev.3 抓取实机试玩、专用服务端和多人验收未完成；dev.2 客户端记录只作为历史证据。
 
-用户明确选择保留作者 dev.3 版本号、发布完整安装包；`publicReleaseReady=false` 保留稳定版验收含义。下载链接见 README；新增行为见 [抓取转向说明](FORGE_CARRY_STEERING_DEV3.md)。
+用户明确选择保留作者 dev.3 版本号、发布完整安装包；`publicReleaseReady=false` 保留稳定版验收含义。[dev.3 历史下载](https://github.com/lingweiliang2510579032/blacklight-evolution/releases/tag/v0.3.0-forge-1.20.1-dev.3)不含 dev.5 新技能；新增行为见 [抓取转向说明](FORGE_CARRY_STEERING_DEV3.md)。
 
 ## dev.2 验证与发布范围（历史）
 

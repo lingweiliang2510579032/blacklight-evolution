@@ -1,22 +1,21 @@
 《虐杀原形》Blacklight: Ascension — Minecraft 1.20.1 Forge
-当前维护源码：0.3.0-forge-1.20.1-dev.5
+版本：0.3.0-forge-1.20.1-dev.5（开发预发布）
 原作者：末者；Forge 移植维护：雨夜。
 
-已同步作者 Forge 专用分支的新技能、俯冲效果、原地蓄力防滑、红雾颜色与透明度修复，以及感染怪物死亡后的 capability 崩溃修复。
-
-dev.5 新技能完整安装包尚在补齐资料：需要 251 份 external-profile 文件；公开源码默认构建只有 224 份基础资料，可运行基础玩法，但不启用新毁灭技和子弹俯冲。请勿将基础 bundled 包当作新技能完整安装包发群。
+包含新毁灭技、子弹俯冲、原地蓄力防滑、红雾修复及感染怪物死亡后的 capability 崩溃修复。作者已补齐 27 个新技能动作，完整 bundled 包内置 251 份资料，无需另外设置动作目录。
 
 安装：
 1. 使用 Minecraft Java 1.20.1、Java 17、Forge 47.4.10。
-2. 完整 dev.5 包补齐、验证并发布后会更新下载；安装 external-profile.jar，移走旧 Blacklight JAR。
+2. 将本版 bundled.jar 放入 mods，移走旧 Blacklight JAR，避免重复加载。
 3. 另装 GeckoLib 4.8.4，必须选择 Forge 1.20.1 版。
-4. 删除旧 Blacklight JAR，避免重复加载。MixinExtras 已内嵌，无需另装。
+4. MixinExtras 已内嵌，无需另装。
 5. ParCool 可选；不需要 Epic Fight、Epic ParCool 或 Weapons of Miracles。
 
-当前已发布的旧版 dev.3 基础完整包（不含 dev.5 新技能）：
-https://github.com/lingweiliang2510579032/blacklight-evolution/releases/tag/v0.3.0-forge-1.20.1-dev.3
+下载：
+https://github.com/lingweiliang2510579032/blacklight-evolution/releases/tag/v0.3.0-forge-1.20.1-dev.5
 
-维护版本保留作者的 dev 标记。dev.5 本仓测试、资源缺口与上游实机报告的边界见 docs/FORGE_1_20_1_STATUS.md。建议先用独立实例和测试存档体验。1.20.1 不支持犰狳、沼骸、旋风人。
+感染后按 B 进入黑光模式，按 U 学习能力；新技能操作见包内 docs/INSTALL_ZH.md。
+保留作者 dev 标记。完整资料核验和动作采样通过；Java 测试 272/276 通过，保留 4 项旧差异。新技能实机、专用服务端、多人及完整生存流程仍待验收，建议先使用独立实例和测试存档。1.20.1 不支持犰狳、沼骸、旋风人。
 
 遇到问题请提供游戏/Forge/GeckoLib/模组版本、复现步骤和脱敏日志。
 许可证和资源出处见包内 LICENSE、THIRD_PARTY_ASSETS.md、THIRD_PARTY_NOTICES.md。
