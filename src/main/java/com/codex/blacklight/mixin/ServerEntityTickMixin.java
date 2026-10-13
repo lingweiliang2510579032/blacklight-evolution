@@ -15,12 +15,13 @@ public abstract class ServerEntityTickMixin {
     private void blacklight$tick(Entity entity){
         if(MinecraftForge.EVENT_BUS.post(new ForgeEntityTickEvent.Pre(entity)))return;
         entity.tick();
-        MinecraftForge.EVENT_BUS.post(new ForgeEntityTickEvent.Post(entity));
+        // tick() can remove the entity and invalidate its capabilities (e.g. deathTime == 20).
+        if(!entity.isRemoved())MinecraftForge.EVENT_BUS.post(new ForgeEntityTickEvent.Post(entity));
     }
     @Redirect(method="tickPassenger",at=@At(value="INVOKE",target="Lnet/minecraft/world/entity/Entity;rideTick()V"))
     private void blacklight$rideTick(Entity entity){
         if(MinecraftForge.EVENT_BUS.post(new ForgeEntityTickEvent.Pre(entity)))return;
         entity.rideTick();
-        MinecraftForge.EVENT_BUS.post(new ForgeEntityTickEvent.Post(entity));
+        if(!entity.isRemoved())MinecraftForge.EVENT_BUS.post(new ForgeEntityTickEvent.Post(entity));
     }
 }

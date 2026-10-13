@@ -360,7 +360,10 @@ public final class BlacklightInfectedHost extends Monster {
         }
     }
     @Override public void tick() {
-        super.tick();updateParts();if(level().isClientSide)return;setupNavigation();
+        super.tick();
+        // Death/despawn can finish inside super.tick(); no state access after removal.
+        if(isRemoved())return;
+        updateParts();if(level().isClientSide)return;setupNavigation();
         entityData.set(DEVOURER,DevourerFeedingSystem.isDevourer(this));
         DevourerFeedingSystem.tick(this);
         tickBoss();
