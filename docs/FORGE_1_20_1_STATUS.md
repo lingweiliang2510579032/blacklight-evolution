@@ -4,6 +4,8 @@
 
 本仓本轮全量 Java 测试 276 项：266 通过、5 失败、5 跳过。4 项为先前移动预设、移动升级和警戒/伪装差异；新增的 `WeaponContentTest.eachMoveHasFiniteFullBodyAnimationWithMatchingDuration` 失败是缺少新技能动作文件，5 项 `DevastatorSourceTest` 因无扩展资料跳过，不能记作已验证完整技能。Python 资产/版本工作流测试 18 项全部通过。日志：`JB/dev5-full-build.log`、`JB/dev5-python-tests.log`。
 
+实体删除 GameTest 的 7 个场景已通过 Forge / Java 17 编译（`JB/dev5-lifecycle-compile.log`），未运行游戏场景。公开基础包的干净编译、Jar-in-Jar 重混淆、非空 refmap 和 224 文件校验通过；实际成品动作采样为 213 片段、4,473 轨道、780,381 次采样、0 失败，装甲变形/待机通过（`JB/dev5-base-motion-verify.log`）。第一次采样命令漏传必填成品路径而失败，补传后成功；未将该失败记作通过。生成基础包不等于新技能完整包验收，未启动或关闭用户的游戏。
+
 默认 bundled 仍含 224 份基础资料。`MotionLibrary` 支持完整缺少扩展时运行基础玩法，新技能不会启用；只提供部分扩展会触发缺动作校验。完整 dev.5 新技能包需整套 251 文件 external-profile，当前待作者补充 27 个动作文件，未将基础包发布为新技能完整版。
 
 上游红雾修复和实机报告见 [FORGE_DEV5_MIST_FIX.md](FORGE_DEV5_MIST_FIX.md)、[FORGE_DEV4_SKILLS.md](FORGE_DEV4_SKILLS.md)。这些报告不等于本维护仓重新进行了实机、服务端或多人验收。下文保留先前版本历史。
