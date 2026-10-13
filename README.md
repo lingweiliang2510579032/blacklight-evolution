@@ -18,9 +18,9 @@
 | GeckoLib | 4.8.4，Forge 1.20.1 版 | 必需，单独安装 |
 | ParCool | 1.20.1-3.4.3.3 | 可选兼容 |
 
-Blacklight 内嵌 MixinExtras Forge 0.4.1，由 Forge 自动加载；不内置 GeckoLib。dev.3 完整安装包作为开发预发布提供：构建与 224 个资源文件校验通过，单元测试 205/209 通过，新增抓取转向回归全部通过。dev.2 独立客户端已进入测试存档；dev.3 抓取试玩、多人、生存流程与全部视觉效果仍待验收。
+Blacklight 内嵌 MixinExtras Forge 0.4.1，由 Forge 自动加载；不内置 GeckoLib。本维护仓已同步作者 Forge dev.5 和感染实体删除后的 capability 崩溃修复（上游 `2a8c6930d8eb570ef7a3c83c32cedc9135b8315a`）。默认 224 文件基础包可启动，但不启用新毁灭技和子弹俯冲；完整新技能包需要作者额外提供的 27 份资料，共 251 份，当前正在补齐。作者的实机报告属于上游证据，本仓本轮未重复运行这些实机场景。
 
-- [下载 Forge dev.3 完整安装包](https://github.com/lingweiliang2510579032/blacklight-evolution/releases/tag/v0.3.0-forge-1.20.1-dev.3)
+- [下载已发布的 Forge dev.3 基础完整安装包](https://github.com/lingweiliang2510579032/blacklight-evolution/releases/tag/v0.3.0-forge-1.20.1-dev.3)（历史版本，不含 dev.5 新技能；dev.5 完整交付等待补齐资料）
 
 - [安装与故障排除](docs/INSTALL_ZH.md)
 - [构建、测试和运行证据](docs/FORGE_1_20_1_STATUS.md)

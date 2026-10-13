@@ -1,12 +1,16 @@
-# dev.5 最新状态
+# dev.5 本维护仓同步状态
 
-红雾颜色与透明度修正见 [FORGE_DEV5_MIST_FIX.md](FORGE_DEV5_MIST_FIX.md)。
+2026-10-13 已同步作者 `forge-1.20.1` 至 `2a8c6930d8eb570ef7a3c83c32cedc9135b8315a`，包含 PR #10、#13、#17、#18 的版本协作工具、新技能、红雾修复及感染实体删除后停止访问 capability。Minecraft 1.20.1 / Java 17 / Forge 47.4.10 / GeckoLib 4.8.4 目标保持不变。
 
-本轮技能/冲击/蓄力防滑同步及验证见 [FORGE_DEV4_SKILLS.md](FORGE_DEV4_SKILLS.md)。下文保留先前版本历史。
+本仓本轮全量 Java 测试 276 项：266 通过、5 失败、5 跳过。4 项为先前移动预设、移动升级和警戒/伪装差异；新增的 `WeaponContentTest.eachMoveHasFiniteFullBodyAnimationWithMatchingDuration` 失败是缺少新技能动作文件，5 项 `DevastatorSourceTest` 因无扩展资料跳过，不能记作已验证完整技能。Python 资产/版本工作流测试 18 项全部通过。日志：`JB/dev5-full-build.log`、`JB/dev5-python-tests.log`。
+
+默认 bundled 仍含 224 份基础资料。`MotionLibrary` 支持完整缺少扩展时运行基础玩法，新技能不会启用；只提供部分扩展会触发缺动作校验。完整 dev.5 新技能包需整套 251 文件 external-profile，当前待作者补充 27 个动作文件，未将基础包发布为新技能完整版。
+
+上游红雾修复和实机报告见 [FORGE_DEV5_MIST_FIX.md](FORGE_DEV5_MIST_FIX.md)、[FORGE_DEV4_SKILLS.md](FORGE_DEV4_SKILLS.md)。这些报告不等于本维护仓重新进行了实机、服务端或多人验收。下文保留先前版本历史。
 
 # Forge 1.20.1 维护与验收状态
 
-更新时间：2026-10-13。当前版本：0.3.0-forge-1.20.1-dev.3。完整安装包已构建，作为 Forge 1.20.1 开发预发布提供。
+dev.3 历史记录（2026-10-13）：版本 0.3.0-forge-1.20.1-dev.3 的完整基础安装包已构建并作为开发预发布提供。
 
 本分支独立维护 Minecraft 1.20.1 Forge 版本。原作者末者继续维护上游 1.21.1 NeoForge。移植基于上游提交 `d43aa4bf4263ad5ebf1de799cee06f48a0f8c018`，保留 GPL、作者署名及第三方资源声明。
 
